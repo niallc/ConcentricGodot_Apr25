@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CardResource" load_steps=2 format=3 uid="uid://dwnbco8it6861"]
+
+[ext_resource type="Script" path="res://logic/cards/card.gd" id="1_chula"]
+
+[resource]
+script = ExtResource("1_chula")
+id = "UNKNOWN_CARD"
+card_name = "Unnamed Card"
+cost = 0
+artwork_path = "res://art/default_card.png"
+description_template = "Card Description Missing."

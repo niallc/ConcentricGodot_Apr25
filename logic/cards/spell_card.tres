@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpellCardResource" load_steps=2 format=3 uid="uid://dn8owrlyc1rm"]
+
+[ext_resource type="Script" path="res://logic/cards/spell_card.gd" id="1_235qv"]
+
+[resource]
+script = ExtResource("1_235qv")
+id = "UNKNOWN_CARD"
+card_name = "Unnamed Card"
+cost = 0
+artwork_path = "res://art/default_card.png"
+description_template = "Card Description Missing."

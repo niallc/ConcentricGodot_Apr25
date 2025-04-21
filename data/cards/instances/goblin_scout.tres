@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SummonCardResource" load_steps=2 format=3 uid="uid://u5q1hjy7cm8i"]
+
+[ext_resource type="Script" path="res://logic/cards/summon_card.gd" id="1_112rk"]
+
+[resource]
+script = ExtResource("1_112rk")
+base_power = 0
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "UNKNOWN_CARD"
+card_name = "Unnamed Card"
+cost = 0
+artwork_path = "res://art/default_card.png"
+description_template = "Card Description Missing."
