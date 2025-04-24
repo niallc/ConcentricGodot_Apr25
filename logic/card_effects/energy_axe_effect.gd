@@ -33,13 +33,13 @@ func apply_effect(active_combatant: Combatant, opponent_combatant: Combatant, ba
 		var no_target_event = {
 			"event_type": "log_message",
 			"message": "%s's Energy Axe found no target." % active_combatant.name
-		}
+		} 
 		battle_instance.add_event(no_target_event)
 
 # Override can_play to check for a valid target *before* casting
 func can_play(active_combatant: Combatant, opponent_combatant: Combatant, turn_count: int, battle_instance: Battle) -> bool:
 	# Default mana check first
-	if active_combatant.mana < self.get_base_resource().cost:
+	if active_combatant.mana < self.cost:
 		return false
 	# Check if there is at least one summon in the lanes
 	for summon_instance in active_combatant.lanes:

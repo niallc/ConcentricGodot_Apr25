@@ -15,6 +15,7 @@ var current_seed = 0 # Store the seed used
 var battle_state = "Ongoing" # "Ongoing", "Finished"
 
 func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: String, name2: String, seed: int = 0) -> Array[Dictionary]:
+	print("Is it an Ostrich, a Quokka, a Polar Bear, or a Marmot?")
 	battle_events.clear()
 	_event_timestamp_counter = 0.0
 	_event_id_counter = 0
@@ -25,7 +26,7 @@ func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: S
 		rng.randomize()
 		current_seed = rng.get_state() # Store the generated seed state if needed
 	else:
-		rng.seed(seed)
+		rng.seed = seed
 		current_seed = seed
 
 	print("Starting battle. Seed: %s" % str(current_seed))
@@ -116,8 +117,8 @@ func check_game_over() -> bool:
 
 func log_winner():
 	battle_state = "Finished"
-	var outcome = "Draw"
-	var winner_name = "Nobody"
+	var outcome = "Draw (Player loss)"
+	var winner_name = "Computer Opponent"
 
 	if duelist1.current_hp <= 0 and duelist2.current_hp > 0:
 		outcome = "Duelist2 Wins" # Adjust based on who is player/adversary later
