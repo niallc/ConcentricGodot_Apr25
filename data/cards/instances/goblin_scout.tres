@@ -1,15 +1,15 @@
-[gd_resource type="Resource" script_class="SummonCardResource" load_steps=2 format=3 uid="uid://u5q1hjy7cm8i"]
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://u5q1hjy7cm8i"]
 
-[ext_resource type="Script" path="res://logic/cards/summon_card.gd" id="1_112rk"]
+[ext_resource type="Script" path="res://logic/card_effects/goblin_scout_effect.gd" id="1_nuaf4"]
 
 [resource]
-script = ExtResource("1_112rk")
-base_power = 0
-base_max_hp = 1
+script = ExtResource("1_nuaf4")
+base_power = 1
+base_max_hp = 2
 tags = Array[String]([])
 is_swift = false
-id = "UNKNOWN_CARD"
-card_name = "Unnamed Card"
-cost = 0
+id = "GoblinScout"
+card_name = "Goblin Scout"
+cost = 2
 artwork_path = "res://art/default_card.png"
-description_template = "Card Description Missing."
+description_template = "A simple Goblin, it hits things."

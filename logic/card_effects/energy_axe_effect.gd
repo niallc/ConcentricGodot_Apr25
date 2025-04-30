@@ -2,9 +2,9 @@
 extends "res://logic/cards/spell_card.gd"
 
 # Override the base SpellCard apply_effect method
-func apply_effect(active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle):
+func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent_combatant, battle_instance):
+	var target_instance # SummonInstance = null # Use inference or # Type hint
 	# Find the leftmost summon instance for the active combatant
-	var target_instance: SummonInstance = null
 	var target_lane_index = -1
 	for i in range(active_combatant.lanes.size()):
 		if active_combatant.lanes[i] != null:
@@ -14,13 +14,14 @@ func apply_effect(active_combatant: Combatant, opponent_combatant: Combatant, ba
 
 	if target_instance != null:
 		var power_boost = 3
-		target_instance.add_power(power_boost) # This method in SummonInstance generates the stat_change event
+		# *** Use source_card_res.id or .card_name for the source_id ***
+		target_instance.add_power(power_boost, source_card_res.id, -1) # Pass ID, duration -1 for permanent
 
 		# Generate a visual effect event
 		var visual_event = {
 			"event_type": "visual_effect",
 			"effect_id": "energy_axe_boost", # Identifier for the visual effect
-			"target_locations": ["%s lane %d" % [active_combatant.name, target_lane_index + 1]], # Target lane (1-based)
+			"target_locations": ["%s lane %d" % [active_combatant.combatant_name, target_lane_index + 1]], # Target lane (1-based)
 			"details": {"boost_amount": power_boost}
 		}
 		battle_instance.add_event(visual_event)

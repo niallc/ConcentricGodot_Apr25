@@ -1,15 +1,15 @@
-[gd_resource type="Resource" script_class="SummonCardResource" load_steps=2 format=3 uid="uid://cn4pp3vfk0lx1"]
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cn4pp3vfk0lx1"]
 
-[ext_resource type="Script" path="res://logic/cards/summon_card.gd" id="1_vri5o"]
+[ext_resource type="Script" path="res://logic/card_effects/healer_effect.gd" id="1_n3kvh"]
 
 [resource]
-script = ExtResource("1_vri5o")
-base_power = 0
-base_max_hp = 1
+script = ExtResource("1_n3kvh")
+base_power = 1
+base_max_hp = 5
 tags = Array[String]([])
 is_swift = false
-id = "UNKNOWN_CARD"
-card_name = "Unnamed Card"
-cost = 0
-artwork_path = "res://art/default_card.png"
-description_template = "Card Description Missing."
+id = "Healer"
+card_name = "Healer"
+cost = 4
+artwork_path = "res://art/healer.webp"
+description_template = "Adds 8 health to the player on summon."

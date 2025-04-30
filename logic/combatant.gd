@@ -2,24 +2,23 @@
 extends Object
 class_name Combatant
 
+# --- Properties (as before) ---
 var combatant_name: String = "Default Combatant"
 var max_hp: int = Constants.STARTING_HP
 var current_hp: int = Constants.STARTING_HP
 var mana: int = Constants.STARTING_MANA
-
 var library: Array[CardResource] = []
 var graveyard: Array[CardResource] = []
-var lanes: Array = [] # Will hold SummonInstance or null
-
-var battle_instance: Battle # Reference to the battle for events
-var opponent: Combatant # Reference to the opponent
+var lanes: Array = []
+var battle_instance # Battle
+var opponent # Combatant
 
 func _init():
-	lanes.resize(Constants.LANE_COUNT) # Initialize lanes array with nulls
+	lanes.resize(Constants.LANE_COUNT)
 	lanes.fill(null)
 
-func setup(deck_res: Array[CardResource], start_hp: int, c_name: String, battle_ref: Battle, opp_ref: Combatant):
-	self.library = deck_res.duplicate() # Use a copy
+func setup(deck_res: Array[CardResource], start_hp: int, c_name: String, battle_ref, opp_ref):
+	self.library = deck_res.duplicate()
 	self.max_hp = start_hp
 	self.current_hp = start_hp
 	self.combatant_name = c_name
@@ -28,49 +27,108 @@ func setup(deck_res: Array[CardResource], start_hp: int, c_name: String, battle_
 	self.mana = Constants.STARTING_MANA
 	print("%s setup complete. Deck size: %d" % [combatant_name, library.size()])
 
+# --- Methods with Event Generation ---
 func take_damage(amount: int, source = null) -> bool: # Returns true if defeated
-	print("%s takes %d damage" % [combatant_name, amount])
-	current_hp -= amount
-	# TODO: Generate hp_change event via battle_instance.add_event(...)
+	#if amount <= 0: return false
+	var hp_decrement = max(0, amount)
+	var hp_before = current_hp
+	current_hp -= hp_decrement
+	var defeated = false
 	if current_hp <= 0:
 		current_hp = 0
+		defeated = true
+
+	print("%s takes %d damage. Now %d/%d" % [combatant_name, hp_decrement, current_hp, max_hp])
+	# Generate hp_change event
+	battle_instance.add_event({
+		"event_type": "hp_change",
+		"player": combatant_name,
+		"amount": -hp_decrement, # Negative for damage
+		"new_total": current_hp
+		# TODO: Add source info?
+	})
+
+	if defeated:
 		print("%s defeated!" % combatant_name)
-		return true
-	return false
+		# Check game over state in Battle after this returns
+	return defeated
 
 func heal(amount: int):
-	print("%s heals %d HP" % [combatant_name, amount])
-	current_hp = min(current_hp + amount, max_hp)
-	# TODO: Generate hp_change event
+	var heal_increment = max(0, amount)
+	var hp_before = current_hp
+	current_hp = min(current_hp + heal_increment, max_hp)
+
+	if current_hp > hp_before: # Only generate event if HP changed
+		print("%s heals %d HP. Now %d/%d" % [combatant_name, heal_increment, current_hp, max_hp])
+		# Generate hp_change event
+		battle_instance.add_event({
+			"event_type": "hp_change",
+			"player": combatant_name,
+			"amount": current_hp - hp_before, # Positive for heal
+			"new_total": current_hp
+		})
 
 func gain_mana(amount: int):
+	var mana_add = max(0, amount)
 	var old_mana = mana
-	mana = min(mana + amount, Constants.MAX_MANA)
-	print("%s gains %d mana. Total: %d" % [combatant_name, amount, mana])
-	# TODO: Generate mana_change event if mana != old_mana
+	mana = min(mana + mana_add, Constants.MAX_MANA)
+	if mana > old_mana: # Only generate event if mana changed
+		print("%s gains %d mana. Total: %d" % [combatant_name, mana - old_mana, mana])
+		# Generate mana_change event
+		battle_instance.add_event({
+			"event_type": "mana_change",
+			"player": combatant_name,
+			"amount": mana - old_mana, # Positive for gain
+			"new_total": mana
+		})
 
 func pay_mana(amount: int) -> bool:
 	if mana >= amount:
 		var old_mana = mana
 		mana -= amount
 		print("%s pays %d mana. Remaining: %d" % [combatant_name, amount, mana])
-		# TODO: Generate mana_change event if mana != old_mana
+		# Generate mana_change event
+		battle_instance.add_event({
+			"event_type": "mana_change",
+			"player": combatant_name,
+			"amount": -amount, # Negative for cost
+			"new_total": mana
+		})
 		return true
 	return false
 
 func add_card_to_graveyard(card_res: CardResource, from_zone: String):
+	if card_res == null:
+		printerr("Attempted to add null card to graveyard.")
+		return
 	print("Adding %s to %s's graveyard from %s" % [card_res.card_name, combatant_name, from_zone])
 	graveyard.push_back(card_res)
-	# TODO: Generate card_moved event
+	# Generate card_moved event
+	battle_instance.add_event({
+		"event_type": "card_moved",
+		"card_id": card_res.id,
+		"player": combatant_name,
+		"from_zone": from_zone, # e.g., "library", "lane", "play"
+		"to_zone": "graveyard",
+		# Include details like lane index if relevant (from_details?)
+	})
 
 func remove_card_from_library() -> CardResource:
 	if not library.is_empty():
 		var card = library.pop_front()
 		print("Removing %s from %s's library top" % [card.card_name, combatant_name])
-		# TODO: Generate card_moved event (library -> play)
+		# Generate card_moved event (library -> play)
+		battle_instance.add_event({
+			"event_type": "card_moved",
+			"card_id": card.id,
+			"player": combatant_name,
+			"from_zone": "library",
+			"to_zone": "play" # "play" is a temporary zone before lane/graveyard
+		})
 		return card
 	return null
 
+# --- Rest of methods (find_first_empty_lane, place_summon_in_lane, remove_summon_from_lane) as before ---
 func find_first_empty_lane() -> int:
 	return lanes.find(null) # Returns index or -1
 
@@ -88,5 +146,3 @@ func remove_summon_from_lane(lane_index: int):
 		lanes[lane_index] = null
 	else:
 		printerr("Failed to remove summon from %s's lane %d" % [combatant_name, lane_index])
-
-# --- Add other methods like library/graveyard manipulation as needed ---

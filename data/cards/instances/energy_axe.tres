@@ -1,11 +1,11 @@
-[gd_resource type="Resource" script_class="SpellCardResource" load_steps=2 format=3 uid="uid://cptuwlpbq6g3x"]
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cptuwlpbq6g3x"]
 
-[ext_resource type="Script" path="res://logic/cards/spell_card.gd" id="1_jcqf4"]
+[ext_resource type="Script" path="res://logic/card_effects/energy_axe_effect.gd" id="1_42pml"]
 
 [resource]
-script = ExtResource("1_jcqf4")
+script = ExtResource("1_42pml")
 id = "EnergyAxe"
 card_name = "Energy Axe"
-cost = 0
+cost = 4
 artwork_path = "res://art/cards/energyAxe.webp"
-description_template = "Card Description Missing."
+description_template = "Buffs the leftmost creature."

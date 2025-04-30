@@ -11,7 +11,7 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant: Combatant, o
 	var visual_event = {
 		"event_type": "visual_effect",
 		"effect_id": "heal_pulse_player",
-		"target_locations": [active_combatant.name], # Target the player portrait/area
+		"target_locations": [active_combatant.combatant_name], # Target the player portrait/area
 		"details": {"heal_amount": heal_amount}
 	}
 	battle_instance.add_event(visual_event)

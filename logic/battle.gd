@@ -15,7 +15,7 @@ var current_seed = 0 # Store the seed used
 var battle_state = "Ongoing" # "Ongoing", "Finished"
 
 func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: String, name2: String, seed: int = 0) -> Array[Dictionary]:
-	print("Is it an Ostrich, a Quokka, a Polar Bear, or a Marmot?")
+	# print("Is it an Ostrich, a Quokka, a Polar Bear, or a Marmot?")
 	battle_events.clear()
 	_event_timestamp_counter = 0.0
 	_event_id_counter = 0
@@ -70,7 +70,7 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 	if check_game_over(): return
 
 	# 2. Card Play Phase
-	# TODO: Implement card draw/play logic based on v1 spec pseudocode
+	# Summary: Implement card draw/play logic based on v1 spec pseudocode
 	# - Get top card: active_duelist.library[0]
 	# - Check can_play (mana, custom script check)
 	# - Check lanes (if Summon)
@@ -78,9 +78,124 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 	# - Remove card: active_duelist.remove_card_from_library()
 	# - If Spell: card_script.apply_effect(...); active_duelist.add_card_to_graveyard(...)
 	# - If Summon: Create SummonInstance, place in lane, generate summon_arrives, call _on_arrival
-	pass # Placeholder
+	if not active_duelist.library.is_empty():
+		var top_card: CardResource = active_duelist.library[0]
+		var card_script_instance = null
+		if top_card.script != null:
+			# NOTE: We might want to cache these script instances if .new() is slow,
+			# but for now, creating it on demand is fine.
+			card_script_instance = top_card.script.new()
 
-	if check_game_over(): return
+		# --- Check Playability ---
+		var play_cost = top_card.cost
+		var can_afford = active_duelist.mana >= play_cost
+		var custom_can_play = true
+		var lane_available = true # Assume true unless it's a summon that needs one
+
+		# Custom script check (if method exists)
+		if card_script_instance != null and card_script_instance.has_method("can_play"):
+			custom_can_play = card_script_instance.can_play(active_duelist, opponent_duelist, turn_count, self)
+
+		# Lane check (only if it's a SummonCardResource)
+		if top_card is SummonCardResource:
+			if active_duelist.find_first_empty_lane() == -1:
+				lane_available = false
+
+		# --- Attempt Play ---
+		if can_afford and custom_can_play and lane_available:
+			print("Attempting to play: %s" % top_card.card_name)
+			# Pay Cost
+			if active_duelist.pay_mana(play_cost): # pay_mana generates mana_change event
+				# Remove Card from Library (generates card_moved library -> play)
+				var played_card_res = active_duelist.remove_card_from_library()
+
+				if played_card_res != null: # Should always succeed if library wasn't empty
+					# Generate Summary Event
+					add_event({
+						"event_type": "card_played",
+						"player": active_duelist.combatant_name,
+						"card_id": played_card_res.id,
+						"card_type": played_card_res.get_card_type(), # "Spell" or "Summon"
+						"remaining_mana": active_duelist.mana
+						# Lane added by summon_arrives event if applicable
+					})
+
+					# --- Resolve Effect ---
+					if played_card_res is SummonCardResource:
+						var summon_card_res = played_card_res as SummonCardResource
+						var target_lane_index = active_duelist.find_first_empty_lane() # Find again to be safe
+
+						if target_lane_index != -1:
+							var new_summon = SummonInstance.new()
+							# Pass references needed by SummonInstance and its effects
+							new_summon.setup(summon_card_res, active_duelist, opponent_duelist, target_lane_index, self)
+
+							# Place in logic lane
+							active_duelist.place_summon_in_lane(new_summon, target_lane_index)
+
+							# Generate Arrives Event
+							add_event({
+								"event_type": "summon_arrives",
+								"player": active_duelist.combatant_name,
+								"card_id": summon_card_res.id,
+								"lane": target_lane_index + 1, # 1-based
+								"power": new_summon.get_current_power(), # Use calculated value
+								"max_hp": new_summon.get_current_max_hp(),
+								"current_hp": new_summon.current_hp,
+								"is_swift": new_summon.is_swift
+							})
+
+							# Generate Moved Event (play -> lane)
+							add_event({
+								"event_type": "card_moved",
+								"card_id": played_card_res.id,
+								"player": active_duelist.combatant_name,
+								"from_zone": "play",
+								"to_zone": "lane",
+								"to_details": {"lane": target_lane_index + 1}
+							})
+
+							# Call _on_arrival effect script (if it exists)
+							# The effect script is responsible for its own events
+							if new_summon.script_instance != null and new_summon.script_instance.has_method("_on_arrival"):
+								new_summon.script_instance._on_arrival(new_summon, active_duelist, opponent_duelist, self)
+
+						else:
+							# This case should ideally be prevented by the lane_available check, but log defensively
+							printerr("Error: Tried to summon %s but no empty lane found after check!" % played_card_res.card_name)
+							# Should the card go to graveyard? Or fizzle? Let's assume graveyard for now.
+							active_duelist.add_card_to_graveyard(played_card_res, "play")
+
+
+					elif played_card_res is SpellCardResource:
+						var spell_card_res = played_card_res as SpellCardResource
+						# Call apply_effect script (if it exists)
+						# The effect script is responsible for its own events
+						if card_script_instance != null and card_script_instance.has_method("apply_effect"):
+							# *** PASS the spell_card_res ***
+							card_script_instance.apply_effect(spell_card_res, active_duelist, opponent_duelist, self)
+
+						else:
+							print("Warning: Spell %s has no apply_effect method." % spell_card_res.card_name)
+
+						# Add spell to graveyard (generates card_moved play -> graveyard)
+						active_duelist.add_card_to_graveyard(spell_card_res, "play")
+
+				else:
+					printerr("Error: Failed to remove card from library after paying mana.")
+			else:
+				# This shouldn't happen if can_afford was true, but log defensively
+				printerr("Error: Failed to pay mana for %s even though check passed." % top_card.card_name)
+
+		# else: # Card could not be played (mana, custom check, or no lane)
+			# print("Could not play %s" % top_card.card_name) # Optional: Log non-play event?
+
+	else: # Library is empty
+		print("%s has no cards left to play." % active_duelist.combatant_name)
+
+
+	if check_game_over(): return # Check if game ended due to card play effects
+
 
 	# 3. Summon Activity Phase
 	print("Summon Activity for %s" % active_duelist.combatant_name)
