@@ -20,18 +20,21 @@ var is_relentless: bool = false
 var script_instance = null
 var custom_state: Dictionary = {}
 
-# --- Calculation Methods (Implement modifier logic here later) ---
 func get_current_power() -> int:
 	var calculated_power = base_power
-	# TODO: Apply power_modifiers
-	# for mod in power_modifiers: calculated_power += mod["value"]
+	for mod in power_modifiers:
+		# Check duration only if it's not permanent (-1)
+		if mod["duration"] != 0: # 0 means expired this turn but not yet removed
+			calculated_power += mod["value"]
 	return max(0, calculated_power)
 
 func get_current_max_hp() -> int:
 	var calculated_max_hp = base_max_hp
-	# TODO: Apply max_hp_modifiers
-	# for mod in max_hp_modifiers: calculated_max_hp += mod["value"]
-	return max(0, calculated_max_hp)
+	for mod in max_hp_modifiers:
+		if mod["duration"] != 0:
+			calculated_max_hp += mod["value"]
+	return max(1, calculated_max_hp)
+
 
 # --- Setup (as before) ---
 func setup(card_res: SummonCardResource, owner, opp, lane_idx: int, battle):
@@ -58,8 +61,8 @@ func setup(card_res: SummonCardResource, owner, opp, lane_idx: int, battle):
 
 # --- Damage & Death (with Event Generation) ---
 func take_damage(amount: int, source = null):
-	if amount <= 0: return # Taking 0 or negative damage does nothing
-	var hp_decrement = max(0, amount)
+	var hp_decrement = max(0, amount) # Use max(0,...) based on our previous discussion
+
 	var hp_before = current_hp
 	current_hp -= hp_decrement
 	print("%s takes %d damage. Now %d/%d" % [card_resource.card_name, hp_decrement, current_hp, get_current_max_hp()])
@@ -68,93 +71,73 @@ func take_damage(amount: int, source = null):
 	battle_instance.add_event({
 		"event_type": "creature_hp_change",
 		"player": owner_combatant.combatant_name,
-		"lane": lane_index + 1, # 1-based for events
-		"amount": -hp_decrement, # Negative for damage
+		"lane": lane_index + 1,
+		"amount": -hp_decrement, # Use the actual decrement
 		"new_hp": current_hp,
 		"new_max_hp": get_current_max_hp()
-		# TODO: Add source info if available/needed
 	})
 
 	if current_hp <= 0:
 		die()
 
 func heal(amount: int):
-	# if amount <= 0: return
-	var heal_increase = max(0, amount)
+	var heal_increment = max(0, amount) # Use max(0,...)
+
 	var max_hp = get_current_max_hp()
 	var hp_before = current_hp
-	current_hp = min(current_hp + heal_increase, max_hp)
+	current_hp = min(current_hp + heal_increment, max_hp)
 
-	if current_hp > hp_before: # Only generate event if HP actually changed
-		print("%s heals %d HP. Now %d/%d" % [card_resource.card_name, heal_increase, current_hp, max_hp])
-		# Generate creature_hp_change event
+	if current_hp > hp_before:
+		print("%s heals %d HP. Now %d/%d" % [card_resource.card_name, current_hp - hp_before, current_hp, max_hp])
 		battle_instance.add_event({
 			"event_type": "creature_hp_change",
 			"player": owner_combatant.combatant_name,
-			"lane": lane_index + 1, # 1-based for events
-			"amount": current_hp - hp_before, # Positive for heal
+			"lane": lane_index + 1,
+			"amount": current_hp - hp_before, # Actual amount healed
 			"new_hp": current_hp,
 			"new_max_hp": max_hp
 		})
 
-
 func die():
 	print("%s dies!" % card_resource.card_name)
-	# Generate creature_defeated event *before* removing from lane
 	battle_instance.add_event({
 		"event_type": "creature_defeated",
 		"player": owner_combatant.combatant_name,
-		"lane": lane_index + 1 # 1-based for events
+		"lane": lane_index + 1
 	})
-
-	# Call _on_death effect script *before* graveyard/removal if it exists
 	if script_instance != null and script_instance.has_method("_on_death"):
 		script_instance._on_death(self, owner_combatant, opponent_combatant, battle_instance)
-
-	# Remove instance from lane (owner's perspective)
 	owner_combatant.remove_summon_from_lane(lane_index)
-	# Add the card *resource* to graveyard
-	owner_combatant.add_card_to_graveyard(card_resource, "lane") # "lane" indicates where it died from
+	owner_combatant.add_card_to_graveyard(card_resource, "lane")
 
-# --- Turn Activity Logic (Implemented) ---
+# --- Turn Activity Logic ---
 func perform_turn_activity():
-	var activity_type = "none" # Default if no action taken
+	# ... (uses get_current_power() indirectly via helpers) ...
+	var activity_type = "none"
 	var opposing_instance = opponent_combatant.lanes[lane_index]
-
-	# Check if card effect script overrides the default activity
 	if script_instance != null and script_instance.has_method("perform_turn_activity_override"):
 		if script_instance.perform_turn_activity_override(self, owner_combatant, opponent_combatant, battle_instance):
-			# If override returns true, it handled everything (including event generation)
 			return
-
-	# Determine target: Opponent directly or opposing creature?
 	if is_relentless or opposing_instance == null:
 		activity_type = "direct_attack"
 		_perform_direct_attack()
 	else:
 		activity_type = "attack"
 		_perform_combat(opposing_instance)
-
-	# Generate the base activity event (specific damage events generated by helpers)
 	if activity_type != "none":
 		battle_instance.add_event({
 			"event_type": "summon_turn_activity",
 			"player": owner_combatant.combatant_name,
-			"lane": lane_index + 1, # 1-based
+			"lane": lane_index + 1,
 			"activity_type": activity_type
 		})
 
 func _perform_direct_attack():
-	var damage = max(0, get_current_power())
-	#if damage <= 0:
-		#print("%s attempts direct attack but has 0 power." % card_resource.card_name)
-		#return
-
+	var damage = max(0, get_current_power()) # Use calculated power
+	# ... (rest of direct attack logic as before) ...
 	print("%s attacks opponent directly for %d damage" % [card_resource.card_name, damage])
 	var target_player_hp_before = opponent_combatant.current_hp
-	var defeated = opponent_combatant.take_damage(damage, self) # take_damage generates hp_change
-
-	# Generate direct_damage event (provides context for the hp_change)
+	var defeated = opponent_combatant.take_damage(damage, self)
 	battle_instance.add_event({
 		"event_type": "direct_damage",
 		"attacking_player": owner_combatant.combatant_name,
@@ -163,18 +146,14 @@ func _perform_direct_attack():
 		"amount": damage,
 		"target_player_remaining_hp": opponent_combatant.current_hp
 	})
-
-	# Check if game ended immediately after damage
 	battle_instance.check_game_over()
 
-func _perform_combat(target_instance):
-	var damage = max(0, get_current_power())
 
+func _perform_combat(target_instance):
+	var damage = max(0, get_current_power()) # Use calculated power
 	print("%s attacks %s for %d damage" % [card_resource.card_name, target_instance.card_resource.card_name, damage])
 	var target_hp_before = target_instance.current_hp
-	target_instance.take_damage(damage, self) # take_damage generates creature_hp_change
-
-	# Generate combat_damage event (provides context)
+	target_instance.take_damage(damage, self)
 	battle_instance.add_event({
 		"event_type": "combat_damage",
 		"attacking_player": owner_combatant.combatant_name,
@@ -182,35 +161,129 @@ func _perform_combat(target_instance):
 		"defending_player": target_instance.owner_combatant.combatant_name,
 		"defending_lane": target_instance.lane_index + 1,
 		"amount": damage,
-		"defender_remaining_hp": target_instance.current_hp # HP after damage
+		"defender_remaining_hp": target_instance.current_hp
 	})
 
 	# Note: 'take_damage' on the target handles calling 'die' if HP <= 0
 
 
-# --- Upkeep (as before, TODO needed for modifiers) ---
-func _end_of_turn_upkeep():
-	is_newly_arrived = false # Reset flag
-	# TODO: Process modifiers (decrement duration, remove expired)
-	# TODO: Generate events if stats change due to expiration
-	# Make sure to recalculate/clamp current_hp if max_hp changes
-	pass
-
-# --- Modifier Methods (Placeholders - Implement later) ---
+# --- Modifier Methods (Implemented) ---
 func add_power(amount: int, source_id: String = "unknown", duration: int = -1):
-	print("%s gets %d power from %s" % [card_resource.card_name, amount, source_id])
-	# TODO: Add to power_modifiers array
-	# TODO: Generate stat_change event with NEW calculated power
-	pass
+	# Add the modifier to the list
+	var modifier = {"source": source_id, "value": amount, "duration": duration}
+	power_modifiers.append(modifier)
+	print("%s gets %d power from %s (Modifier added: %s)" % [card_resource.card_name, amount, source_id, modifier])
+
+	# Generate stat_change event with the *new* calculated power
+	battle_instance.add_event({
+		"event_type": "stat_change",
+		"player": owner_combatant.combatant_name,
+		"lane": lane_index + 1,
+		"stat": "power",
+		"amount": amount, # The change amount
+		"new_value": get_current_power() # The resulting value after change
+	})
 
 func add_hp(amount: int, source_id: String = "unknown", duration: int = -1):
-	print("%s gets %d max HP from %s" % [card_resource.card_name, amount, source_id])
-	# TODO: Add to max_hp_modifiers array
-	# TODO: heal(amount) # Increase current HP too
-	# TODO: Generate stat_change (max_hp) event
-	# TODO: Generate creature_hp_change event (already done by heal if HP increased)
-	pass
+	# Add the modifier to the list
+	var modifier = {"source": source_id, "value": amount, "duration": duration}
+	max_hp_modifiers.append(modifier)
+	print("%s gets %d max HP from %s (Modifier added: %s)" % [card_resource.card_name, amount, source_id, modifier])
+
+	# Generate stat_change event for max_hp
+	var new_max_hp = get_current_max_hp()
+	battle_instance.add_event({
+		"event_type": "stat_change",
+		"player": owner_combatant.combatant_name,
+		"lane": lane_index + 1,
+		"stat": "max_hp",
+		"amount": amount, # The change amount
+		"new_value": new_max_hp # The resulting value
+	})
+
+	# Also increase current HP by the same amount (heal effect)
+	# Call heal, which handles clamping and generating the creature_hp_change event
+	heal(amount)
+
 
 func add_counter(amount: int, source_id: String = "unknown", duration: int = -1):
+	# Call add_power and add_hp which now handle adding modifiers and events
 	add_power(amount, source_id, duration)
 	add_hp(amount, source_id, duration)
+
+func _end_of_turn_upkeep():
+	is_newly_arrived = false # Reset flag
+
+	var stats_changed = false
+	var hp_before_upkeep = current_hp
+	# Store stats *before* processing expirations
+	var power_before_upkeep = get_current_power()
+	var max_hp_before_upkeep = get_current_max_hp()
+
+	# --- Process modifier durations ---
+	# Iterate backwards because we might remove elements
+	# Power Modifiers
+	for i in range(power_modifiers.size() - 1, -1, -1):
+		var mod = power_modifiers[i]
+		if mod["duration"] > 0: # Only decrement timed effects
+			mod["duration"] -= 1
+			if mod["duration"] == 0:
+				print("%s: Power modifier from %s expired." % [card_resource.card_name, mod["source"]])
+				power_modifiers.remove_at(i)
+				stats_changed = true
+
+	# Max HP Modifiers
+	for i in range(max_hp_modifiers.size() - 1, -1, -1):
+		var mod = max_hp_modifiers[i]
+		if mod["duration"] > 0: # Only decrement timed effects
+			mod["duration"] -= 1
+			if mod["duration"] == 0:
+				print("%s: Max HP modifier from %s expired." % [card_resource.card_name, mod["source"]])
+				max_hp_modifiers.remove_at(i)
+				stats_changed = true
+
+	# --- Generate events and adjust HP if stats changed ---
+	if stats_changed:
+		var final_power = get_current_power() # Recalculate after removals
+		var final_max_hp = get_current_max_hp() # Recalculate after removals
+
+		print("%s upkeep finished. New Power: %d, New MaxHP: %d" % [card_resource.card_name, final_power, final_max_hp])
+
+		# Generate stat_change events for the *net change* caused by expiration
+		if final_power != power_before_upkeep:
+			battle_instance.add_event({
+				"event_type": "stat_change",
+				"player": owner_combatant.combatant_name,
+				"lane": lane_index + 1,
+				"stat": "power",
+				"amount": final_power - power_before_upkeep, # Net change
+				"new_value": final_power,
+				"source": "expiration" # Indicate cause
+			})
+		if final_max_hp != max_hp_before_upkeep:
+			battle_instance.add_event({
+				"event_type": "stat_change",
+				"player": owner_combatant.combatant_name,
+				"lane": lane_index + 1,
+				"stat": "max_hp",
+				"amount": final_max_hp - max_hp_before_upkeep, # Net change
+				"new_value": final_max_hp,
+				"source": "expiration"
+			})
+
+		# Clamp current HP to the potentially new (lower) max HP
+		var hp_after_clamp = min(current_hp, final_max_hp)
+		if hp_after_clamp < current_hp: # Check if clamping *reduced* HP
+			var change_amount = hp_after_clamp - current_hp # Will be negative
+			current_hp = hp_after_clamp
+			print("...HP clamped to new max HP. Now %d/%d" % [current_hp, final_max_hp])
+			# Generate hp change if clamping reduced HP
+			battle_instance.add_event({
+				"event_type": "creature_hp_change",
+				"player": owner_combatant.combatant_name,
+				"lane": lane_index + 1,
+				"amount": change_amount,
+				"new_hp": current_hp,
+				"new_max_hp": final_max_hp,
+				"source": "expiration_clamp" # Indicate cause
+			})
