@@ -60,10 +60,8 @@ func setup(card_res: SummonCardResource, owner, opp, lane_idx: int, battle):
 
 
 # --- Damage & Death (with Event Generation) ---
-func take_damage(amount: int, source = null):
+func take_damage(amount: int, _source = null):
 	var hp_decrement = max(0, amount) # Use max(0,...) based on our previous discussion
-
-	var hp_before = current_hp
 	current_hp -= hp_decrement
 	print("%s takes %d damage. Now %d/%d" % [card_resource.card_name, hp_decrement, current_hp, get_current_max_hp()])
 
@@ -136,8 +134,7 @@ func _perform_direct_attack():
 	var damage = max(0, get_current_power()) # Use calculated power
 	# ... (rest of direct attack logic as before) ...
 	print("%s attacks opponent directly for %d damage" % [card_resource.card_name, damage])
-	var target_player_hp_before = opponent_combatant.current_hp
-	var defeated = opponent_combatant.take_damage(damage, self)
+	var _defeated = opponent_combatant.take_damage(damage, self)
 	battle_instance.add_event({
 		"event_type": "direct_damage",
 		"attacking_player": owner_combatant.combatant_name,
@@ -152,7 +149,6 @@ func _perform_direct_attack():
 func _perform_combat(target_instance):
 	var damage = max(0, get_current_power()) # Use calculated power
 	print("%s attacks %s for %d damage" % [card_resource.card_name, target_instance.card_resource.card_name, damage])
-	var target_hp_before = target_instance.current_hp
 	target_instance.take_damage(damage, self)
 	battle_instance.add_event({
 		"event_type": "combat_damage",
@@ -215,7 +211,6 @@ func _end_of_turn_upkeep():
 	is_newly_arrived = false # Reset flag
 
 	var stats_changed = false
-	var hp_before_upkeep = current_hp
 	# Store stats *before* processing expirations
 	var power_before_upkeep = get_current_power()
 	var max_hp_before_upkeep = get_current_max_hp()

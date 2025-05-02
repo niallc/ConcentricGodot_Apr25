@@ -14,7 +14,7 @@ var current_seed = 0 # Store the seed used
 
 var battle_state = "Ongoing" # "Ongoing", "Finished"
 
-func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: String, name2: String, seed: int = 0) -> Array[Dictionary]:
+func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: String, name2: String, my_seed: int = 0) -> Array[Dictionary]:
 	# print("Is it an Ostrich, a Quokka, a Polar Bear, or a Marmot?")
 	battle_events.clear()
 	_event_timestamp_counter = 0.0
@@ -22,12 +22,12 @@ func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: S
 	turn_count = 0
 	battle_state = "Ongoing"
 
-	if seed == 0:
+	if my_seed == 0:
 		rng.randomize()
 		current_seed = rng.get_state() # Store the generated seed state if needed
 	else:
-		rng.seed = seed
-		current_seed = seed
+		rng.seed = my_seed
+		current_seed = my_seed
 
 	print("Starting battle. Seed: %s" % str(current_seed))
 

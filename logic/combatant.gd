@@ -28,10 +28,9 @@ func setup(deck_res: Array[CardResource], start_hp: int, c_name: String, battle_
 	print("%s setup complete. Deck size: %d" % [combatant_name, library.size()])
 
 # --- Methods with Event Generation ---
-func take_damage(amount: int, source = null) -> bool: # Returns true if defeated
+func take_damage(amount: int, _source = null) -> bool: # Returns true if defeated
 	#if amount <= 0: return false
 	var hp_decrement = max(0, amount)
-	var hp_before = current_hp
 	current_hp -= hp_decrement
 	var defeated = false
 	if current_hp <= 0:
@@ -84,7 +83,6 @@ func gain_mana(amount: int):
 
 func pay_mana(amount: int) -> bool:
 	if mana >= amount:
-		var old_mana = mana
 		mana -= amount
 		print("%s pays %d mana. Remaining: %d" % [combatant_name, amount, mana])
 		# Generate mana_change event

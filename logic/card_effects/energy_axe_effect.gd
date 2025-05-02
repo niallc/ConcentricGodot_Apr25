@@ -2,7 +2,7 @@
 extends "res://logic/cards/spell_card.gd"
 
 # Override the base SpellCard apply_effect method
-func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent_combatant, battle_instance):
+func apply_effect(source_card_res: SpellCardResource, active_combatant, _opponent_combatant, battle_instance):
 	var target_instance # SummonInstance = null # Use inference or # Type hint
 	# Find the leftmost summon instance for the active combatant
 	var target_lane_index = -1
@@ -38,7 +38,7 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent
 		battle_instance.add_event(no_target_event)
 
 # Override can_play to check for a valid target *before* casting
-func can_play(active_combatant: Combatant, opponent_combatant: Combatant, turn_count: int, battle_instance: Battle) -> bool:
+func can_play(active_combatant: Combatant, _opponent_combatant: Combatant, _turn_count: int, _battle_instance: Battle) -> bool:
 	# Default mana check first
 	if active_combatant.mana < self.cost:
 		return false

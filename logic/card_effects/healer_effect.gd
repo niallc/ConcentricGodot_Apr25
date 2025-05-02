@@ -3,7 +3,7 @@ extends "res://logic/cards/summon_card.gd"
 
 # Override the base SummonCard _on_arrival method
 # This is called AFTER the summon_arrives event has been generated
-func _on_arrival(summon_instance: SummonInstance, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle):
+func _on_arrival(_summon_instance: SummonInstance, active_combatant: Combatant, _opponent_combatant: Combatant, battle_instance: Battle):
 	var heal_amount = 8
 	active_combatant.heal(heal_amount) # Combatant.heal generates hp_change event
 

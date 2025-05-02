@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://1uujjoq6nuwy"]
+
+[ext_resource type="Script" path="res://logic/card_effects/disarm_effect.gd" id="1_wequc"]
+
+[resource]
+script = ExtResource("1_wequc")
+id = "Disarm"
+card_name = "Disarm"
+cost = 3
+artwork_path = "res://art/cards/disarm.webp"
+description_template = "Opponent's highest-power creature loses two power."

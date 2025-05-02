@@ -11,6 +11,9 @@ func _ready():
 	else:
 		printerr("Failed to load card resource!")
 
+	var knight_res = load("res://data/cards/instances/knight.tres") as SummonCardResource
+	var disarm_res = load("res://data/cards/instances/disarm.tres") as SpellCardResource
+	var goblin_firework_res = load("res://data/cards/instances/goblin_firework.tres") as SummonCardResource
 	var goblin_scout_res = load("res://data/cards/instances/goblin_scout.tres") as SummonCardResource
 	var energy_axe_res = load("res://data/cards/instances/energy_axe.tres") as SpellCardResource
 	var healer_res = load("res://data/cards/instances/healer.tres") as SummonCardResource # Example
@@ -24,9 +27,10 @@ func _ready():
 	if battle_sim:
 		print("Battle instance created.")
 		print("Loaded Card: %s, Cost: %d" % [card_res.card_name, card_res.cost])
-		var deck1: Array[CardResource] = [goblin_scout_res, energy_axe_res]
-		var deck2: Array[CardResource] = [healer_res, goblin_scout_res]
-
+		#var deck1: Array[CardResource] = [goblin_scout_res, energy_axe_res]
+		#var deck2: Array[CardResource] = [healer_res, goblin_scout_res]
+		var deck1: Array[CardResource] = [goblin_firework_res, disarm_res]
+		var deck2: Array[CardResource] = [knight_res, healer_res]
 		# ---<<< THIS WILL CALL YOUR FUNCTION >>>---
 		var events = battle_sim.run_battle(deck1, deck2, "Player", "Opponent")
 

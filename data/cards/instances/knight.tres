@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SummonCardResource" load_steps=2 format=3 uid="uid://tj0ca38l2t1u"]
+
+[ext_resource type="Script" path="res://logic/cards/summon_card.gd" id="1_3qvb6"]
+
+[resource]
+script = ExtResource("1_3qvb6")
+base_power = 3
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "Knight"
+card_name = "Knight"
+cost = 4
+artwork_path = "res://art/cards/knight.webp"
+description_template = "Just a guy"

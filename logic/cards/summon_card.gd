@@ -9,14 +9,14 @@ class_name SummonCardResource
 
 # --- Placeholder virtual methods for summon behaviors ---
 # These will be called by SummonInstance, allowing card-specific overrides
-func _on_arrival(summon_instance, active_combatant, opponent_combatant, battle_instance):
+func _on_arrival(_summon_instance, _active_combatant, _opponent_combatant, _battle_instance):
 	pass # Override in effect script if needed
 
-func _on_death(summon_instance, active_combatant, opponent_combatant, battle_instance):
+func _on_death(_summon_instance, _active_combatant, _opponent_combatant, _battle_instance):
 	pass # Override in effect script if needed
 
 # Override if summon has non-standard turn activity (e.g., Wall of Vines)
-func perform_turn_activity_override(summon_instance, active_combatant, opponent_combatant, battle_instance) -> bool:
+func perform_turn_activity_override(_summon_instance, _active_combatant, _opponent_combatant, _battle_instance) -> bool:
 	return false # Return true if this override handled the action
 
 # Override base type getter

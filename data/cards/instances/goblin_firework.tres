@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://br8noqjsu45a6"]
+
+[ext_resource type="Script" path="res://logic/card_effects/goblin_firework_effect.gd" id="1_cqlnd"]
+
+[resource]
+script = ExtResource("1_cqlnd")
+base_power = 0
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "GoblinFirework"
+card_name = "Goblin Firework"
+cost = 2
+artwork_path = "res://art/cards/goblinFirework.webp"
+description_template = "Death: Explodes, causing one damage to any creature opposite it."
