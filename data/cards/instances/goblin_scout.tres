@@ -11,5 +11,5 @@ is_swift = false
 id = "GoblinScout"
 card_name = "Goblin Scout"
 cost = 2
-artwork_path = "res://art/default_card.png"
-description_template = "A simple Goblin, it hits things."
+artwork_path = "res://art/cards/goblinScout.webp"
+description_template = "*Vanilla*"

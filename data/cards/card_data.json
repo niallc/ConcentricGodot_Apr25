@@ -35,4 +35,40 @@
 	"tags": [],
 	"swift": false
   }
+,{
+	"id": "WallOfVines",
+	"type": "Summon",
+	"name": "Wall Of Vines",
+	"cost": 3,
+	"art": "res://art/cards/wallOfVines.webp",
+	"description": "Adds one mana each turn. *Defensive*: This creature does not attack.",
+	"power": 0,
+	"hp": 2,
+	"tags": ["Defensive"],
+	"swift": false
+  },
+  {
+	"id": "ChargingBull",
+	"type": "Summon",
+	"name": "Charging Bull",
+	"cost": 4,
+	"art": "res://art/cards/chargingBull.webp",
+	"description": "*Swift* (arrives ready to attack)",
+	"power": 2,
+	"hp": 1,
+	"tags": [],
+	"swift": true
+  },
+  {
+	"id": "PortalMage",
+	"type": "Summon",
+	"name": "Portal Mage",
+	"cost": 6,
+	"art": "res://art/cards/portalMage.webp",
+	"description": "*Arrival:* Return opposing creature to top of deck.",
+	"power": 1,
+	"hp": 3,
+	"tags": [],
+	"swift": false
+  }
 ]

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://5tpsk2mrdv60"]
+
+[ext_resource type="Script" path="res://logic/card_effects/wall_of_vines_effect.gd" id="1_jp6ny"]
+
+[resource]
+script = ExtResource("1_jp6ny")
+base_power = 0
+base_max_hp = 2
+tags = Array[String](["Defensive"])
+is_swift = false
+id = "WallOfVines"
+card_name = "Wall Of Vines"
+cost = 3
+artwork_path = "res://art/cards/wallOfVines.webp"
+description_template = "Adds one mana each turn. *Defensive*: This creature does not attack."

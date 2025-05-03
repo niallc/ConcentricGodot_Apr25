@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dkhwdk1mjlqbg"]
+
+[ext_resource type="Script" path="res://logic/card_effects/portal_mage_effect.gd" id="1_shku0"]
+
+[resource]
+script = ExtResource("1_shku0")
+base_power = 1
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "PortalMage"
+card_name = "Portal Mage"
+cost = 6
+artwork_path = "res://art/cards/portalMage.webp"
+description_template = "*Arrival:* Return opposing creature to top of deck."

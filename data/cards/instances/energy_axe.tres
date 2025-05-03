@@ -8,4 +8,4 @@ id = "EnergyAxe"
 card_name = "Energy Axe"
 cost = 4
 artwork_path = "res://art/cards/energyAxe.webp"
-description_template = "Buffs the leftmost creature."
+description_template = "Boost your leftmost creature's power by 3."

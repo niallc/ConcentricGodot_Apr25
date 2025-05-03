@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="SummonCardResource" load_steps=2 format=3 uid="uid://tj0ca38l2t1u"]
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://tj0ca38l2t1u"]
 
-[ext_resource type="Script" path="res://logic/cards/summon_card.gd" id="1_3qvb6"]
+[ext_resource type="Script" path="res://logic/card_effects/knight_effect.gd" id="1_kke6i"]
 
 [resource]
-script = ExtResource("1_3qvb6")
+script = ExtResource("1_kke6i")
 base_power = 3
 base_max_hp = 3
 tags = Array[String]([])
@@ -12,4 +12,4 @@ id = "Knight"
 card_name = "Knight"
 cost = 4
 artwork_path = "res://art/cards/knight.webp"
-description_template = "Just a guy"
+description_template = "*Vanilla*"

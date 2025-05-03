@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cyd7onh33u7qo"]
+
+[ext_resource type="Script" path="res://logic/card_effects/charging_bull_effect.gd" id="1_hg0qj"]
+
+[resource]
+script = ExtResource("1_hg0qj")
+base_power = 2
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = true
+id = "ChargingBull"
+card_name = "Charging Bull"
+cost = 4
+artwork_path = "res://art/cards/chargingBull.webp"
+description_template = "*Swift* (arrives ready to attack)"

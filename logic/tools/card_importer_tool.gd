@@ -31,7 +31,7 @@ func _run():
 
 	var created_count = 0
 	var updated_count = 0
-	var error_count = 0 # Count validation/save errors
+	# error_count not used if we halt on first error
 
 	# Ensure target directories exist
 	ensure_dir_exists(INSTANCE_DIR)
@@ -42,12 +42,11 @@ func _run():
 		# Call validation first
 		if not validate_card_entry(card_entry):
 			printerr("Halting import due to invalid card entry: ", card_entry)
-			# error_count += 1 # Increment error count
 			return # Halt execution on first validation error
 
 		var card_id = card_entry["id"]
-		# --- FIX: Use snake_case for filenames ---
-		var filename_base = card_id.to_snake_case() # e.g., GoblinScout -> goblin_scout
+		# Use snake_case for filenames
+		var filename_base = card_id.to_snake_case()
 		var resource_path = INSTANCE_DIR + filename_base + ".tres"
 		var effect_script_path = EFFECT_SCRIPT_DIR + filename_base + "_effect.gd"
 
@@ -64,7 +63,6 @@ func _run():
 			BaseResourceType = SummonCardResource
 			BaseEffectScript = SUMMON_BASE_RES
 		else:
-			# This case should be caught by validation, but check defensively
 			printerr("Critical Error: Unknown card type '%s' for ID '%s' after validation. Halting." % [card_type, card_id])
 			return
 
@@ -73,13 +71,25 @@ func _run():
 		var is_new = false
 		if ResourceLoader.exists(resource_path):
 			resource = ResourceLoader.load(resource_path)
+			# --- FIX for Type Check ---
 			var loaded_script = resource.get_script()
-			if loaded_script == null:
-				printerr("Halting: Existing resource at '%s' has no valid script attached." % resource_path)
+			if loaded_script == null: # Check for null first
+				printerr("Halting: Existing resource at '%s' has no script attached." % resource_path)
 				return
-			if not loaded_script.is_subclass_of(BaseEffectScript):
+
+			# Check inheritance manually by traversing base scripts
+			var inherits_correctly = false
+			var current_script = loaded_script
+			while current_script != null:
+				if current_script == BaseEffectScript:
+					inherits_correctly = true
+					break # Found the expected base script
+				current_script = current_script.get_base_script() # Move up the chain
+
+			if not inherits_correctly:
 				printerr("Halting: Existing resource at '%s' script (%s) does not extend expected base (%s)." % [resource_path, loaded_script.resource_path, BaseEffectScript.resource_path])
 				return
+			# --- END FIX ---
 			updated_count += 1
 			print("...Updating existing resource: ", resource_path)
 		else:
@@ -99,7 +109,6 @@ func _run():
 			resource.base_power = int(card_entry.get("power", 0)) # Cast to int
 			resource.base_max_hp = int(card_entry.get("hp", 1)) # Cast to int
 
-			# --- FIX: Assign tags with correct type ---
 			var json_tags = card_entry.get("tags", [])
 			if json_tags is Array:
 				var typed_tags: Array[String] = []
@@ -108,11 +117,10 @@ func _run():
 						typed_tags.append(tag)
 					else:
 						printerr("Warning: Non-string value found in tags for card '%s': %s. Skipping tag." % [card_id, str(tag)])
-				resource.tags = typed_tags # Assign the correctly typed array
+				resource.tags = typed_tags
 			else:
 				printerr("Warning: Invalid 'tags' format for card '%s'. Expected Array. Setting to empty." % card_id)
-				resource.tags = [] # Assign empty typed array
-			# --- END FIX ---
+				resource.tags = []
 
 			resource.is_swift = card_entry.get("swift", false)
 
@@ -129,14 +137,13 @@ func _run():
 			return # Halt if script cannot be loaded/linked
 
 		# 7. Save the Resource (.tres file)
-		print("...Attempting to save resource...") # Added print before save
+		print("...Attempting to save resource...")
 		var save_result = ResourceSaver.save(resource, resource_path)
 		if save_result != OK:
 			printerr("...Failed to save resource '%s'. Error code: %d. Halting." % [resource_path, save_result])
-			# error_count += 1 # Not needed if halting
 			return # Halt on save error
 		else:
-			# --- FIX: Correct if/else formatting ---
+			# Correct if/else formatting
 			if is_new:
 				print("...New resource saved successfully.")
 			else:
@@ -144,13 +151,11 @@ func _run():
 
 
 	print("\nCard Import Finished Successfully.")
-	print("Created: %d, Updated: %d" % [created_count, updated_count]) # Removed error count as we halt
+	print("Created: %d, Updated: %d" % [created_count, updated_count])
 
 
 # --- Helper Functions ---
 # (load_json_data, validate_card_entry, ensure_dir_exists, create_placeholder_effect_script)
-# ... (Include the helper functions from the previous version with the updated validate_card_entry) ...
-
 func load_json_data(path: String):
 	if not FileAccess.file_exists(path):
 		printerr("JSON file not found at: ", path)
