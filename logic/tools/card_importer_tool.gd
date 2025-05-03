@@ -20,22 +20,18 @@ func _run():
 
 	# 1. Load JSON data
 	var json_data = load_json_data(JSON_PATH)
-	print("loaded...")
 	if json_data == null:
-		printerr("Failed to load or parse JSON data from: ", JSON_PATH)
-		return
-	print("non-null...")
-
+		printerr("Halting: Failed to load or parse JSON data from: ", JSON_PATH)
+		return # Halt on JSON load/parse error
 	if not json_data is Array:
-		printerr("JSON data is not an Array.")
-		return
-	print("array...")
+		printerr("Halting: JSON data is not an Array.")
+		return # Halt if not array
 
 	print("Loaded %d card entries from JSON." % json_data.size())
 
 	var created_count = 0
 	var updated_count = 0
-	var error_count = 0
+	var error_count = 0 # Count validation/save errors
 
 	# Ensure target directories exist
 	ensure_dir_exists(INSTANCE_DIR)
@@ -43,56 +39,50 @@ func _run():
 
 	# 2. Process each card entry
 	for card_entry in json_data:
+		# Call validation first
 		if not validate_card_entry(card_entry):
-			printerr("Skipping invalid card entry: ", card_entry)
-			error_count += 1
-			continue
+			printerr("Halting import due to invalid card entry: ", card_entry)
+			# error_count += 1 # Increment error count
+			return # Halt execution on first validation error
 
 		var card_id = card_entry["id"]
-		# Ensure consistent naming (e.g., lowercase for filenames)
-		var filename_base = card_id.to_lower()
+		# --- FIX: Use snake_case for filenames ---
+		var filename_base = card_id.to_snake_case() # e.g., GoblinScout -> goblin_scout
 		var resource_path = INSTANCE_DIR + filename_base + ".tres"
 		var effect_script_path = EFFECT_SCRIPT_DIR + filename_base + "_effect.gd"
 
-		print("Processing Card ID: ", card_id)
+		print("Processing Card ID: %s (Files: %s, %s)" % [card_id, resource_path.get_file(), effect_script_path.get_file()])
 
 		# 3. Determine Resource Type and Base Script
 		var card_type = card_entry["type"].to_lower()
 		var BaseResourceType = null
-		var BaseEffectScript = null # This will hold the preloaded base script
-
+		var BaseEffectScript = null
 		if card_type == "spell":
-			BaseResourceType = SpellCardResource # The class_name for .new()
-			BaseEffectScript = SPELL_BASE_RES   # The preloaded .gd script for checking
+			BaseResourceType = SpellCardResource
+			BaseEffectScript = SPELL_BASE_RES
 		elif card_type == "summon":
 			BaseResourceType = SummonCardResource
 			BaseEffectScript = SUMMON_BASE_RES
 		else:
-			printerr("Unknown card type '%s' for ID '%s'. Skipping." % [card_type, card_id])
-			error_count += 1
-			continue
+			# This case should be caught by validation, but check defensively
+			printerr("Critical Error: Unknown card type '%s' for ID '%s' after validation. Halting." % [card_type, card_id])
+			return
 
 		# 4. Create or Load Resource Instance
 		var resource = null
 		var is_new = false
 		if ResourceLoader.exists(resource_path):
 			resource = ResourceLoader.load(resource_path)
-			# --- FIX for Type Check ---
 			var loaded_script = resource.get_script()
-			if loaded_script == null or not loaded_script.is_valid():
-				printerr("Existing resource at '%s' has no valid script attached. Skipping update." % resource_path)
-				error_count += 1
-				continue
-			# Use is_subclass_of() to check runtime inheritance against the preloaded base script
+			if loaded_script == null:
+				printerr("Halting: Existing resource at '%s' has no valid script attached." % resource_path)
+				return
 			if not loaded_script.is_subclass_of(BaseEffectScript):
-				printerr("Existing resource at '%s' script (%s) does not extend expected base (%s). Skipping update." % [resource_path, loaded_script.resource_path, BaseEffectScript.resource_path])
-				error_count += 1
-				continue
-			# --- END FIX ---
+				printerr("Halting: Existing resource at '%s' script (%s) does not extend expected base (%s)." % [resource_path, loaded_script.resource_path, BaseEffectScript.resource_path])
+				return
 			updated_count += 1
 			print("...Updating existing resource: ", resource_path)
 		else:
-			# Use the Class directly for .new() - this is correct
 			resource = BaseResourceType.new()
 			is_new = true
 			created_count += 1
@@ -100,16 +90,30 @@ func _run():
 
 		# 5. Populate Resource Properties from JSON
 		resource.id = card_id
-		resource.card_name = card_entry.get("name", card_id) # Default name to ID
-		resource.cost = card_entry.get("cost", 0)
+		resource.card_name = card_entry.get("name", card_id)
+		resource.cost = int(card_entry.get("cost", 0)) # Cast to int
 		resource.artwork_path = card_entry.get("art", DEFAULT_ART)
 		resource.description_template = card_entry.get("description", "No description.")
 
 		if card_type == "summon":
-			# Ensure keys exist before accessing, provide defaults
-			resource.base_power = card_entry.get("power", 0)
-			resource.base_max_hp = card_entry.get("hp", 1)
-			resource.tags = card_entry.get("tags", [])
+			resource.base_power = int(card_entry.get("power", 0)) # Cast to int
+			resource.base_max_hp = int(card_entry.get("hp", 1)) # Cast to int
+
+			# --- FIX: Assign tags with correct type ---
+			var json_tags = card_entry.get("tags", [])
+			if json_tags is Array:
+				var typed_tags: Array[String] = []
+				for tag in json_tags:
+					if tag is String:
+						typed_tags.append(tag)
+					else:
+						printerr("Warning: Non-string value found in tags for card '%s': %s. Skipping tag." % [card_id, str(tag)])
+				resource.tags = typed_tags # Assign the correctly typed array
+			else:
+				printerr("Warning: Invalid 'tags' format for card '%s'. Expected Array. Setting to empty." % card_id)
+				resource.tags = [] # Assign empty typed array
+			# --- END FIX ---
+
 			resource.is_swift = card_entry.get("swift", false)
 
 		# 6. Ensure Effect Script Exists and Link It
@@ -117,52 +121,51 @@ func _run():
 			print("...Effect script not found, creating placeholder: ", effect_script_path)
 			create_placeholder_effect_script(effect_script_path, BaseEffectScript.resource_path)
 
-		# Assign the script path to the resource property
-		# We load the script resource itself to assign it
 		var script_res = load(effect_script_path)
 		if script_res:
 			resource.script = script_res
 		else:
-			printerr("...Failed to load effect script resource at: ", effect_script_path)
-			error_count += 1
-			# Optionally skip saving if script link fails?
-			# continue
+			printerr("Halting: Failed to load effect script resource at: ", effect_script_path)
+			return # Halt if script cannot be loaded/linked
 
 		# 7. Save the Resource (.tres file)
+		print("...Attempting to save resource...") # Added print before save
 		var save_result = ResourceSaver.save(resource, resource_path)
 		if save_result != OK:
-			printerr("...Failed to save resource '%s'. Error code: %d" % [resource_path, save_result])
-			error_count += 1
+			printerr("...Failed to save resource '%s'. Error code: %d. Halting." % [resource_path, save_result])
+			# error_count += 1 # Not needed if halting
+			return # Halt on save error
 		else:
-			if is_new: print("...New resource saved.")
-			else: print("...Existing resource updated.")
+			# --- FIX: Correct if/else formatting ---
+			if is_new:
+				print("...New resource saved successfully.")
+			else:
+				print("...Existing resource updated successfully.")
 
 
-	print("\nCard Import Finished.")
-	print("Created: %d, Updated: %d, Errors: %d" % [created_count, updated_count, error_count])
+	print("\nCard Import Finished Successfully.")
+	print("Created: %d, Updated: %d" % [created_count, updated_count]) # Removed error count as we halt
 
 
 # --- Helper Functions ---
+# (load_json_data, validate_card_entry, ensure_dir_exists, create_placeholder_effect_script)
+# ... (Include the helper functions from the previous version with the updated validate_card_entry) ...
 
 func load_json_data(path: String):
 	if not FileAccess.file_exists(path):
 		printerr("JSON file not found at: ", path)
 		return null
-
 	var file = FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		printerr("Failed to open JSON file. Error: ", FileAccess.get_open_error())
 		return null
-
 	var content = file.get_as_text()
 	file.close()
-
 	var json = JSON.new()
 	var error = json.parse(content)
 	if error != OK:
 		printerr("JSON Parse Error: %s (Line %d)" % [json.get_error_message(), json.get_error_line()])
 		return null
-
 	return json.get_data()
 
 func validate_card_entry(entry: Dictionary) -> bool:
@@ -172,31 +175,41 @@ func validate_card_entry(entry: Dictionary) -> bool:
 	if not entry.has("type") or not entry["type"] is String or not entry["type"].to_lower() in ["spell", "summon"]:
 		printerr("Missing or invalid 'type' (must be 'Spell' or 'Summon'). ID: ", entry.get("id", "N/A"))
 		return false
-	# Add more checks as needed (e.g., cost is int)
-	if not entry.get("cost", 0) is int:
-		printerr("Invalid 'cost' (must be int). ID: ", entry.get("id", "N/A"))
+	var cost_val = entry.get("cost", 0)
+	if not (cost_val is int or cost_val is float):
+		printerr("Invalid 'cost' (must be number). ID: ", entry.get("id", "N/A"))
+		return false
+	if cost_val < 0:
+		printerr("Invalid 'cost' (must be non-negative). ID: ", entry.get("id", "N/A"))
 		return false
 	if entry["type"].to_lower() == "summon":
-		if not entry.get("power", 0) is int:
-			printerr("Invalid 'power' (must be int). ID: ", entry.get("id", "N/A"))
+		var power_val = entry.get("power", 0)
+		if not (power_val is int or power_val is float):
+			printerr("Invalid 'power' (must be number). ID: ", entry.get("id", "N/A"))
 			return false
-		if not entry.get("hp", 1) is int or entry.get("hp", 1) < 1:
-			printerr("Invalid 'hp' (must be int >= 1). ID: ", entry.get("id", "N/A"))
+		var hp_val = entry.get("hp", 1)
+		if not (hp_val is int or hp_val is float):
+			printerr("Invalid 'hp' (must be number). ID: ", entry.get("id", "N/A"))
+			return false
+		if hp_val < 1:
+			printerr("Invalid 'hp' (must be >= 1). ID: ", entry.get("id", "N/A"))
+			return false
+		if entry.has("tags") and not entry["tags"] is Array:
+			printerr("Invalid 'tags' (must be array). ID: ", entry.get("id", "N/A"))
+			return false
+		if entry.has("swift") and not entry["swift"] is bool:
+			printerr("Invalid 'swift' (must be boolean). ID: ", entry.get("id", "N/A"))
 			return false
 	return true
 
 func ensure_dir_exists(path: String):
 	if not DirAccess.dir_exists_absolute(path):
-		var dir_access = DirAccess.open("res://") # Open root
+		var dir_access = DirAccess.open("res://")
 		var result = dir_access.make_dir_recursive(path)
-		if result != OK:
-			printerr("Failed to create directory: ", path, " Error: ", result)
-		else:
-			print("Created directory: ", path)
-
+		if result != OK: printerr("Failed to create directory: ", path, " Error: ", result)
+		else: print("Created directory: ", path)
 
 func create_placeholder_effect_script(script_path: String, base_script_path: String):
-	# Use the base script path directly in extends for reliability
 	var content = """# %s (Auto-generated placeholder)
 extends "%s"
 
@@ -209,12 +222,8 @@ extends "%s"
 
 pass
 """ % [script_path.get_file(), base_script_path]
-
 	var file = FileAccess.open(script_path, FileAccess.WRITE)
-	if file == null:
-		printerr("Failed to open file for writing placeholder script: ", script_path)
-		return
-
+	if file == null: printerr("Failed to open file for writing placeholder script: ", script_path); return
 	file.store_string(content)
 	file.close()
 	print("...Placeholder script created: ", script_path)
