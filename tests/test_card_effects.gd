@@ -2,15 +2,19 @@
 extends GutTest
 
 # Preload resources
-var goblin_scout_res = load("res://data/cards/instances/goblin_scout.tres") as SummonCardResource
-var energy_axe_res = load("res://data/cards/instances/energy_axe.tres") as SpellCardResource
-var healer_res = load("res://data/cards/instances/healer.tres") as SummonCardResource
+var avenging_tiger_res = load("res://data/cards/instances/avenging_tiger.tres") as SummonCardResource
 var disarm_res = load("res://data/cards/instances/disarm.tres") as SpellCardResource
+var energy_axe_res = load("res://data/cards/instances/energy_axe.tres") as SpellCardResource
+var focus_res = load("res://data/cards/instances/focus.tres") as SpellCardResource
 var goblin_firework_res = load("res://data/cards/instances/goblin_firework.tres") as SummonCardResource
+var goblin_scout_res = load("res://data/cards/instances/goblin_scout.tres") as SummonCardResource
+var healer_res = load("res://data/cards/instances/healer.tres") as SummonCardResource
 var knight_res = load("res://data/cards/instances/knight.tres") as SummonCardResource # Needed for target
-var wall_of_vines_res = load("res://data/cards/instances/wall_of_vines.tres") as SummonCardResource
 var charging_bull_res = load("res://data/cards/instances/charging_bull.tres") as SummonCardResource
 var portal_mage_res = load("res://data/cards/instances/portal_mage.tres") as SummonCardResource
+var recurring_skeleton_res = load("res://data/cards/instances/recurring_skeleton.tres") as SummonCardResource
+var vampire_swordmaster_res = load("res://data/cards/instances/vampire_swordmaster.tres") as SummonCardResource
+var wall_of_vines_res = load("res://data/cards/instances/wall_of_vines.tres") as SummonCardResource
 
 
 # --- Test Helper Functions ---
@@ -364,3 +368,164 @@ func test_portal_mage_arrival_no_target():
 			bounce_events_found = true
 			break
 	assert_false(bounce_events_found, "No bounce events should be generated if no target.")
+
+# --- Vampire Swordmaster Tests ---
+func test_vampire_swordmaster_heals_on_kill():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Vampire and a weak target
+	var vampire_instance = place_summon_for_test(player, vampire_swordmaster_res, 0, battle)
+	var target_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # 2 HP
+
+	# Damage Vampire so it needs healing
+	vampire_instance.current_hp = 1
+	var initial_vamp_hp = vampire_instance.current_hp
+
+	# Action: Simulate combat where Vampire kills Scout (Vamp power 3 vs Scout HP 2)
+	vampire_instance._perform_combat(target_scout) # This calls take_damage, die, and _on_kill_target
+
+	# Assert: Scout is dead (or at least has <= 0 HP)
+	assert_lte(target_scout.current_hp, 0, "Target scout should have 0 or less HP.")
+	# Assert: Vampire healed to full
+	assert_eq(vampire_instance.current_hp, vampire_instance.get_current_max_hp(), "Vampire should heal to full HP after kill.")
+
+	# Assert: Heal event generated for Vampire
+	var events = battle.battle_events
+	var heal_event_found = false
+	for event in events:
+		if event.get("event_type") == "creature_hp_change" and \
+		   event.get("lane") == 1 and \
+		   event.get("player") == player.combatant_name and \
+		   event.get("amount") > 0: # Check for positive amount (heal)
+			heal_event_found = true
+			assert_eq(event["new_hp"], vampire_instance.get_current_max_hp(), "Heal event new_hp incorrect.")
+			break
+	assert_true(heal_event_found, "Heal event for Vampire after kill not found.")
+
+# --- Recurring Skeleton Tests ---
+func test_recurring_skeleton_returns_to_deck_on_death():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Place Skeleton
+	var skeleton_instance = place_summon_for_test(player, recurring_skeleton_res, 0, battle)
+	var initial_deck_size = player.library.size()
+	var initial_grave_size = player.graveyard.size()
+
+	# Action: Kill the skeleton
+	skeleton_instance.take_damage(100) # Overkill to ensure death
+
+	# Assert: Skeleton instance removed from lane
+	assert_null(player.lanes[0], "Lane should be empty after skeleton dies.")
+	# Assert: Card added to bottom of library
+	assert_eq(player.library.size(), initial_deck_size + 1, "Library size should increase by 1.")
+	assert_eq(player.library[-1].id, "RecurringSkeleton", "Recurring Skeleton should be at the bottom of the library.")
+	# Assert: Card NOT added to graveyard
+	assert_eq(player.graveyard.size(), initial_grave_size, "Graveyard size should not increase.")
+
+	# Assert: Events (creature_defeated + card_moved to library)
+	var events = battle.battle_events
+	var defeated_event_found = false
+	var moved_event_found = false
+	for event in events:
+		if event.get("event_type") == "creature_defeated" and event.get("lane") == 1:
+			defeated_event_found = true
+		elif event.get("event_type") == "card_moved" and \
+			 event.get("card_id") == "RecurringSkeleton" and \
+			 event.get("to_zone") == "library":
+			moved_event_found = true
+			assert_eq(event.get("to_details", {}).get("position"), "bottom", "Card moved event should specify bottom.")
+	assert_true(defeated_event_found, "Creature defeated event not found.")
+	assert_true(moved_event_found, "Card moved to library event not found.")
+
+
+# --- Focus Tests ---
+func test_focus_grants_mana():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	player.mana = 1
+	var initial_mana = player.mana
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Apply Focus effect
+	focus_res.apply_effect(focus_res, player, player.opponent, battle)
+
+	# Assert: Mana increased correctly (up to cap)
+	var expected_mana = min(initial_mana + 8, Constants.MAX_MANA)
+	assert_eq(player.mana, expected_mana, "Focus should grant correct mana.")
+
+	# Assert: Event generated (mana_change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	assert_false(events_after.is_empty(), "Focus should generate events.")
+	var mana_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "mana_change" and event.get("player") == player.combatant_name:
+			mana_event_found = true
+			assert_eq(event["amount"], expected_mana - initial_mana, "Focus mana change amount incorrect.")
+			assert_eq(event["new_total"], expected_mana, "Focus mana change new_total incorrect.")
+			break
+	assert_true(mana_event_found, "Mana change event for Focus not found.")
+
+
+# --- Avenging Tiger Tests ---
+func test_avenging_tiger_gains_swift_if_hp_lower():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Set player HP lower than opponent
+	player.current_hp = 10
+	opponent.current_hp = 15
+
+	# Simulate Tiger arrival
+	var tiger_instance = SummonInstance.new()
+	tiger_instance.setup(avenging_tiger_res, player, opponent, 0, battle)
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Call arrival effect
+	avenging_tiger_res._on_arrival(tiger_instance, player, opponent, battle)
+
+	# Assert: Instance is now swift
+	assert_true(tiger_instance.is_swift, "Avenging Tiger should gain swift when player HP is lower.")
+
+	# Assert: Event generated (status_change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var status_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "status_change" and event.get("status") == "Swift":
+			status_event_found = true
+			assert_true(event.get("gained"), "Swift status change event should indicate gained.")
+			break
+	assert_true(status_event_found, "Status change event for Swift not found.")
+
+
+func test_avenging_tiger_does_not_gain_swift_if_hp_not_lower():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Set player HP equal or higher
+	player.current_hp = 15
+	opponent.current_hp = 15
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate Tiger arrival
+	var tiger_instance = SummonInstance.new()
+	tiger_instance.setup(avenging_tiger_res, player, opponent, 0, battle)
+
+	# Action: Call arrival effect
+	avenging_tiger_res._on_arrival(tiger_instance, player, opponent, battle)
+
+	# Assert: Instance is NOT swift
+	assert_false(tiger_instance.is_swift, "Avenging Tiger should not gain swift when player HP is not lower.")
+
+	# Assert: No Swift status change event generated
+	var status_event_found = false
+	for event in battle.battle_events.slice(initial_event_count, battle.battle_events.size()):
+		if event.get("event_type") == "status_change" and event.get("status") == "Swift":
+			status_event_found = true
+			break
+	assert_false(status_event_found, "No Swift status change event should be generated.")

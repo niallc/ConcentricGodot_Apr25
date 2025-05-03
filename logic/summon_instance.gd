@@ -99,15 +99,33 @@ func heal(amount: int):
 
 func die():
 	print("%s dies!" % card_resource.card_name)
+	battle_instance.add_event({})
+
 	battle_instance.add_event({
 		"event_type": "creature_defeated",
 		"player": owner_combatant.combatant_name,
-		"lane": lane_index + 1
+		"lane": lane_index + 1 # 1-based for events
+		# Optional: Add card_id if needed by replay?
+		# "card_id": card_resource.id
 	})
-	if script_instance != null and script_instance.has_method("_on_death"):
-		script_instance._on_death(self, owner_combatant, opponent_combatant, battle_instance)
+
+	var prevent_graveyard = false # Flag to check
+	if custom_state.has("prevent_graveyard"):
+		prevent_graveyard = custom_state["prevent_graveyard"]
+		custom_state.erase("prevent_graveyard") # Clear the flag
+
+	# Call _on_death effect script *before* graveyard/removal
+	if card_resource != null and card_resource.has_method("_on_death"):
+		card_resource._on_death(self, owner_combatant, opponent_combatant, battle_instance)
+		# Re-check flag in case _on_death changed it (unlikely but possible)
+		if custom_state.has("prevent_graveyard"):
+			prevent_graveyard = custom_state["prevent_graveyard"]
+			custom_state.erase("prevent_graveyard")
+
 	owner_combatant.remove_summon_from_lane(lane_index)
-	owner_combatant.add_card_to_graveyard(card_resource, "lane")
+	# Add the card *resource* to graveyard ONLY if not prevented
+	if not prevent_graveyard:
+		owner_combatant.add_card_to_graveyard(card_resource, "lane")
 
 # --- Turn Activity Logic ---
 func perform_turn_activity():
@@ -150,6 +168,7 @@ func _perform_direct_attack():
 func _perform_combat(target_instance):
 	var damage = max(0, get_current_power()) # Use calculated power
 	print("%s attacks %s for %d damage" % [card_resource.card_name, target_instance.card_resource.card_name, damage])
+	var target_hp_before = target_instance.current_hp
 	target_instance.take_damage(damage, self)
 	battle_instance.add_event({
 		"event_type": "combat_damage",
@@ -160,6 +179,13 @@ func _perform_combat(target_instance):
 		"amount": damage,
 		"defender_remaining_hp": target_instance.current_hp
 	})
+	# --- NEW: Check if target died and trigger kill effect ---
+	if target_instance.current_hp <= 0 and target_hp_before > 0: # Check if this attack caused death
+		print("...%s killed %s!" % [self.card_resource.card_name, target_instance.card_resource.card_name])
+		# Call the killer's _on_kill_target method if it exists
+		if self.card_resource != null and self.card_resource.has_method("_on_kill_target"):
+			self.card_resource._on_kill_target(self, target_instance, battle_instance)
+	# --- END NEW ---
 
 	# Note: 'take_damage' on the target handles calling 'die' if HP <= 0
 

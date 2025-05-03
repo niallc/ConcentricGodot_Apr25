@@ -1,11 +1,15 @@
-# focus_effect.gd (Auto-generated placeholder)
-extends "res://logic/cards/spell_card.gd"
+extends SpellCardResource
 
-# Add card-specific logic by overriding methods like:
-# func apply_effect(source_card_res, active_combatant, _opponent_combatant, battle_instance): pass
-# func can_play(active_combatant, opponent_combatant, _turn_count, _battle_instance) -> bool: return true
-# func _on_arrival(summon_instance, active_combatant, _opponent_combatant, battle_instance): pass
-# func _on_death(summon_instance, active_combatant, opponent_combatant, battle_instance): pass
-# func perform_turn_activity_override(summon_instance, active_combatant, opponent_combatant, battle_instance) -> bool: return false
+# Apply the mana gain effect
+func apply_effect(_source_card_res: SpellCardResource, active_combatant, _opponent_combatant, battle_instance):
+	var mana_gain = 8
+	print("Focus granting %d mana to %s." % [mana_gain, active_combatant.combatant_name])
+	active_combatant.gain_mana(mana_gain) # gain_mana handles event generation
 
-pass
+	# Optional: Visual effect
+	battle_instance.add_event({
+		"event_type": "visual_effect",
+		"effect_id": "focus_mana_gain",
+		"target_locations": [active_combatant.combatant_name],
+		"details": {"amount": mana_gain}
+	})
