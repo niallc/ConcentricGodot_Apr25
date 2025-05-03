@@ -20,13 +20,16 @@ func _run():
 
 	# 1. Load JSON data
 	var json_data = load_json_data(JSON_PATH)
+	print("loaded...")
 	if json_data == null:
 		printerr("Failed to load or parse JSON data from: ", JSON_PATH)
 		return
+	print("non-null...")
 
 	if not json_data is Array:
 		printerr("JSON data is not an Array.")
 		return
+	print("array...")
 
 	print("Loaded %d card entries from JSON." % json_data.size())
 

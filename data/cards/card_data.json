@@ -1,11 +1,11 @@
 [
   {
 	"id": "GoblinScout",
-	"type": "Summon", // "Summon" or "Spell"
+	"type": "Summon",
 	"name": "Goblin Scout",
 	"cost": 2,
 	"art": "res://art/cards/goblinScout.webp",
-	"description": "*Vanilla*", // Or actual description text
+	"description": "*Vanilla*",
 	"power": 1,
 	"hp": 2,
 	"tags": [],
@@ -18,7 +18,7 @@
 	"cost": 4,
 	"art": "res://art/cards/energyAxe.webp",
 	"description": "Boost your leftmost creature's power by 3.",
-	"power": null, // Not applicable for spells
+	"power": null,
 	"hp": null,
 	"tags": [],
 	"swift": null
@@ -35,5 +35,4 @@
 	"tags": [],
 	"swift": false
   }
-  // ... more cards
 ]
