@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dptb4y4vrmaq4"]
+
+[ext_resource type="Script" path="res://logic/card_effects/recurring_skeleton_effect.gd" id="1_8fksb"]
+
+[resource]
+script = ExtResource("1_8fksb")
+base_power = 2
+base_max_hp = 2
+tags = Array[String](["Undead", "Immortal"])
+is_swift = false
+id = "RecurringSkeleton"
+card_name = "Recurring Skeleton"
+cost = 3
+artwork_path = "res://art/cards/recurringSkeleton.webp"
+description_template = "*Immortal:* Upon death, returns to the bottom of your deck."

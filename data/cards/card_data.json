@@ -71,4 +71,49 @@
 	"tags": [],
 	"swift": false
   }
+,{
+	"id": "VampireSwordmaster",
+	"type": "Summon",
+	"name": "Vampire Swordmaster",
+	"cost": 5,
+	"art": "res://art/cards/vampireSwordmaster.webp",
+	"description": "Heals to full health upon killing an enemy.",
+	"power": 3,
+	"hp": 4,
+	"tags": ["Undead"],
+	"swift": false
+  },
+  {
+	"id": "RecurringSkeleton",
+	"type": "Summon",
+	"name": "Recurring Skeleton",
+	"cost": 3,
+	"art": "res://art/cards/recurringSkeleton.webp",
+	"description": "*Immortal:* Upon death, returns to the bottom of your deck.",
+	"power": 2,
+	"hp": 2,
+	"tags": ["Undead", "Immortal"],
+	"swift": false
+  },
+  {
+	"id": "Focus",
+	"type": "Spell",
+	"name": "Focus",
+	"cost": 7,
+	"art": "res://art/cards/focus.webp",
+	"description": "Gain 8 mana.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "AvengingTiger",
+	"type": "Summon",
+	"name": "Avenging Tiger",
+	"cost": 5,
+	"art": "res://art/cards/avengingTiger.webp",
+	"description": "*Arrival:* if opponent has more life than you, gains *Swift*.",
+	"power": 3,
+	"hp": 3,
+	"tags": [],
+	"swift": false
+  }
 ]

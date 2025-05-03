@@ -8,6 +8,10 @@ var healer_res = load("res://data/cards/instances/healer.tres") as SummonCardRes
 var disarm_res = load("res://data/cards/instances/disarm.tres") as SpellCardResource
 var goblin_firework_res = load("res://data/cards/instances/goblin_firework.tres") as SummonCardResource
 var knight_res = load("res://data/cards/instances/knight.tres") as SummonCardResource # Needed for target
+var wall_of_vines_res = load("res://data/cards/instances/wall_of_vines.tres") as SummonCardResource
+var charging_bull_res = load("res://data/cards/instances/charging_bull.tres") as SummonCardResource
+var portal_mage_res = load("res://data/cards/instances/portal_mage.tres") as SummonCardResource
+
 
 # --- Test Helper Functions ---
 # Creates a basic Battle setup for testing effects
@@ -241,3 +245,122 @@ func test_goblin_firework_death_no_target():
 			damage_event_found = true
 			break
 	assert_false(damage_event_found, "Firework death should not generate damage event if no target.")
+
+# --- Wall Of Vines Tests ---
+func test_wall_of_vines_generates_mana():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	player.mana = 2 # Start with some mana
+	var initial_mana = player.mana
+	# Place Wall of Vines
+	var wall_instance = place_summon_for_test(player, wall_of_vines_res, 0, battle)
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Simulate its turn activity (normally called by Battle)
+	# We call the override directly on the resource
+	var handled = wall_of_vines_res.perform_turn_activity_override(wall_instance, player, player.opponent, battle)
+
+	# Assert: Handled should be true
+	assert_true(handled, "Wall of Vines override should return true.")
+	# Assert: Player mana increased
+	assert_eq(player.mana, initial_mana + 1, "Wall of Vines should increase player mana by 1.")
+
+	# Assert: Events generated (mana_change + ability activation)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	assert_gte(events_after.size(), 2, "Wall of Vines activity should generate at least 2 events.")
+	var mana_event_found = false
+	var ability_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "mana_change" and event.get("player") == player.combatant_name:
+			mana_event_found = true
+			assert_eq(event["amount"], 1, "Mana change event amount incorrect.")
+		elif event.get("event_type") == "summon_turn_activity" and event.get("activity_type") == "ability_mana_gen":
+			ability_event_found = true
+	assert_true(mana_event_found, "Mana change event not found for Wall of Vines.")
+	assert_true(ability_event_found, "Ability activation event not found for Wall of Vines.")
+
+
+# --- Charging Bull Tests ---
+# Note: Swiftness is tested implicitly by checking if it attacks on turn 2 in simulation
+# We can test the resource property directly here.
+func test_charging_bull_is_swift():
+	assert_true(charging_bull_res.is_swift, "Charging Bull resource should have is_swift = true.")
+	# Test that SummonInstance gets the flag
+	var setup = create_test_battle_setup()
+	var bull_instance = SummonInstance.new()
+	bull_instance.setup(charging_bull_res, setup["player"], setup["opponent"], 0, setup["battle"])
+	assert_true(bull_instance.is_swift, "Charging Bull instance should inherit is_swift = true.")
+	# The actual check for is_newly_arrived vs is_swift happens in Battle.conduct_turn
+
+
+# --- Portal Mage Tests ---
+func test_portal_mage_bounces_opponent():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place a target for the opponent
+	var target_knight = place_summon_for_test(opponent, knight_res, 1, battle) # Lane 2
+
+	# Ensure opponent library is empty to easily check the bounced card
+	opponent.library.clear()
+
+	# Simulate Portal Mage arrival
+	var mage_instance = SummonInstance.new()
+	mage_instance.setup(portal_mage_res, player, opponent, 1, battle) # Arrives in Lane 2 opposite Knight
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Call the arrival effect
+	portal_mage_res._on_arrival(mage_instance, player, opponent, battle)
+
+	# Assert: Opponent's lane is now empty
+	assert_null(opponent.lanes[1], "Opponent's lane 2 should be empty after bounce.")
+	# Assert: Opponent's library now contains the Knight resource
+	assert_eq(opponent.library.size(), 1, "Opponent's library should have 1 card.")
+	assert_eq(opponent.library[0].id, "Knight", "Opponent's library top card should be Knight.") # Check ID
+
+	# Assert: Events generated (summon_leaves_lane + card_moved)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	assert_gte(events_after.size(), 2, "Portal Mage bounce should generate at least 2 events.")
+	var leaves_event_found = false
+	var moved_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "summon_leaves_lane" and event.get("lane") == 2:
+			leaves_event_found = true
+			assert_eq(event["card_id"], "Knight", "Summon leaves event card ID incorrect.")
+		elif event.get("event_type") == "card_moved" and event.get("to_zone") == "library":
+			moved_event_found = true
+			assert_eq(event["card_id"], "Knight", "Card moved event card ID incorrect.")
+	assert_true(leaves_event_found, "Summon leaves lane event not found.")
+	assert_true(moved_event_found, "Card moved to library event not found.")
+
+
+func test_portal_mage_arrival_no_target():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Opponent has no creature in lane 1
+	var initial_event_count = battle.battle_events.size()
+	var initial_lib_size = opponent.library.size()
+
+	# Simulate Portal Mage arrival
+	var mage_instance = SummonInstance.new()
+	mage_instance.setup(portal_mage_res, player, opponent, 1, battle) # Arrives in Lane 2
+
+	# Action: Call the arrival effect
+	portal_mage_res._on_arrival(mage_instance, player, opponent, battle)
+
+	# Assert: Opponent's lane is still empty
+	assert_null(opponent.lanes[1], "Opponent's lane 2 should remain empty.")
+	# Assert: Opponent's library size unchanged
+	assert_eq(opponent.library.size(), initial_lib_size, "Opponent's library size should not change.")
+	# Assert: No bounce-related events generated
+	var bounce_events_found = false
+	for event in battle.battle_events.slice(initial_event_count, battle.battle_events.size()):
+		if event.get("event_type") == "summon_leaves_lane" or \
+		   (event.get("event_type") == "card_moved" and event.get("to_zone") == "library"):
+			bounce_events_found = true
+			break
+	assert_false(bounce_events_found, "No bounce events should be generated if no target.")

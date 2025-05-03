@@ -1,11 +1,18 @@
-# wall_of_vines_effect.gd (Auto-generated placeholder)
-extends "res://logic/cards/summon_card.gd"
+extends SummonCardResource
 
-# Add card-specific logic by overriding methods like:
-# func apply_effect(source_card_res, active_combatant, _opponent_combatant, battle_instance): pass
-# func can_play(active_combatant, opponent_combatant, _turn_count, _battle_instance) -> bool: return true
-# func _on_arrival(summon_instance, active_combatant, _opponent_combatant, battle_instance): pass
-# func _on_death(summon_instance, active_combatant, opponent_combatant, battle_instance): pass
-# func perform_turn_activity_override(summon_instance, active_combatant, opponent_combatant, battle_instance) -> bool: return false
+# Override the default turn activity to generate mana instead of attacking
+func perform_turn_activity_override(summon_instance: SummonInstance, active_combatant, _opponent_combatant, battle_instance) -> bool:
+	var mana_gain = 1
+	print("Wall of Vines generates %d mana for %s." % [mana_gain, active_combatant.combatant_name])
+	active_combatant.gain_mana(mana_gain) # gain_mana handles event generation
 
-pass
+	# Generate a specific event for this ability activation (optional but good)
+	battle_instance.add_event({
+		"event_type": "summon_turn_activity",
+		"player": active_combatant.combatant_name,
+		"lane": summon_instance.lane_index + 1,
+		"activity_type": "ability_mana_gen", # Specific type for replay
+		"details": {"mana_gained": mana_gain}
+	})
+
+	return true # Return true to indicate we handled the turn activity

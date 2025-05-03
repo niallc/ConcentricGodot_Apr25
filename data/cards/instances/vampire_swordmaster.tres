@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://c1n0aokx3wiyy"]
+
+[ext_resource type="Script" path="res://logic/card_effects/vampire_swordmaster_effect.gd" id="1_sfvxf"]
+
+[resource]
+script = ExtResource("1_sfvxf")
+base_power = 3
+base_max_hp = 4
+tags = Array[String](["Undead"])
+is_swift = false
+id = "VampireSwordmaster"
+card_name = "Vampire Swordmaster"
+cost = 5
+artwork_path = "res://art/cards/vampireSwordmaster.webp"
+description_template = "Heals to full health upon killing an enemy."

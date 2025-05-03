@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://bcqad0erl03yh"]
+
+[ext_resource type="Script" path="res://logic/card_effects/focus_effect.gd" id="1_ijqk0"]
+
+[resource]
+script = ExtResource("1_ijqk0")
+id = "Focus"
+card_name = "Focus"
+cost = 7
+artwork_path = "res://art/cards/focus.webp"
+description_template = "Gain 8 mana."

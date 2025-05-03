@@ -1,11 +1,7 @@
-# charging_bull_effect.gd (Auto-generated placeholder)
-extends "res://logic/cards/summon_card.gd"
+# res://logic/card_effects/charging_bull_effect.gd
+extends SummonCardResource
 
-# Add card-specific logic by overriding methods like:
-# func apply_effect(source_card_res, active_combatant, _opponent_combatant, battle_instance): pass
-# func can_play(active_combatant, opponent_combatant, _turn_count, _battle_instance) -> bool: return true
-# func _on_arrival(summon_instance, active_combatant, _opponent_combatant, battle_instance): pass
-# func _on_death(summon_instance, active_combatant, opponent_combatant, battle_instance): pass
-# func perform_turn_activity_override(summon_instance, active_combatant, opponent_combatant, battle_instance) -> bool: return false
-
+# Charging Bull's effect is handled by the "is_swift: true" property
+# set in the JSON/Resource. The core SummonInstance logic checks this flag.
+# No specific method overrides needed here.
 pass

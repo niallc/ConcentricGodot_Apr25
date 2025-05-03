@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dsi6blmw8t75c"]
+
+[ext_resource type="Script" path="res://logic/card_effects/avenging_tiger_effect.gd" id="1_2q3sv"]
+
+[resource]
+script = ExtResource("1_2q3sv")
+base_power = 3
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "AvengingTiger"
+card_name = "Avenging Tiger"
+cost = 5
+artwork_path = "res://art/cards/avengingTiger.webp"
+description_template = "*Arrival:* if opponent has more life than you, gains *Swift*."
