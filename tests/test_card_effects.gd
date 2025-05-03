@@ -5,6 +5,9 @@ extends GutTest
 var goblin_scout_res = load("res://data/cards/instances/goblin_scout.tres") as SummonCardResource
 var energy_axe_res = load("res://data/cards/instances/energy_axe.tres") as SpellCardResource
 var healer_res = load("res://data/cards/instances/healer.tres") as SummonCardResource
+var disarm_res = load("res://data/cards/instances/disarm.tres") as SpellCardResource
+var goblin_firework_res = load("res://data/cards/instances/goblin_firework.tres") as SummonCardResource
+var knight_res = load("res://data/cards/instances/knight.tres") as SummonCardResource # Needed for target
 
 # --- Test Helper Functions ---
 # Creates a basic Battle setup for testing effects
@@ -129,3 +132,112 @@ func test_healer_on_arrival_heals_player():
 			visual_event_found = true
 	assert_true(hp_event_found, "HP change event for player not found.")
 	assert_true(visual_event_found, "Visual effect event for heal pulse not found.")
+
+
+# --- Disarm Tests ---
+func test_disarm_reduces_highest_power():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup opponent creatures
+	var weak_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # Power 1, Lane 1
+	var strong_knight = place_summon_for_test(opponent, knight_res, 1, battle) # Power 3, Lane 2
+	var initial_knight_power = strong_knight.get_current_power()
+
+	# Action: Apply Disarm effect
+	# Call directly on the loaded resource
+	disarm_res.apply_effect(disarm_res, player, opponent, battle)
+
+	# Assert: Knight's power reduced, Scout's unchanged
+	assert_eq(strong_knight.get_current_power(), initial_knight_power - 2, "Disarm should reduce Knight's power by 2.")
+	assert_eq(weak_scout.get_current_power(), 1, "Disarm should not affect Scout's power.")
+	# Assert: Modifier added to Knight
+	assert_eq(strong_knight.power_modifiers.size(), 1, "Disarm should add power modifier to Knight.")
+	assert_eq(strong_knight.power_modifiers[0]["value"], -2, "Disarm modifier value should be -2.")
+	assert_eq(strong_knight.power_modifiers[0]["source"], "Disarm", "Disarm modifier source incorrect.")
+
+	# Assert: Event generated
+	var events = battle.battle_events
+	assert_false(events.is_empty(), "Disarm should generate events.")
+	var stat_event_found = false
+	for event in events: # Check all events as order might vary
+		if event.get("event_type") == "stat_change" and event.get("stat") == "power" and event.get("lane") == 2: # Knight is in lane 1 (index 1 -> lane 2)
+			stat_event_found = true
+			assert_eq(event["new_value"], initial_knight_power - 2, "Disarm stat_change event new_value incorrect.")
+			assert_eq(event["amount"], -2, "Disarm stat_change event amount incorrect.")
+			break
+	assert_true(stat_event_found, "Stat change event for Disarm target not found.")
+
+
+func test_disarm_can_play():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.mana = 3 # Enough mana
+
+	# Case 1: Opponent has no creatures
+	assert_false(disarm_res.can_play(player, opponent, 0, battle), "Disarm should not be playable if opponent has no creatures.")
+
+	# Case 2: Opponent has creatures
+	place_summon_for_test(opponent, goblin_scout_res, 0, battle)
+	assert_true(disarm_res.can_play(player, opponent, 0, battle), "Disarm should be playable if opponent has creatures.")
+
+	# Case 3: Not enough mana
+	player.mana = 2
+	assert_false(disarm_res.can_play(player, opponent, 0, battle), "Disarm should not be playable without enough mana.")
+
+
+# --- Goblin Firework Tests ---
+func test_goblin_firework_death_deals_damage():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Firework and an opposing target
+	var firework_instance = place_summon_for_test(player, goblin_firework_res, 1, battle) # Lane 2
+	var target_knight = place_summon_for_test(opponent, knight_res, 1, battle) # Lane 2
+	var initial_knight_hp = target_knight.current_hp
+	var initial_event_count = battle.battle_events.size() # Count events before action
+
+	# Action: Trigger the death effect manually (normally called by die())
+	# Call directly on the loaded resource
+	goblin_firework_res._on_death(firework_instance, player, opponent, battle)
+
+	# Assert: Knight took damage
+	assert_eq(target_knight.current_hp, initial_knight_hp - 1, "Goblin Firework death should damage opposing Knight.")
+
+	# Assert: Event generated (creature_hp_change for Knight)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	assert_false(events_after.is_empty(), "Firework death should generate events.")
+	var hp_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "creature_hp_change" and event.get("lane") == 2 and event.get("player") == opponent.combatant_name:
+			hp_event_found = true
+			assert_eq(event["amount"], -1, "Firework damage event amount incorrect.")
+			assert_eq(event["new_hp"], initial_knight_hp - 1, "Firework damage event new_hp incorrect.")
+			break # Found the relevant event
+	assert_true(hp_event_found, "Creature HP change event for Firework target not found.")
+
+
+func test_goblin_firework_death_no_target():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Firework with no opposing target
+	var firework_instance = place_summon_for_test(player, goblin_firework_res, 1, battle) # Lane 2
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Trigger the death effect
+	# Call directly on the loaded resource
+	goblin_firework_res._on_death(firework_instance, player, opponent, battle)
+
+	# Assert: No extra damage events generated
+	var damage_event_found = false
+	for event in battle.battle_events.slice(initial_event_count, battle.battle_events.size()):
+		if event.get("event_type") == "creature_hp_change":
+			damage_event_found = true
+			break
+	assert_false(damage_event_found, "Firework death should not generate damage event if no target.")

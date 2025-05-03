@@ -63,7 +63,7 @@ func setup(card_res: SummonCardResource, owner, opp, lane_idx: int, battle):
 func take_damage(amount: int, _source = null):
 	var hp_decrement = max(0, amount) # Use max(0,...) based on our previous discussion
 	current_hp -= hp_decrement
-	print("%s takes %d damage. Now %d/%d" % [card_resource.card_name, hp_decrement, current_hp, get_current_max_hp()])
+	print("%s takes %d damage. Now %d/%d HP" % [card_resource.card_name, hp_decrement, current_hp, get_current_max_hp()])
 
 	# Generate creature_hp_change event
 	battle_instance.add_event({
@@ -86,6 +86,7 @@ func heal(amount: int):
 	current_hp = min(current_hp + heal_increment, max_hp)
 
 	if current_hp > hp_before:
+		print("... Actual heal: %d HP. Now %d/%d HP" % [current_hp - hp_before, current_hp, get_current_max_hp()])
 		print("%s heals %d HP. Now %d/%d" % [card_resource.card_name, current_hp - hp_before, current_hp, max_hp])
 		battle_instance.add_event({
 			"event_type": "creature_hp_change",
@@ -168,7 +169,7 @@ func add_power(amount: int, source_id: String = "unknown", duration: int = -1):
 	# Add the modifier to the list
 	var modifier = {"source": source_id, "value": amount, "duration": duration}
 	power_modifiers.append(modifier)
-	print("%s gets %d power from %s (Modifier added: %s)" % [card_resource.card_name, amount, source_id, modifier])
+	print("%s gets %d power from %s. Now %d/%d HP, %d Power (Modifier added: %s)" % [card_resource.card_name, amount, source_id, current_hp, get_current_max_hp(), get_current_power(), modifier])
 
 	# Generate stat_change event with the *new* calculated power
 	battle_instance.add_event({
@@ -184,7 +185,7 @@ func add_hp(amount: int, source_id: String = "unknown", duration: int = -1):
 	# Add the modifier to the list
 	var modifier = {"source": source_id, "value": amount, "duration": duration}
 	max_hp_modifiers.append(modifier)
-	print("%s gets %d max HP from %s (Modifier added: %s)" % [card_resource.card_name, amount, source_id, modifier])
+	print("%s gets %d max HP from %s. Now %d/%d HP, %d Power (Modifier added: %s)" % [card_resource.card_name, amount, source_id, current_hp, get_current_max_hp(), get_current_power(), modifier])
 
 	# Generate stat_change event for max_hp
 	var new_max_hp = get_current_max_hp()
