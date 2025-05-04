@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://c6v0k3k6ie4y1"]
+
+[ext_resource type="Script" path="res://logic/card_effects/overconcentrate_effect.gd" id="1_5g74h"]
+
+[resource]
+script = ExtResource("1_5g74h")
+id = "Overconcentrate"
+card_name = "Overconcentrate"
+cost = 3
+artwork_path = "res://art/cards/overconcentrate.webp"
+description_template = "Opponent's leftmost creature becomes *Relentless*."

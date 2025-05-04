@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://ti8f32yj1nsw"]
+
+[ext_resource type="Script" path="res://logic/card_effects/goblin_chieftain_effect.gd" id="1_62fvw"]
+
+[resource]
+script = ExtResource("1_62fvw")
+base_power = 3
+base_max_hp = 4
+tags = Array[String]([])
+is_swift = false
+id = "GoblinChieftain"
+card_name = "Goblin Chieftain"
+cost = 5
+artwork_path = "res://art/cards/goblinChieftain.webp"
+description_template = "*Arrival:* Adds a Goblin Warboss to the bottom of your deck."

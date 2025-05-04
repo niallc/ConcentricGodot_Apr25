@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://qe5ab5wj3md2"]
+
+[ext_resource type="Script" path="res://logic/card_effects/amnesia_mage_effect.gd" id="1_e1krn"]
+
+[resource]
+script = ExtResource("1_e1krn")
+base_power = 1
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "AmnesiaMage"
+card_name = "Amnesia Mage"
+cost = 4
+artwork_path = "res://art/cards/amnesiaMage.webp"
+description_template = "*Arrival:* Opponent loses 2 mana, then an additional mana for each card in your graveyard."

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://igqbjfx1slx4"]
+
+[ext_resource type="Script" path="res://logic/card_effects/apprentice_assassin_effect.gd" id="1_sji1y"]
+
+[resource]
+script = ExtResource("1_sji1y")
+base_power = 2
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "ApprenticeAssassin"
+card_name = "Apprentice Assassin"
+cost = 3
+artwork_path = "res://art/cards/apprenticeAssassin.webp"
+description_template = "Gains 2 power upon killing an enemy."

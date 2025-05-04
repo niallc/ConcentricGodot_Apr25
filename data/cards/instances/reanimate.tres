@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://wvmwaw6spggf"]
+
+[ext_resource type="Script" path="res://logic/card_effects/reanimate_effect.gd" id="1_ueuka"]
+
+[resource]
+script = ExtResource("1_ueuka")
+id = "Reanimate"
+card_name = "Reanimate"
+cost = 5
+artwork_path = "res://art/cards/reanimate.webp"
+description_template = "Return the leftmost creature of your graveyard to the battlefield. It becomes *Undead*."

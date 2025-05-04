@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dhhxavl42ln2f"]
+
+[ext_resource type="Script" path="res://logic/card_effects/spiteful_fang_effect.gd" id="1_aea81"]
+
+[resource]
+script = ExtResource("1_aea81")
+base_power = 2
+base_max_hp = 1
+tags = Array[String](["Relentless"])
+is_swift = false
+id = "SpitefulFang"
+card_name = "Spiteful Fang"
+cost = 3
+artwork_path = "res://art/cards/spitefulFang.webp"
+description_template = "*Arrival*: if opponent has more life than you, gains +2/+2. *Relentless*"

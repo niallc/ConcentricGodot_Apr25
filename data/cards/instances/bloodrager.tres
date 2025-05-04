@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://ces3o27updhkp"]
+
+[ext_resource type="Script" path="res://logic/card_effects/bloodrager_effect.gd" id="1_kb0hx"]
+
+[resource]
+script = ExtResource("1_kb0hx")
+base_power = 3
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "Bloodrager"
+card_name = "Bloodrager"
+cost = 4
+artwork_path = "res://art/cards/bloodrager.webp"
+description_template = "Upon killing an enemy, heals to full health and becomes *Relentless*."

@@ -157,5 +157,149 @@
 	"hp": 6,
 	"tags": ["Relentless"],
 	"swift": false
+  },
+  {
+	"id": "Reanimate",
+	"type": "Spell",
+	"name": "Reanimate",
+	"cost": 5,
+	"art": "res://art/cards/reanimate.webp",
+	"description": "Return the leftmost creature of your graveyard to the battlefield. It becomes *Undead*.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "GoblinChieftain",
+	"type": "Summon",
+	"name": "Goblin Chieftain",
+	"cost": 5,
+	"art": "res://art/cards/goblinChieftain.webp",
+	"description": "*Arrival:* Adds a Goblin Warboss to the bottom of your deck.",
+	"power": 3,
+	"hp": 4,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "GoblinWarboss",
+	"type": "Summon",
+	"name": "Goblin Warboss",
+	"cost": 3,
+	"art": "res://art/cards/goblinWarboss.webp",
+	"description": "*Arrival:* Adds a Goblin Expendable to the bottom of your deck.",
+	"power": 2,
+	"hp": 3,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "ApprenticeAssassin",
+	"type": "Summon",
+	"name": "Apprentice Assassin",
+	"cost": 3,
+	"art": "res://art/cards/apprenticeAssassin.webp",
+	"description": "Gains 2 power upon killing an enemy.",
+	"power": 2,
+	"hp": 1,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "GoblinExpendable",
+	"type": "Summon",
+	"name": "Goblin Expendable",
+	"cost": 3,
+	"art": "res://art/cards/goblinExpendable.webp",
+	"description": "*Swift* (arrives ready to attack)",
+	"power": 1,
+	"hp": 1,
+	"tags": [],
+	"swift": true
+  }
+,{
+	"id": "MasterOfStrategy",
+	"type": "Summon",
+	"name": "Master Of Strategy",
+	"cost": 5,
+	"art": "res://art/cards/masterOfStrategy.webp",
+	"description": "*Arrival:* Each of your other creatures permanently gain +1/+1.",
+	"power": 3,
+	"hp": 3,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "Slayer",
+	"type": "Summon",
+	"name": "Slayer",
+	"cost": 4,
+	"art": "res://art/cards/slayer.webp",
+	"description": "*Arrival:* If opposite an undead creature, destroy it immediately.",
+	"power": 3,
+	"hp": 2,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "Bloodrager",
+	"type": "Summon",
+	"name": "Bloodrager",
+	"cost": 4,
+	"art": "res://art/cards/bloodrager.webp",
+	"description": "Upon killing an enemy, heals to full health and becomes *Relentless*.",
+	"power": 3,
+	"hp": 3,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "SpitefulFang",
+	"type": "Summon",
+	"name": "Spiteful Fang",
+	"cost": 3,
+	"art": "res://art/cards/spitefulFang.webp",
+	"description": "*Arrival*: if opponent has more life than you, gains +2/+2. *Relentless*",
+	"power": 2,
+	"hp": 1,
+	"tags": ["Relentless"],
+	"swift": false
+  }
+,{
+	"id": "Nap",
+	"type": "Spell",
+	"name": "Nap",
+	"cost": 1,
+	"art": "res://art/cards/naptime.webp",
+	"description": "Gain 2 HP.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "TotemOfChampions",
+	"type": "Spell",
+	"name": "Totem of Champions",
+	"cost": 4,
+	"art": "res://art/cards/championsTotem.webp",
+	"description": "All your creatures get +1 power. All opponent's creatures get -1 power.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "AmnesiaMage",
+	"type": "Summon",
+	"name": "Amnesia Mage",
+	"cost": 4,
+	"art": "res://art/cards/amnesiaMage.webp",
+	"description": "*Arrival:* Opponent loses 2 mana, then an additional mana for each card in your graveyard.",
+	"power": 1,
+	"hp": 1,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "Overconcentrate",
+	"type": "Spell",
+	"name": "Overconcentrate",
+	"cost": 3,
+	"art": "res://art/cards/overconcentrate.webp",
+	"description": "Opponent's leftmost creature becomes *Relentless*.",
+	"power": null, "hp": null, "tags": [], "swift": null
   }
 ]

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dws6ho5sv1ysb"]
+
+[ext_resource type="Script" path="res://logic/card_effects/totem_of_champions_effect.gd" id="1_cth8d"]
+
+[resource]
+script = ExtResource("1_cth8d")
+id = "TotemOfChampions"
+card_name = "Totem of Champions"
+cost = 4
+artwork_path = "res://art/cards/championsTotem.webp"
+description_template = "All your creatures get +1 power. All opponent's creatures get -1 power."

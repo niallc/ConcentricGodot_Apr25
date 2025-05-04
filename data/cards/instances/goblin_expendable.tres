@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://bc0tijh6hb5n7"]
+
+[ext_resource type="Script" path="res://logic/card_effects/goblin_expendable_effect.gd" id="1_me1xp"]
+
+[resource]
+script = ExtResource("1_me1xp")
+base_power = 1
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = true
+id = "GoblinExpendable"
+card_name = "Goblin Expendable"
+cost = 3
+artwork_path = "res://art/cards/goblinExpendable.webp"
+description_template = "*Swift* (arrives ready to attack)"

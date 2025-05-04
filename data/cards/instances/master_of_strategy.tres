@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dp10bgps1sw2y"]
+
+[ext_resource type="Script" path="res://logic/card_effects/master_of_strategy_effect.gd" id="1_cvrm8"]
+
+[resource]
+script = ExtResource("1_cvrm8")
+base_power = 3
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "MasterOfStrategy"
+card_name = "Master Of Strategy"
+cost = 5
+artwork_path = "res://art/cards/masterOfStrategy.webp"
+description_template = "*Arrival:* Each of your other creatures permanently gain +1/+1."

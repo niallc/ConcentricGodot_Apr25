@@ -6,9 +6,13 @@ func apply_effect(_source_card_res: SpellCardResource, active_combatant, opponen
 	var cards_moved_count = active_combatant.graveyard.size()
 	if cards_moved_count > 0:
 		print("...Moving %d cards from player graveyard to library bottom." % cards_moved_count)
+		#Backards approach...
 		# Iterate backwards to preserve original graveyard order at bottom of library
-		for i in range(cards_moved_count - 1, -1, -1):
-			var card_to_move = active_combatant.graveyard[i]
+		# for i in range(cards_moved_count - 1, -1, -1): # Old backward iteration
+		# Forward Approach
+		# Iterate forwards to preserve order with push_back ---
+		for card_to_move in active_combatant.graveyard: # Iterate forwards
+			# var card_to_move = active_combatant.graveyard[i]
 			active_combatant.library.push_back(card_to_move)
 			# Generate event for each card moved
 			battle_instance.add_event({

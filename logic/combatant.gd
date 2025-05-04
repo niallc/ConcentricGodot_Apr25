@@ -144,3 +144,18 @@ func remove_summon_from_lane(lane_index: int):
 		lanes[lane_index] = null
 	else:
 		printerr("Failed to remove summon from %s's lane %d" % [combatant_name, lane_index])
+
+func lose_mana(amount: int, source_id: String = "unknown"):
+	if amount <= 0: return
+	var mana_lost = min(amount, mana) # Can't lose more than you have
+	if mana_lost > 0:
+		mana -= mana_lost
+		print("%s loses %d mana from %s. Remaining: %d" % [combatant_name, mana_lost, source_id, mana])
+		# Generate mana_change event
+		battle_instance.add_event({
+			"event_type": "mana_change",
+			"player": combatant_name,
+			"amount": -mana_lost, # Negative for loss
+			"new_total": mana,
+			"source": source_id # Optional source tracking
+		})

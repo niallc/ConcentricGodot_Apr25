@@ -2,24 +2,37 @@
 extends GutTest
 
 # Preload resources
+var apprentice_assassin_res = load("res://data/cards/instances/apprentice_assassin.tres") as SummonCardResource
 var avenging_tiger_res = load("res://data/cards/instances/avenging_tiger.tres") as SummonCardResource
 var disarm_res = load("res://data/cards/instances/disarm.tres") as SpellCardResource
 var energy_axe_res = load("res://data/cards/instances/energy_axe.tres") as SpellCardResource
 var focus_res = load("res://data/cards/instances/focus.tres") as SpellCardResource
+var goblin_chieftain_res = load("res://data/cards/instances/goblin_chieftain.tres") as SummonCardResource
+var goblin_expendable_res = load("res://data/cards/instances/goblin_expendable.tres") as SummonCardResource
 var goblin_firework_res = load("res://data/cards/instances/goblin_firework.tres") as SummonCardResource
 var goblin_rally_res = load("res://data/cards/instances/goblin_rally.tres") as SpellCardResource
 var goblin_scout_res = load("res://data/cards/instances/goblin_scout.tres") as SummonCardResource
+var goblin_warboss_res = load("res://data/cards/instances/goblin_warboss.tres") as SummonCardResource
 var healer_res = load("res://data/cards/instances/healer.tres") as SummonCardResource
 var inexorable_ooze_res = load("res://data/cards/instances/inexorable_ooze.tres") as SummonCardResource
 var knight_res = load("res://data/cards/instances/knight.tres") as SummonCardResource # Needed for target
 var charging_bull_res = load("res://data/cards/instances/charging_bull.tres") as SummonCardResource
 var portal_mage_res = load("res://data/cards/instances/portal_mage.tres") as SummonCardResource
+var reanimate_res = load("res://data/cards/instances/reanimate.tres") as SpellCardResource
 var recurring_skeleton_res = load("res://data/cards/instances/recurring_skeleton.tres") as SummonCardResource
 var superior_intellect_res = load("res://data/cards/instances/superior_intellect.tres") as SpellCardResource
 var thought_acquirer_res = load("res://data/cards/instances/thought_acquirer.tres") as SummonCardResource
 var vampire_swordmaster_res = load("res://data/cards/instances/vampire_swordmaster.tres") as SummonCardResource
 var wall_of_vines_res = load("res://data/cards/instances/wall_of_vines.tres") as SummonCardResource
+var master_of_strategy_res = load("res://data/cards/instances/master_of_strategy.tres") as SummonCardResource
+var slayer_res = load("res://data/cards/instances/slayer.tres") as SummonCardResource
+var bloodrager_res = load("res://data/cards/instances/bloodrager.tres") as SummonCardResource
+var spiteful_fang_res = load("res://data/cards/instances/spiteful_fang.tres") as SummonCardResource
 
+var nap_res = load("res://data/cards/instances/nap.tres") as SpellCardResource
+var totem_of_champions_res = load("res://data/cards/instances/totem_of_champions.tres") as SpellCardResource
+var amnesia_mage_res = load("res://data/cards/instances/amnesia_mage.tres") as SummonCardResource
+var overconcentrate_res = load("res://data/cards/instances/overconcentrate.tres") as SpellCardResource
 
 # --- Test Helper Functions ---
 # Creates a basic Battle setup for testing effects
@@ -309,7 +322,7 @@ func test_portal_mage_bounces_opponent():
 	var opponent = setup["opponent"]
 	var battle = setup["battle"]
 	# Place a target for the opponent
-	var target_knight = place_summon_for_test(opponent, knight_res, 1, battle) # Lane 2
+	var _target_knight = place_summon_for_test(opponent, knight_res, 1, battle) # Lane 2
 
 	# Ensure opponent library is empty to easily check the bounced card
 	opponent.library.clear()
@@ -385,7 +398,7 @@ func test_vampire_swordmaster_heals_on_kill():
 
 	# Damage Vampire so it needs healing
 	vampire_instance.current_hp = 1
-	var initial_vamp_hp = vampire_instance.current_hp
+	# var initial_vamp_hp = vampire_instance.current_hp
 
 	# Action: Simulate combat where Vampire kills Scout (Vamp power 3 vs Scout HP 2)
 	vampire_instance._perform_combat(target_scout) # This calls take_damage, die, and _on_kill_target
@@ -535,20 +548,17 @@ func test_avenging_tiger_does_not_gain_swift_if_hp_not_lower():
 	assert_false(status_event_found, "No Swift status change event should be generated.")
 
 # --- Superior Intellect Tests ---
-# --- Superior Intellect Tests ---
 func test_superior_intellect_moves_grave_to_library_and_clears_opponent():
 	var setup = create_test_battle_setup()
 	var player = setup["player"]
 	var opponent = setup["opponent"]
 	var battle = setup["battle"]
 	# Setup graveyards by modifying the existing arrays
-	# --- FIX: Modify existing arrays instead of assigning new ones ---
 	player.graveyard.clear() # Ensure it's empty first
 	player.graveyard.append(goblin_scout_res)
 	player.graveyard.append(knight_res)
 	opponent.graveyard.clear()
 	opponent.graveyard.append(healer_res)
-	# --- END FIX ---
 	var initial_player_lib_size = player.library.size()
 	var initial_event_count = battle.battle_events.size() # Track events before action
 
@@ -704,8 +714,6 @@ func test_thought_acquirer_opponent_library_empty():
 			break
 	assert_false(moved_event_found, "No card_moved events should be generated.")
 
-
-
 # --- Inexorable Ooze Tests ---
 func test_inexorable_ooze_is_relentless():
 	# Test the tag sets the flag correctly during setup
@@ -715,3 +723,561 @@ func test_inexorable_ooze_is_relentless():
 	assert_true(ooze_instance.is_relentless, "Inexorable Ooze instance should be relentless after setup.")
 	# Actual relentless behavior (calling _perform_direct_attack) is tested implicitly
 	# when simulating turns involving the Ooze.
+
+# --- Reanimate Tests ---
+func test_reanimate_summons_from_graveyard():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup graveyard and ensure lane 0 is free
+	player.graveyard.clear()
+	player.graveyard.append(knight_res) # Knight is leftmost
+	player.graveyard.append(goblin_scout_res)
+	player.lanes[0] = null
+	var initial_grave_size = player.graveyard.size()
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Apply effect
+	reanimate_res.apply_effect(reanimate_res, player, opponent, battle)
+
+	# Assert: Lane 0 now has Knight
+	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "Knight", "Lane 1 should have reanimated Knight.")
+	# Assert: Knight has Undead tag
+	assert_true(player.lanes[0].tags.has(Constants.TAG_UNDEAD), "Reanimated Knight should have Undead tag.")
+	# Assert: Graveyard size decreased
+	assert_eq(player.graveyard.size(), initial_grave_size - 1, "Graveyard size should decrease.")
+	# Assert: Knight is no longer in graveyard
+	var knight_in_grave = false
+	for card in player.graveyard:
+		if card.id == "Knight": knight_in_grave = true; break
+	assert_false(knight_in_grave, "Knight should be removed from graveyard.")
+
+	# Assert: Events generated (card_moved grave->limbo, summon_arrives, card_moved limbo->lane)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	assert_gte(events_after.size(), 3, "Reanimate should generate at least 3 events.")
+	var moved_from_grave = false
+	var arrived = false
+	var moved_to_lane = false
+	for event in events_after:
+		if event.get("event_type") == "card_moved" and event.get("from_zone") == "graveyard": moved_from_grave = true
+		elif event.get("event_type") == "summon_arrives" and event.get("card_id") == "Knight": arrived = true
+		elif event.get("event_type") == "card_moved" and event.get("from_zone") == "limbo" and event.get("to_zone") == "lane": moved_to_lane = true
+	assert_true(moved_from_grave, "Card moved from graveyard event not found.")
+	assert_true(arrived, "Summon arrives event not found.")
+	assert_true(moved_to_lane, "Card moved to lane event not found.")
+
+
+func test_reanimate_no_target_in_graveyard():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.graveyard.clear() # Empty graveyard
+	var initial_event_count = battle.battle_events.size()
+	reanimate_res.apply_effect(reanimate_res, player, opponent, battle)
+	# Assert no summon arrived
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var arrived = false
+	for event in events_after:
+		if event.get("event_type") == "summon_arrives": arrived = true; break
+	assert_false(arrived, "No summon should arrive if graveyard empty.")
+
+
+func test_reanimate_no_empty_lane():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	#player.graveyard = [knight_res] # Target in graveyard
+	player.graveyard.clear()
+
+	# Fill lanes
+	place_summon_for_test(player, goblin_scout_res, 0, battle)
+	place_summon_for_test(player, goblin_scout_res, 1, battle)
+	place_summon_for_test(player, goblin_scout_res, 2, battle)
+	var initial_event_count = battle.battle_events.size()
+	reanimate_res.apply_effect(reanimate_res, player, opponent, battle)
+	# Assert no summon arrived
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var arrived = false
+	for event in events_after:
+		if event.get("event_type") == "summon_arrives": arrived = true; break
+	assert_false(arrived, "No summon should arrive if lanes full.")
+
+
+# --- Goblin Chieftain/Warboss Tests ---
+func test_goblin_chieftain_adds_warboss_to_deck():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	var initial_lib_size = player.library.size()
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(goblin_chieftain_res, player, player.opponent, 0, battle)
+	var initial_event_count = battle.battle_events.size()
+	# Action
+	goblin_chieftain_res._on_arrival(instance, player, player.opponent, battle)
+	# Assert
+	assert_eq(player.library.size(), initial_lib_size + 1, "Library size should increase.")
+	assert_eq(player.library[-1].id, "GoblinWarboss", "Goblin Warboss should be added to bottom.")
+	# Assert event
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var moved_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "card_moved" and event.get("card_id") == "GoblinWarboss": moved_event_found = true; break
+	assert_true(moved_event_found, "Card moved event for Warboss not found.")
+
+
+func test_goblin_warboss_adds_expendable_to_deck():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	var initial_lib_size = player.library.size()
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(goblin_warboss_res, player, player.opponent, 0, battle)
+	var initial_event_count = battle.battle_events.size()
+	# Action
+	goblin_warboss_res._on_arrival(instance, player, player.opponent, battle)
+	# Assert
+	assert_eq(player.library.size(), initial_lib_size + 1, "Library size should increase.")
+	assert_eq(player.library[-1].id, "GoblinExpendable", "Goblin Expendable should be added to bottom.")
+	# Assert event
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var moved_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "card_moved" and event.get("card_id") == "GoblinExpendable": moved_event_found = true; break
+	assert_true(moved_event_found, "Card moved event for Expendable not found.")
+
+
+# --- Apprentice Assassin Tests ---
+func test_apprentice_assassin_gains_power_on_kill():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Assassin and a weak target
+	var assassin_instance = place_summon_for_test(player, apprentice_assassin_res, 0, battle) # Power 2
+	var target_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # HP 2
+	var initial_assassin_power = assassin_instance.get_current_power()
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Simulate combat where Assassin kills Scout
+	assassin_instance._perform_combat(target_scout)
+
+	# Assert: Scout is dead
+	assert_lte(target_scout.current_hp, 0, "Target scout should be dead.")
+	# Assert: Assassin power increased
+	assert_eq(assassin_instance.get_current_power(), initial_assassin_power + 2, "Assassin power should increase by 2.")
+	# Assert: Modifier added
+	assert_eq(assassin_instance.power_modifiers.size(), 1, "Assassin should gain a power modifier.")
+	assert_eq(assassin_instance.power_modifiers[0]["value"], 2, "Assassin power modifier value incorrect.")
+
+	# Assert: Stat change event generated for Assassin
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var stat_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "stat_change" and event.get("stat") == "power" and \
+		   event.get("player") == player.combatant_name and event.get("lane") == 1:
+			stat_event_found = true
+			assert_eq(event["new_value"], initial_assassin_power + 2, "Assassin stat change new_value incorrect.")
+			break
+	assert_true(stat_event_found, "Stat change event for Assassin after kill not found.")
+
+
+# --- Goblin Expendable Tests ---
+func test_goblin_expendable_is_swift():
+	# Test the resource property
+	assert_true(goblin_expendable_res.is_swift, "Goblin Expendable resource should have is_swift = true.")
+	# Test instance setup
+	var setup = create_test_battle_setup()
+	var instance = SummonInstance.new()
+	instance.setup(goblin_expendable_res, setup["player"], setup["opponent"], 0, setup["battle"])
+	assert_true(instance.is_swift, "Goblin Expendable instance should inherit is_swift = true.")
+
+# --- Master of Strategy Tests ---
+func test_master_of_strategy_buffs_others():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Place other creatures
+	var scout1 = place_summon_for_test(player, goblin_scout_res, 0, battle)
+	var scout2 = place_summon_for_test(player, goblin_scout_res, 2, battle)
+	var initial_scout1_power = scout1.get_current_power()
+	var initial_scout1_hp = scout1.get_current_max_hp()
+	var initial_scout2_power = scout2.get_current_power()
+	var initial_scout2_hp = scout2.get_current_max_hp()
+
+	# Simulate Master arrival in lane 1
+	var master_instance = SummonInstance.new()
+	master_instance.setup(master_of_strategy_res, player, player.opponent, 1, battle)
+	player.lanes[1] = master_instance # Manually place for test setup
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Call arrival effect
+	master_of_strategy_res._on_arrival(master_instance, player, player.opponent, battle)
+
+	# Assert: Scouts are buffed
+	assert_eq(scout1.get_current_power(), initial_scout1_power + 1, "Scout 1 power incorrect.")
+	assert_eq(scout1.get_current_max_hp(), initial_scout1_hp + 1, "Scout 1 max HP incorrect.")
+	assert_eq(scout2.get_current_power(), initial_scout2_power + 1, "Scout 2 power incorrect.")
+	assert_eq(scout2.get_current_max_hp(), initial_scout2_hp + 1, "Scout 2 max HP incorrect.")
+	# Assert: Master itself is NOT buffed
+	assert_eq(master_instance.get_current_power(), 3, "Master power should be base.")
+	assert_eq(master_instance.get_current_max_hp(), 3, "Master max HP should be base.")
+
+	# Assert: Events generated (expect 4 stat_change, 4 hp_change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var stat_changes = 0
+	var hp_changes = 0
+	for event in events_after:
+		if event.get("event_type") == "stat_change": stat_changes += 1
+		elif event.get("event_type") == "creature_hp_change": hp_changes += 1
+	assert_eq(stat_changes, 4, "Incorrect number of stat_change events for Master.") # 2 power, 2 max_hp
+	assert_eq(hp_changes, 2, "Incorrect number of creature_hp_change events for Master.") # 2 heals
+
+
+# --- Slayer Tests ---
+func test_slayer_kills_undead_opponent():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Undead target for opponent
+	var target_skeleton = place_summon_for_test(opponent, recurring_skeleton_res, 0, battle) # Lane 1
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate Slayer arrival opposite target
+	var slayer_instance = SummonInstance.new()
+	slayer_instance.setup(slayer_res, player, opponent, 0, battle) # Arrives in Lane 1
+
+	# Action: Call arrival effect
+	slayer_res._on_arrival(slayer_instance, player, opponent, battle)
+
+	# Assert: Skeleton lane is now empty (it died)
+	assert_null(opponent.lanes[0], "Opponent lane 1 should be empty after Slayer kills Skeleton.")
+	# Assert: Skeleton went to library (due to its own death effect)
+	assert_eq(opponent.library.size(), 1, "Opponent library should contain Skeleton.")
+	assert_eq(opponent.library[0].id, "RecurringSkeleton", "Skeleton should be in library.")
+
+	# Assert: Events generated (creature_defeated for skeleton, card_moved for skeleton)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var defeated_event_found = false
+	var moved_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "creature_defeated" and event.get("lane") == 1 and event.get("player") == opponent.combatant_name:
+			defeated_event_found = true
+		elif event.get("event_type") == "card_moved" and event.get("card_id") == "RecurringSkeleton" and event.get("to_zone") == "library":
+			moved_event_found = true
+	assert_true(defeated_event_found, "Creature defeated event for Skeleton not found.")
+	assert_true(moved_event_found, "Card moved event for Skeleton not found.")
+
+
+func test_slayer_does_not_kill_non_undead_opponent():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place non-Undead target
+	var target_knight = place_summon_for_test(opponent, knight_res, 0, battle) # Lane 1
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate Slayer arrival
+	var slayer_instance = SummonInstance.new()
+	slayer_instance.setup(slayer_res, player, opponent, 0, battle)
+
+	# Action: Call arrival effect
+	slayer_res._on_arrival(slayer_instance, player, opponent, battle)
+
+	# Assert: Knight is still in lane
+	assert_true(opponent.lanes[0] is SummonInstance and opponent.lanes[0].card_resource.id == "Knight", "Knight should still be in lane 1.")
+	# Assert: No creature_defeated event generated for Knight
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var defeated_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "creature_defeated" and event.get("player") == opponent.combatant_name:
+			defeated_event_found = true; break
+	assert_false(defeated_event_found, "No creature defeated event should be generated for Knight.")
+
+
+# --- Bloodrager Tests ---
+func test_bloodrager_heals_and_relentless_on_kill():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Bloodrager and weak target
+	var rager_instance = place_summon_for_test(player, bloodrager_res, 0, battle) # Power 3
+	var target_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # HP 2
+	# Damage rager
+	rager_instance.current_hp = 1
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Simulate combat kill
+	rager_instance._perform_combat(target_scout) # Calls _on_kill_target internally
+
+	# Assert: Scout is dead
+	assert_lte(target_scout.current_hp, 0, "Target scout should be dead.")
+	# Assert: Rager healed to full
+	assert_eq(rager_instance.current_hp, rager_instance.get_current_max_hp(), "Bloodrager should heal to full.")
+	# Assert: Rager is now relentless
+	assert_true(rager_instance.is_relentless, "Bloodrager should become relentless.")
+
+	# Assert: Events generated (heal + status change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var heal_event_found = false
+	var status_event_found = false
+	for event in events_after:
+		# Check for heal event for the rager
+		if event.get("event_type") == "creature_hp_change" and \
+		   event.get("player") == player.combatant_name and \
+		   event.get("lane") == 1 and event.get("amount") > 0:
+			heal_event_found = true
+		# Check for relentless status gain event
+		elif event.get("event_type") == "status_change" and \
+			 event.get("status") == "Relentless" and \
+			 event.get("gained") == true and \
+			 event.get("lane") == 1:
+			status_event_found = true
+	assert_true(heal_event_found, "Heal event for Bloodrager not found.")
+	assert_true(status_event_found, "Relentless status gain event not found.")
+
+
+# --- Spiteful Fang Tests ---
+func test_spiteful_fang_gets_buff_if_hp_lower():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.current_hp = 10
+	opponent.current_hp = 15 # Player HP is lower
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate arrival
+	var fang_instance = SummonInstance.new()
+	fang_instance.setup(spiteful_fang_res, player, opponent, 0, battle)
+
+	# Action: Call arrival effect
+	spiteful_fang_res._on_arrival(fang_instance, player, opponent, battle)
+
+	# Assert: Stats increased (+2/+2)
+	assert_eq(fang_instance.get_current_power(), 2 + 2, "Fang power should be 4.")
+	assert_eq(fang_instance.get_current_max_hp(), 1 + 2, "Fang max HP should be 3.")
+	assert_eq(fang_instance.current_hp, 1 + 2, "Fang current HP should be 3.") # Healed by add_hp
+
+	# Assert: Events generated (2x stat_change, 1x hp_change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var stat_changes = 0
+	var hp_changes = 0
+	for event in events_after:
+		if event.get("event_type") == "stat_change": stat_changes += 1
+		elif event.get("event_type") == "creature_hp_change": hp_changes += 1
+	assert_eq(stat_changes, 2, "Incorrect number of stat_change events for Spiteful Fang buff.")
+	assert_eq(hp_changes, 1, "Incorrect number of creature_hp_change events for Spiteful Fang buff.")
+
+
+func test_spiteful_fang_no_buff_if_hp_not_lower():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.current_hp = 15
+	opponent.current_hp = 15 # Player HP not lower
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate arrival
+	var fang_instance = SummonInstance.new()
+	fang_instance.setup(spiteful_fang_res, player, opponent, 0, battle)
+
+	# Action: Call arrival effect
+	spiteful_fang_res._on_arrival(fang_instance, player, opponent, battle)
+
+	# Assert: Stats are base
+	assert_eq(fang_instance.get_current_power(), 2, "Fang power should be base 2.")
+	assert_eq(fang_instance.get_current_max_hp(), 1, "Fang max HP should be base 1.")
+
+	# Assert: No stat/hp change events generated by arrival effect
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var change_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "stat_change" or event.get("event_type") == "creature_hp_change":
+			change_event_found = true; break
+	assert_false(change_event_found, "No stat/hp change events should be generated by Spiteful Fang arrival.")
+
+
+func test_spiteful_fang_is_relentless():
+	# Test instance setup sets flag based on tag
+	var setup = create_test_battle_setup()
+	var instance = SummonInstance.new()
+	instance.setup(spiteful_fang_res, setup["player"], setup["opponent"], 0, setup["battle"])
+	assert_true(instance.is_relentless, "Spiteful Fang instance should be relentless after setup.")
+
+# --- Nap Tests ---
+func test_nap_heals_player():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	player.current_hp = 15
+	var initial_hp = player.current_hp
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Apply effect
+	nap_res.apply_effect(nap_res, player, player.opponent, battle)
+
+	# Assert: HP increased
+	var expected_hp = min(initial_hp + 2, player.max_hp)
+	assert_eq(player.current_hp, expected_hp, "Nap should heal player.")
+
+	# Assert: Event generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var hp_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "hp_change" and event.get("player") == player.combatant_name:
+			hp_event_found = true
+			assert_eq(event["amount"], expected_hp - initial_hp, "Nap heal amount incorrect.")
+			break
+	assert_true(hp_event_found, "HP change event for Nap not found.")
+
+
+# --- Totem of Champions Tests ---
+func test_totem_of_champions_buffs_debuffs():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place creatures
+	var player_scout = place_summon_for_test(player, goblin_scout_res, 0, battle) # P:1
+	var player_knight = place_summon_for_test(player, knight_res, 1, battle)     # P:3
+	var opp_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # P:1
+	var opp_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # P:3
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Apply effect
+	totem_of_champions_res.apply_effect(totem_of_champions_res, player, opponent, battle)
+
+	# Assert: Player creatures buffed
+	assert_eq(player_scout.get_current_power(), 1 + 1, "Player Scout power incorrect.")
+	assert_eq(player_knight.get_current_power(), 3 + 1, "Player Knight power incorrect.")
+	# Assert: Opponent creatures debuffed
+	assert_eq(opp_scout.get_current_power(), 1 - 1, "Opponent Scout power incorrect.") # Becomes 0
+	assert_eq(opp_knight.get_current_power(), 3 - 1, "Opponent Knight power incorrect.") # Becomes 2
+
+	# Assert: Events generated (4x stat_change for power)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var stat_changes = 0
+	for event in events_after:
+		if event.get("event_type") == "stat_change" and event.get("stat") == "power":
+			stat_changes += 1
+	assert_eq(stat_changes, 4, "Incorrect number of power stat_change events for Totem.")
+
+
+# --- Amnesia Mage Tests ---
+func test_amnesia_mage_drains_mana():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup state
+	player.graveyard.clear()
+	player.graveyard.append(goblin_scout_res) # Knight is leftmost
+	player.graveyard.append(knight_res)
+
+	opponent.mana = 5 # Opponent has mana to lose
+	var initial_opp_mana = opponent.mana
+	var expected_drain = 2 + player.graveyard.size() # 2 + 2 = 4
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(amnesia_mage_res, player, opponent, 0, battle)
+
+	# Action: Call arrival effect
+	amnesia_mage_res._on_arrival(instance, player, opponent, battle)
+
+	# Assert: Opponent mana reduced
+	assert_eq(opponent.mana, initial_opp_mana - expected_drain, "Opponent mana incorrect after drain.")
+
+	# Assert: Event generated (mana_change for opponent)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var mana_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "mana_change" and event.get("player") == opponent.combatant_name:
+			mana_event_found = true
+			assert_eq(event["amount"], -expected_drain, "Amnesia mana drain amount incorrect.")
+			break
+	assert_true(mana_event_found, "Mana change event for Amnesia Mage drain not found.")
+
+
+func test_amnesia_mage_drain_limited_by_opponent_mana():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.graveyard.clear()
+	player.graveyard.append(goblin_scout_res)
+
+	opponent.mana = 2 # Opponent has less mana than potential drain (2+1=3)
+	var expected_drain = 2 + player.graveyard.size() # Potential drain = 3
+	var actual_drain = min(expected_drain, opponent.mana) # Actual drain = 2
+
+	var instance = SummonInstance.new()
+	instance.setup(amnesia_mage_res, player, opponent, 0, battle)
+	amnesia_mage_res._on_arrival(instance, player, opponent, battle)
+
+	assert_eq(opponent.mana, 0, "Opponent mana should be 0.") # Drained to zero
+	# Check event amount reflects actual drain
+	var events = battle.battle_events
+	var mana_event_found = false
+	for event in events:
+		if event.get("event_type") == "mana_change" and event.get("player") == opponent.combatant_name:
+			mana_event_found = true
+			assert_eq(event["amount"], -actual_drain, "Amnesia drain amount should be limited by opponent mana.")
+			break
+	assert_true(mana_event_found, "Mana change event for limited Amnesia Mage drain not found.")
+
+
+# --- Overconcentrate Tests ---
+func test_overconcentrate_makes_relentless():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place target creature
+	var target_knight = place_summon_for_test(opponent, knight_res, 0, battle) # Lane 1
+	assert_false(target_knight.is_relentless, "Knight should not start relentless.")
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Apply effect
+	overconcentrate_res.apply_effect(overconcentrate_res, player, opponent, battle)
+
+	# Assert: Target is now relentless
+	assert_true(target_knight.is_relentless, "Overconcentrate should make target relentless.")
+
+	# Assert: Event generated (status_change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var status_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "status_change" and \
+		   event.get("status") == "Relentless" and \
+		   event.get("gained") == true and \
+		   event.get("lane") == 1: # Knight in lane 1
+			status_event_found = true
+			break
+	assert_true(status_event_found, "Relentless status gain event for Overconcentrate not found.")
+
+
+func test_overconcentrate_no_target():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Opponent has no creatures
+	var initial_event_count = battle.battle_events.size()
+	overconcentrate_res.apply_effect(overconcentrate_res, player, opponent, battle)
+	# Assert: No status change event generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var status_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "status_change": status_event_found = true; break
+	assert_false(status_event_found, "No status change event should be generated if no target.")

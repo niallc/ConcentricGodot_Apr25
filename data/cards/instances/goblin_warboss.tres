@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://13rvs0mhwpyr"]
+
+[ext_resource type="Script" path="res://logic/card_effects/goblin_warboss_effect.gd" id="1_d2kqm"]
+
+[resource]
+script = ExtResource("1_d2kqm")
+base_power = 2
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "GoblinWarboss"
+card_name = "Goblin Warboss"
+cost = 3
+artwork_path = "res://art/cards/goblinWarboss.webp"
+description_template = "*Arrival:* Adds a Goblin Expendable to the bottom of your deck."

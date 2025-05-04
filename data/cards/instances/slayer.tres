@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dh6yyi3tack65"]
+
+[ext_resource type="Script" path="res://logic/card_effects/slayer_effect.gd" id="1_1dn3l"]
+
+[resource]
+script = ExtResource("1_1dn3l")
+base_power = 3
+base_max_hp = 2
+tags = Array[String]([])
+is_swift = false
+id = "Slayer"
+card_name = "Slayer"
+cost = 4
+artwork_path = "res://art/cards/slayer.webp"
+description_template = "*Arrival:* If opposite an undead creature, destroy it immediately."
