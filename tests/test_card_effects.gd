@@ -7,12 +7,16 @@ var disarm_res = load("res://data/cards/instances/disarm.tres") as SpellCardReso
 var energy_axe_res = load("res://data/cards/instances/energy_axe.tres") as SpellCardResource
 var focus_res = load("res://data/cards/instances/focus.tres") as SpellCardResource
 var goblin_firework_res = load("res://data/cards/instances/goblin_firework.tres") as SummonCardResource
+var goblin_rally_res = load("res://data/cards/instances/goblin_rally.tres") as SpellCardResource
 var goblin_scout_res = load("res://data/cards/instances/goblin_scout.tres") as SummonCardResource
 var healer_res = load("res://data/cards/instances/healer.tres") as SummonCardResource
+var inexorable_ooze_res = load("res://data/cards/instances/inexorable_ooze.tres") as SummonCardResource
 var knight_res = load("res://data/cards/instances/knight.tres") as SummonCardResource # Needed for target
 var charging_bull_res = load("res://data/cards/instances/charging_bull.tres") as SummonCardResource
 var portal_mage_res = load("res://data/cards/instances/portal_mage.tres") as SummonCardResource
 var recurring_skeleton_res = load("res://data/cards/instances/recurring_skeleton.tres") as SummonCardResource
+var superior_intellect_res = load("res://data/cards/instances/superior_intellect.tres") as SpellCardResource
+var thought_acquirer_res = load("res://data/cards/instances/thought_acquirer.tres") as SummonCardResource
 var vampire_swordmaster_res = load("res://data/cards/instances/vampire_swordmaster.tres") as SummonCardResource
 var wall_of_vines_res = load("res://data/cards/instances/wall_of_vines.tres") as SummonCardResource
 
@@ -529,3 +533,185 @@ func test_avenging_tiger_does_not_gain_swift_if_hp_not_lower():
 			status_event_found = true
 			break
 	assert_false(status_event_found, "No Swift status change event should be generated.")
+
+# --- Superior Intellect Tests ---
+# --- Superior Intellect Tests ---
+func test_superior_intellect_moves_grave_to_library_and_clears_opponent():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup graveyards by modifying the existing arrays
+	# --- FIX: Modify existing arrays instead of assigning new ones ---
+	player.graveyard.clear() # Ensure it's empty first
+	player.graveyard.append(goblin_scout_res)
+	player.graveyard.append(knight_res)
+	opponent.graveyard.clear()
+	opponent.graveyard.append(healer_res)
+	# --- END FIX ---
+	var initial_player_lib_size = player.library.size()
+	var initial_event_count = battle.battle_events.size() # Track events before action
+
+	# Action: Apply effect
+	superior_intellect_res.apply_effect(superior_intellect_res, player, opponent, battle)
+
+	# Assert: Player graveyard is empty
+	assert_true(player.graveyard.is_empty(), "Player graveyard should be empty.")
+	# Assert: Player library increased and contains moved cards at bottom
+	assert_eq(player.library.size(), initial_player_lib_size + 2, "Player library size incorrect.")
+	# Check last two cards (order depends on how they were added)
+	assert_eq(player.library[-1].id, "Knight", "Knight should be at library bottom.")
+	assert_eq(player.library[-2].id, "GoblinScout", "Scout should be second from bottom.")
+	# Assert: Opponent graveyard is empty
+	assert_true(opponent.graveyard.is_empty(), "Opponent graveyard should be empty.")
+
+	# Assert: Events generated (card_moved for player, card_removed for opponent)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var player_moved_count = 0
+	var opponent_removed_count = 0
+	for event in events_after:
+		if event.get("event_type") == "card_moved" and event.get("player") == player.combatant_name and event.get("to_zone") == "library":
+			player_moved_count += 1
+		elif event.get("event_type") == "card_removed" and event.get("player") == opponent.combatant_name and event.get("from_zone") == "graveyard":
+			opponent_removed_count += 1
+	assert_eq(player_moved_count, 2, "Incorrect number of player card_moved events.")
+	assert_eq(opponent_removed_count, 1, "Incorrect number of opponent card_removed events.")
+
+
+# --- Goblin Rally Tests ---
+func test_goblin_rally_summons_scouts_in_empty_lanes():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup lanes: Lane 0 empty, Lane 1 occupied, Lane 2 empty
+	place_summon_for_test(player, knight_res, 1, battle)
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Apply effect
+	goblin_rally_res.apply_effect(goblin_rally_res, player, opponent, battle)
+
+	# Assert: Lanes 0 and 2 now have Goblin Scouts
+	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "GoblinScout", "Lane 1 should have Goblin Scout.")
+	assert_true(player.lanes[1] is SummonInstance and player.lanes[1].card_resource.id == "Knight", "Lane 2 should still have Knight.") # Check original occupant
+	assert_true(player.lanes[2] is SummonInstance and player.lanes[2].card_resource.id == "GoblinScout", "Lane 3 should have Goblin Scout.")
+
+	# Assert: Events generated (2x summon_arrives)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var summon_arrive_count = 0
+	for event in events_after:
+		if event.get("event_type") == "summon_arrives" and event.get("card_id") == "GoblinScout":
+			summon_arrive_count += 1
+	assert_eq(summon_arrive_count, 2, "Goblin Rally should generate 2 summon_arrives events.")
+
+
+func test_goblin_rally_no_empty_lanes():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Occupy all lanes
+	place_summon_for_test(player, knight_res, 0, battle)
+	place_summon_for_test(player, knight_res, 1, battle)
+	place_summon_for_test(player, knight_res, 2, battle)
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Apply effect
+	goblin_rally_res.apply_effect(goblin_rally_res, player, opponent, battle)
+
+	# Assert: Lanes unchanged
+	assert_true(player.lanes[0].card_resource.id == "Knight", "Lane 1 unchanged.")
+	assert_true(player.lanes[1].card_resource.id == "Knight", "Lane 2 unchanged.")
+	assert_true(player.lanes[2].card_resource.id == "Knight", "Lane 3 unchanged.")
+	# Assert: No summon_arrives events generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var summon_arrive_count = 0
+	for event in events_after:
+		if event.get("event_type") == "summon_arrives":
+			summon_arrive_count += 1
+	assert_eq(summon_arrive_count, 0, "Goblin Rally should generate 0 summon_arrives events if no lanes free.")
+
+
+# --- Thought Acquirer Tests ---
+func test_thought_acquirer_steals_card():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup opponent library
+	opponent.library.clear() # Use clear and append
+	opponent.library.append(goblin_scout_res)
+	opponent.library.append(knight_res)
+	opponent.library.append(healer_res) # Scout top, Healer bottom
+	var initial_opp_lib_size = opponent.library.size()
+	var initial_player_lib_size = player.library.size()
+	var bottom_card_id = opponent.library[-1].id
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(thought_acquirer_res, player, opponent, 0, battle)
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Call arrival effect
+	thought_acquirer_res._on_arrival(instance, player, opponent, battle)
+
+	# Assert: Opponent library size decreased
+	assert_eq(opponent.library.size(), initial_opp_lib_size - 1, "Opponent library size should decrease.")
+	# Assert: Player library size increased
+	assert_eq(player.library.size(), initial_player_lib_size + 1, "Player library size should increase.")
+	# Assert: Correct card moved to player library bottom
+	assert_eq(player.library[-1].id, bottom_card_id, "Incorrect card moved to player library bottom.")
+
+	# Assert: Events generated (2x card_moved)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var moved_from_opp = false
+	var moved_to_player = false
+	for event in events_after:
+		if event.get("event_type") == "card_moved" and event.get("player") == opponent.combatant_name and event.get("from_zone") == "library":
+			moved_from_opp = true
+		elif event.get("event_type") == "card_moved" and event.get("player") == player.combatant_name and event.get("to_zone") == "library":
+			moved_to_player = true
+	assert_true(moved_from_opp, "Card moved from opponent library event not found.")
+	assert_true(moved_to_player, "Card moved to player library event not found.")
+
+
+func test_thought_acquirer_opponent_library_empty():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Opponent library empty
+	opponent.library.clear() # Use clear
+	var initial_player_lib_size = player.library.size()
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(thought_acquirer_res, player, opponent, 0, battle)
+
+	# Action: Call arrival effect
+	thought_acquirer_res._on_arrival(instance, player, opponent, battle)
+
+	# Assert: Libraries unchanged
+	assert_true(opponent.library.is_empty(), "Opponent library should remain empty.")
+	assert_eq(player.library.size(), initial_player_lib_size, "Player library size should not change.")
+	# Assert: No card_moved events generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var moved_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "card_moved":
+			moved_event_found = true
+			break
+	assert_false(moved_event_found, "No card_moved events should be generated.")
+
+
+
+# --- Inexorable Ooze Tests ---
+func test_inexorable_ooze_is_relentless():
+	# Test the tag sets the flag correctly during setup
+	var setup = create_test_battle_setup()
+	var ooze_instance = SummonInstance.new()
+	ooze_instance.setup(inexorable_ooze_res, setup["player"], setup["opponent"], 0, setup["battle"])
+	assert_true(ooze_instance.is_relentless, "Inexorable Ooze instance should be relentless after setup.")
+	# Actual relentless behavior (calling _perform_direct_attack) is tested implicitly
+	# when simulating turns involving the Ooze.

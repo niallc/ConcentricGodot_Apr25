@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cs12b7grnvq7p"]
+
+[ext_resource type="Script" path="res://logic/card_effects/superior_intellect_effect.gd" id="1_55f1l"]
+
+[resource]
+script = ExtResource("1_55f1l")
+id = "SuperiorIntellect"
+card_name = "Superior Intellect"
+cost = 1
+artwork_path = "res://art/cards/recollect.webp"
+description_template = "Put all cards in your graveyard at the bottom of your library, then empty your opponent's graveyard completely."

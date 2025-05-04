@@ -34,8 +34,8 @@
 	"hp": 3,
 	"tags": [],
 	"swift": false
-  }
-,{
+  },
+  {
 	"id": "WallOfVines",
 	"type": "Summon",
 	"name": "Wall Of Vines",
@@ -70,8 +70,8 @@
 	"hp": 3,
 	"tags": [],
 	"swift": false
-  }
-,{
+  },
+  {
 	"id": "VampireSwordmaster",
 	"type": "Summon",
 	"name": "Vampire Swordmaster",
@@ -114,6 +114,48 @@
 	"power": 3,
 	"hp": 3,
 	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "SuperiorIntellect",
+	"type": "Spell",
+	"name": "Superior Intellect",
+	"cost": 1,
+	"art": "res://art/cards/recollect.webp",
+	"description": "Put all cards in your graveyard at the bottom of your library, then empty your opponent's graveyard completely.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "GoblinRally",
+	"type": "Spell",
+	"name": "Goblin Rally",
+	"cost": 5,
+	"art": "res://art/cards/goblinRally.webp",
+	"description": "Summon Goblin Scouts in all free lanes.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "ThoughtAcquirer",
+	"type": "Summon",
+	"name": "Thought Acquirer",
+	"cost": 5,
+	"art": "res://art/cards/thoughtAcquirer.webp",
+	"description": "*Arrival:* Remove the bottom card of opposing deck, and add it to the bottom of yours.",
+	"power": 2,
+	"hp": 5,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "InexorableOoze",
+	"type": "Summon",
+	"name": "Inexorable Ooze",
+	"cost": 4,
+	"art": "res://art/cards/inexorableOoze.webp",
+	"description": "*Relentless* (attacks opponent directly)",
+	"power": 3,
+	"hp": 6,
+	"tags": ["Relentless"],
 	"swift": false
   }
 ]

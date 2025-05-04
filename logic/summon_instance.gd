@@ -50,9 +50,10 @@ func setup(card_res: SummonCardResource, owner, opp, lane_idx: int, battle):
 	self.is_swift = card_res.is_swift
 	# TODO: Implement relentless handling once we have a design, e.g., with tags:
 	#   self.is_relentless = card_res.tags.has("Relentless")  
-	self.is_relentless = false # Default, can be set by effects/tags
+	self.is_relentless = self.tags.has("Relentless")
 	self.is_newly_arrived = true
-
+	if self.tags.has("Relentless"):
+		print("Card has the relentless tag.")
 	if card_res.script != null:
 		self.script_instance = card_res.script.new() # Instantiate the effect script
 

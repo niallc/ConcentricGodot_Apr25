@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://c2vx5wnhllage"]
+
+[ext_resource type="Script" path="res://logic/card_effects/inexorable_ooze_effect.gd" id="1_bdo0m"]
+
+[resource]
+script = ExtResource("1_bdo0m")
+base_power = 3
+base_max_hp = 6
+tags = Array[String](["Relentless"])
+is_swift = false
+id = "InexorableOoze"
+card_name = "Inexorable Ooze"
+cost = 4
+artwork_path = "res://art/cards/inexorableOoze.webp"
+description_template = "*Relentless* (attacks opponent directly)"
