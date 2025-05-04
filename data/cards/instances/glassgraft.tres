@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://vjcmskpfd0wt"]
+
+[ext_resource type="Script" path="res://logic/card_effects/glassgraft_effect.gd" id="1_e6dsj"]
+
+[resource]
+script = ExtResource("1_e6dsj")
+id = "Glassgraft"
+card_name = "Glassgraft"
+cost = 3
+artwork_path = "res://art/cards/glassgraft.webp"
+description_template = "Reanimate the rightmost creature in your graveyard. After it deals damage to the opponent, sacrifice it."

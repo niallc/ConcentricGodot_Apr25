@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://1tdlbhpacd1v"]
+
+[ext_resource type="Script" path="res://logic/card_effects/returned_samurai_effect.gd" id="1_1ijrx"]
+
+[resource]
+script = ExtResource("1_1ijrx")
+base_power = 3
+base_max_hp = 3
+tags = Array[String](["Undead"])
+is_swift = false
+id = "ReturnedSamurai"
+card_name = "Returned Samurai"
+cost = 5
+artwork_path = "res://art/cards/returnedSamurai.webp"
+description_template = "His blade still thirsts for blood."

@@ -302,4 +302,97 @@
 	"description": "Opponent's leftmost creature becomes *Relentless*.",
 	"power": null, "hp": null, "tags": [], "swift": null
   }
+  ,{
+	"id": "GoblinRecruiter",
+	"type": "Summon",
+	"name": "Goblin Recruiter",
+	"cost": 4,
+	"art": "res://art/cards/goblinRecruiter.webp",
+	"description": "*Arrival*: if opponent has more life than you, summon a Goblin Scout in all free lanes.",
+	"power": 2,
+	"hp": 3,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "VengefulWarlord",
+	"type": "Summon",
+	"name": "Vengeful Warlord",
+	"cost": 5,
+	"art": "res://art/cards/vengefulWarlord.webp",
+	"description": "*Arrival*: if opponent has more life than you, gains +1/+1.",
+	"power": 3,
+	"hp": 4,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "CorpsecraftTitan",
+	"type": "Summon",
+	"name": "Corpsecraft Titan",
+	"cost": 6,
+	"art": "res://art/cards/corpsecraftTitan.webp",
+	"description": "Cannot be summoned unless you have three creatures in your graveyard. *Arrival*: Consume 3 creatures from your graveyard.",
+	"power": 6,
+	"hp": 6,
+	"tags": ["Undead"],
+	"swift": false
+  },
+  {
+	"id": "InsatiableDevourer",
+	"type": "Summon",
+	"name": "Insatiable Devourer",
+	"cost": 3,
+	"art": "res://art/cards/insatiableDevourer.webp",
+	"description": "*Arrival*: Sacrifice all other creatures you control. For each creature thus consumed, Insatiable Devourer gets +2/+2.",
+	"power": 1,
+	"hp": 1,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "RepentantSamurai",
+	"type": "Summon",
+	"name": "Repentant Samurai",
+	"cost": 3,
+	"art": "res://art/cards/repentantSamurai.webp",
+	"description": "When Repentant Samurai deals damage to the opponent for the second time, sacrifice it.",
+	"power": 4,
+	"hp": 1,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "CursedSamurai",
+	"type": "Summon",
+	"name": "Cursed Samurai",
+	"cost": 5,
+	"art": "res://art/cards/cursedSamurai.webp",
+	"description": "*Death*: Returns as a 3/3 undead creature (Returned Samurai).",
+	"power": 3,
+	"hp": 3,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "Glassgraft",
+	"type": "Spell",
+	"name": "Glassgraft",
+	"cost": 3,
+	"art": "res://art/cards/glassgraft.webp",
+	"description": "Reanimate the rightmost creature in your graveyard. After it deals damage to the opponent, sacrifice it.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "ReturnedSamurai",
+	"type": "Summon",
+	"name": "Returned Samurai",
+	"cost": 5,
+	"art": "res://art/cards/returnedSamurai.webp",
+	"description": "His blade still thirsts for blood.",
+	"power": 3,
+	"hp": 3,
+	"tags": ["Undead"],
+	"swift": false
+  }
 ]

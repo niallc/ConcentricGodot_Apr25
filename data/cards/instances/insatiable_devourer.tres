@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dw17soo7qi61g"]
+
+[ext_resource type="Script" path="res://logic/card_effects/insatiable_devourer_effect.gd" id="1_1lw0c"]
+
+[resource]
+script = ExtResource("1_1lw0c")
+base_power = 1
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "InsatiableDevourer"
+card_name = "Insatiable Devourer"
+cost = 3
+artwork_path = "res://art/cards/insatiableDevourer.webp"
+description_template = "*Arrival*: Sacrifice all other creatures you control. For each creature thus consumed, Insatiable Devourer gets +2/+2."

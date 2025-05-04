@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://bdmygqjf1bpfv"]
+
+[ext_resource type="Script" path="res://logic/card_effects/goblin_recruiter_effect.gd" id="1_esv1a"]
+
+[resource]
+script = ExtResource("1_esv1a")
+base_power = 2
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "GoblinRecruiter"
+card_name = "Goblin Recruiter"
+cost = 4
+artwork_path = "res://art/cards/goblinRecruiter.webp"
+description_template = "*Arrival*: if opponent has more life than you, summon a Goblin Scout in all free lanes."

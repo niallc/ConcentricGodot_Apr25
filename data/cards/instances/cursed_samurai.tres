@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://xjtxao1gup3f"]
+
+[ext_resource type="Script" path="res://logic/card_effects/cursed_samurai_effect.gd" id="1_4xofs"]
+
+[resource]
+script = ExtResource("1_4xofs")
+base_power = 3
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "CursedSamurai"
+card_name = "Cursed Samurai"
+cost = 5
+artwork_path = "res://art/cards/cursedSamurai.webp"
+description_template = "*Death*: Returns as a 3/3 undead creature (Returned Samurai)."

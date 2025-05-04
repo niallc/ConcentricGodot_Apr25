@@ -12,6 +12,7 @@ func _ready():
 		printerr("Failed to load card resource!")
 
 	var _apprentice_assassin_res = load("res://data/cards/instances/apprentice_assassin.tres") as SummonCardResource
+	var _amnesia_mage_res = load("res://data/cards/instances/amnesia_mage.tres") as SummonCardResource
 	var _avenging_tiger_res = load("res://data/cards/instances/avenging_tiger.tres") as SummonCardResource
 	var _bloodrager_res = load("res://data/cards/instances/bloodrager.tres") as SummonCardResource
 	var _charging_bull_res = load("res://data/cards/instances/charging_bull.tres") as SummonCardResource
@@ -27,19 +28,25 @@ func _ready():
 	var _inexorable_ooze_res = load("res://data/cards/instances/inexorable_ooze.tres") as SummonCardResource
 	var _knight_res = load("res://data/cards/instances/knight.tres") as SummonCardResource
 	var _master_of_strategy_res = load("res://data/cards/instances/master_of_strategy.tres") as SummonCardResource
+	var _nap_res = load("res://data/cards/instances/nap.tres") as SpellCardResource
+	var _overconcentrate_res = load("res://data/cards/instances/overconcentrate.tres") as SpellCardResource
 	var _portal_mage_res = load("res://data/cards/instances/portal_mage.tres") as SummonCardResource
 	var _recurring_skeleton_res = load("res://data/cards/instances/recurring_skeleton.tres") as SummonCardResource
 	var _reanimate_res = load("res://data/cards/instances/reanimate.tres") as SpellCardResource
-	var slayer_res = load("res://data/cards/instances/slayer.tres") as SummonCardResource
+	var _slayer_res = load("res://data/cards/instances/slayer.tres") as SummonCardResource
 	var _spiteful_fang_res = load("res://data/cards/instances/spiteful_fang.tres") as SummonCardResource
 	var _superior_intellect_res = load("res://data/cards/instances/superior_intellect.tres") as SpellCardResource
 	var _thought_acquirer_res = load("res://data/cards/instances/thought_acquirer.tres") as SummonCardResource
+	var _totem_of_champions_res = load("res://data/cards/instances/totem_of_champions.tres") as SpellCardResource
 	var _wall_of_vines_res = load("res://data/cards/instances/wall_of_vines.tres") as SummonCardResource
 
-	var nap_res = load("res://data/cards/instances/nap.tres") as SpellCardResource
-	var totem_of_champions_res = load("res://data/cards/instances/totem_of_champions.tres") as SpellCardResource
-	var amnesia_mage_res = load("res://data/cards/instances/amnesia_mage.tres") as SummonCardResource
-	var overconcentrate_res = load("res://data/cards/instances/overconcentrate.tres") as SpellCardResource
+	var goblin_recruiter_res = load("res://data/cards/instances/goblin_recruiter.tres") as SummonCardResource
+	var vengeful_warlord_res = load("res://data/cards/instances/vengeful_warlord.tres") as SummonCardResource
+	var corpsecraft_titan_res = load("res://data/cards/instances/corpsecraft_titan.tres") as SummonCardResource
+	var insatiable_devourer_res = load("res://data/cards/instances/insatiable_devourer.tres") as SummonCardResource
+	var repentant_samurai_res = load("res://data/cards/instances/repentant_samurai.tres") as SummonCardResource
+	var cursed_samurai_res = load("res://data/cards/instances/cursed_samurai.tres") as SummonCardResource
+	var glassgraft_res = load("res://data/cards/instances/glassgraft.tres") as SpellCardResource
 
 	# Test instantiating Battle
 	var battle_sim = Battle.new()
@@ -48,8 +55,8 @@ func _ready():
 		print("Loaded Card: %s, Cost: %d" % [card_res.card_name, card_res.cost])
 		#var deck1: Array[CardResource] = [goblin_scout_res, energy_axe_res]
 		#var deck2: Array[CardResource] = [healer_res, goblin_scout_res]
-		var deck1: Array[CardResource] = [amnesia_mage_res, _goblin_rally_res, totem_of_champions_res]
-		var deck2: Array[CardResource] = [slayer_res, overconcentrate_res, nap_res]
+		var deck1: Array[CardResource] = [vengeful_warlord_res, insatiable_devourer_res, cursed_samurai_res]
+		var deck2: Array[CardResource] = [goblin_recruiter_res, repentant_samurai_res, glassgraft_res]
 		# ---<<< THIS WILL CALL YOUR FUNCTION >>>---
 		var events = battle_sim.run_battle(deck1, deck2, "Player", "Opponent")
 

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cf4fqym7chobn"]
+
+[ext_resource type="Script" path="res://logic/card_effects/vengeful_warlord_effect.gd" id="1_kwt4w"]
+
+[resource]
+script = ExtResource("1_kwt4w")
+base_power = 3
+base_max_hp = 4
+tags = Array[String]([])
+is_swift = false
+id = "VengefulWarlord"
+card_name = "Vengeful Warlord"
+cost = 5
+artwork_path = "res://art/cards/vengefulWarlord.webp"
+description_template = "*Arrival*: if opponent has more life than you, gains +1/+1."

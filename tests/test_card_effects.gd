@@ -28,11 +28,19 @@ var master_of_strategy_res = load("res://data/cards/instances/master_of_strategy
 var slayer_res = load("res://data/cards/instances/slayer.tres") as SummonCardResource
 var bloodrager_res = load("res://data/cards/instances/bloodrager.tres") as SummonCardResource
 var spiteful_fang_res = load("res://data/cards/instances/spiteful_fang.tres") as SummonCardResource
-
 var nap_res = load("res://data/cards/instances/nap.tres") as SpellCardResource
 var totem_of_champions_res = load("res://data/cards/instances/totem_of_champions.tres") as SpellCardResource
 var amnesia_mage_res = load("res://data/cards/instances/amnesia_mage.tres") as SummonCardResource
 var overconcentrate_res = load("res://data/cards/instances/overconcentrate.tres") as SpellCardResource
+
+var goblin_recruiter_res = load("res://data/cards/instances/goblin_recruiter.tres") as SummonCardResource
+var vengeful_warlord_res = load("res://data/cards/instances/vengeful_warlord.tres") as SummonCardResource
+var corpsecraft_titan_res = load("res://data/cards/instances/corpsecraft_titan.tres") as SummonCardResource
+var insatiable_devourer_res = load("res://data/cards/instances/insatiable_devourer.tres") as SummonCardResource
+var repentant_samurai_res = load("res://data/cards/instances/repentant_samurai.tres") as SummonCardResource
+var cursed_samurai_res = load("res://data/cards/instances/cursed_samurai.tres") as SummonCardResource
+var glassgraft_res = load("res://data/cards/instances/glassgraft.tres") as SpellCardResource
+var returned_samurai_res = load("res://data/cards/instances/returned_samurai.tres") as SummonCardResource
 
 # --- Test Helper Functions ---
 # Creates a basic Battle setup for testing effects
@@ -44,6 +52,8 @@ func create_test_battle_setup(deck1: Array[CardResource] = [], deck2: Array[Card
 	# Now, deck1 and deck2 are guaranteed to be the correct type when passed
 	duelist1.setup(deck1, Constants.STARTING_HP, "PlayerEffectTester", battle, duelist2)
 	duelist2.setup(deck2, Constants.STARTING_HP, "OpponentEffectTester", battle, duelist1)
+	battle.duelist1 = duelist1
+	battle.duelist2 = duelist2
 	return {"battle": battle, "player": duelist1, "opponent": duelist2}
 
 # Creates a SummonInstance and places it in a lane for testing
@@ -945,7 +955,7 @@ func test_slayer_kills_undead_opponent():
 	var opponent = setup["opponent"]
 	var battle = setup["battle"]
 	# Place Undead target for opponent
-	var target_skeleton = place_summon_for_test(opponent, recurring_skeleton_res, 0, battle) # Lane 1
+	var _target_skeleton = place_summon_for_test(opponent, recurring_skeleton_res, 0, battle) # Lane 1
 	var initial_event_count = battle.battle_events.size()
 
 	# Simulate Slayer arrival opposite target
@@ -980,7 +990,7 @@ func test_slayer_does_not_kill_non_undead_opponent():
 	var opponent = setup["opponent"]
 	var battle = setup["battle"]
 	# Place non-Undead target
-	var target_knight = place_summon_for_test(opponent, knight_res, 0, battle) # Lane 1
+	var _target_knight = place_summon_for_test(opponent, knight_res, 0, battle) # Lane 1
 	var initial_event_count = battle.battle_events.size()
 
 	# Simulate Slayer arrival
@@ -1281,3 +1291,269 @@ func test_overconcentrate_no_target():
 	for event in events_after:
 		if event.get("event_type") == "status_change": status_event_found = true; break
 	assert_false(status_event_found, "No status change event should be generated if no target.")
+
+# --- Goblin Recruiter Tests ---
+func test_goblin_recruiter_summons_if_hp_lower():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.current_hp = 10
+	opponent.current_hp = 15 # Player HP lower
+	# Leave lanes 0 and 2 empty
+	place_summon_for_test(player, knight_res, 1, battle)
+	var initial_event_count = battle.battle_events.size()
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(goblin_recruiter_res, player, opponent, 1, battle) # Assume it arrives in lane 1 (doesn't matter for effect)
+	# Action
+	goblin_recruiter_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Scouts summoned in lanes 0 and 2
+	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "GoblinScout", "Lane 1 should have Scout.")
+	assert_true(player.lanes[2] is SummonInstance and player.lanes[2].card_resource.id == "GoblinScout", "Lane 3 should have Scout.")
+	# Assert Events
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var summon_count = 0
+	for event in events_after:
+		if event.get("event_type") == "summon_arrives" and event.get("card_id") == "GoblinScout": summon_count += 1
+	assert_eq(summon_count, 2, "Should summon 2 scouts.")
+
+func test_goblin_recruiter_no_summon_if_hp_not_lower():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+
+	player.current_hp = 15
+	opponent.current_hp = 15 # Player HP not lower
+	var initial_event_count = battle.battle_events.size()
+	var instance = SummonInstance.new()
+	instance.setup(goblin_recruiter_res, player, opponent, 1, battle)
+	goblin_recruiter_res._on_arrival(instance, player, opponent, battle)
+	# Assert no scouts summoned
+	assert_null(player.lanes[0], "Lane 1 should be empty.")
+	assert_null(player.lanes[2], "Lane 3 should be empty.")
+	# Assert events
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var summon_count = 0
+	for event in events_after:
+		if event.get("event_type") == "summon_arrives": summon_count += 1
+	assert_eq(summon_count, 0, "Should summon 0 scouts.")
+
+
+# --- Vengeful Warlord Tests ---
+func test_vengeful_warlord_gets_buff_if_hp_lower():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+
+	player.current_hp = 10
+	opponent.current_hp = 15
+	var instance = SummonInstance.new()
+	instance.setup(vengeful_warlord_res, player, opponent, 0, battle)
+	var initial_power = instance.get_current_power()
+	var initial_hp = instance.get_current_max_hp()
+	vengeful_warlord_res._on_arrival(instance, player, opponent, battle)
+	assert_eq(instance.get_current_power(), initial_power + 1, "Warlord power incorrect.")
+	assert_eq(instance.get_current_max_hp(), initial_hp + 1, "Warlord max HP incorrect.")
+
+func test_vengeful_warlord_no_buff_if_hp_not_lower():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+
+	player.current_hp = 15
+	opponent.current_hp = 15
+	var instance = SummonInstance.new()
+	instance.setup(vengeful_warlord_res, player, opponent, 0, battle)
+	var initial_power = instance.get_current_power()
+	var initial_hp = instance.get_current_max_hp()
+	vengeful_warlord_res._on_arrival(instance, player, opponent, battle)
+	assert_eq(instance.get_current_power(), initial_power, "Warlord power should be base.")
+	assert_eq(instance.get_current_max_hp(), initial_hp, "Warlord max HP should be base.")
+
+
+# --- Corpsecraft Titan Tests ---
+func test_corpsecraft_titan_can_play():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+
+	player.mana = 6 # Enough mana
+	player.graveyard.clear()
+	
+	# Case 1: Not enough summons in grave
+	assert_false(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan needs 3 summons in grave.")
+	player.graveyard.append(healer_res)
+	player.graveyard.append(knight_res)
+	player.graveyard.append(goblin_scout_res)
+	assert_true(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan should be playable with 3 summons.")
+	# Case 2: Not enough mana
+	player.mana = 5
+	assert_false(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan needs 6 mana.")
+	# Case 3: No empty lane (assuming can_play checks this - it should!)
+	player.mana = 6
+	place_summon_for_test(player, knight_res, 0, battle)
+	place_summon_for_test(player, knight_res, 1, battle)
+	place_summon_for_test(player, knight_res, 2, battle)
+	assert_false(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan needs an empty lane.")
+
+
+func test_corpsecraft_titan_consumes_grave():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	player.graveyard.append(energy_axe_res)
+	player.graveyard.append(healer_res)
+	player.graveyard.append(knight_res)
+	player.graveyard.append(goblin_scout_res)
+	var initial_grave_size = player.graveyard.size()
+	var instance = SummonInstance.new()
+	instance.setup(corpsecraft_titan_res, player, player.opponent, 0, battle)
+	var initial_event_count = battle.battle_events.size()
+	# Action
+	corpsecraft_titan_res._on_arrival(instance, player, player.opponent, battle)
+	# Assert: Grave size reduced by 3
+	assert_eq(player.graveyard.size(), initial_grave_size - 3, "Graveyard size incorrect.")
+	# Assert: Only spell remains
+	assert_eq(player.graveyard[0].id, "EnergyAxe", "Only spell should remain in grave.")
+	# Assert: Events generated (3x card_removed)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var removed_count = 0
+	for event in events_after:
+		if event.get("event_type") == "card_removed" and event.get("from_zone") == "graveyard": removed_count += 1
+	assert_eq(removed_count, 3, "Incorrect number of card_removed events.")
+
+
+# --- Insatiable Devourer Tests ---
+func test_insatiable_devourer_sacrifices_and_grows():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Place creatures to be devoured
+	var _scout1 = place_summon_for_test(player, goblin_scout_res, 0, battle)
+	var _knight1 = place_summon_for_test(player, knight_res, 2, battle)
+	# Simulate Devourer arrival in lane 1
+	var instance = SummonInstance.new()
+	instance.setup(insatiable_devourer_res, player, player.opponent, 1, battle)
+	player.lanes[1] = instance # Manually place
+	var initial_event_count = battle.battle_events.size()
+	# Action
+	insatiable_devourer_res._on_arrival(instance, player, player.opponent, battle)
+	# Assert: Other lanes are empty
+	assert_null(player.lanes[0], "Lane 1 should be empty.")
+	assert_null(player.lanes[2], "Lane 3 should be empty.")
+	# Assert: Devourer grew (+2/+2 per creature = +4/+4)
+	assert_eq(instance.get_current_power(), 1 + 4, "Devourer power incorrect.")
+	assert_eq(instance.get_current_max_hp(), 1 + 4, "Devourer max HP incorrect.")
+	# Assert: Events (2x creature_defeated, 2x card_moved grave, 2x stat_change, 1x hp_change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var defeated_count = 0
+	var stat_changes = 0
+	var hp_changes = 0
+	for event in events_after:
+		if event.get("event_type") == "creature_defeated": defeated_count += 1
+		elif event.get("event_type") == "stat_change": stat_changes += 1
+		elif event.get("event_type") == "creature_hp_change": hp_changes += 1
+	assert_eq(defeated_count, 2, "Incorrect defeated count.")
+	assert_eq(stat_changes, 2, "Incorrect stat_change count.") # 1 power, 1 max_hp from add_counter
+	assert_eq(hp_changes, 1, "Incorrect hp_change count.") # 1 heal from add_counter
+
+
+# --- Repentant Samurai Tests ---
+func test_repentant_samurai_sacrifices_on_second_hit():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Samurai
+	var samurai_instance = place_summon_for_test(player, repentant_samurai_res, 0, battle)
+	# Ensure opponent lane is empty
+	opponent.lanes[0] = null
+
+	# Action 1: First direct attack (using override)
+	var handled1 = repentant_samurai_res.perform_turn_activity_override(samurai_instance, player, opponent, battle)
+	assert_true(handled1, "Samurai override should handle direct attack.")
+	assert_true(player.lanes[0] == samurai_instance, "Samurai should still be in lane after first hit.")
+	assert_eq(samurai_instance.custom_state.get("hits_dealt"), 1, "Hits dealt should be 1.")
+
+	# Action 2: Second direct attack
+	var handled2 = repentant_samurai_res.perform_turn_activity_override(samurai_instance, player, opponent, battle)
+	assert_true(handled2, "Samurai override should handle second direct attack.")
+	# Assert: Samurai is now gone (sacrificed)
+	assert_null(player.lanes[0], "Samurai should be gone after second hit.")
+	# Assert: State cleared (optional check)
+	# assert_false(samurai_instance.custom_state.has("hits_dealt"), "Hits dealt state should be cleared if instance reused (it shouldn't be).")
+
+
+# --- Cursed Samurai Tests ---
+func test_cursed_samurai_summons_returned_on_death():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Place Cursed Samurai
+	var cursed_instance = place_summon_for_test(player, cursed_samurai_res, 1, battle) # Lane 2
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Kill Cursed Samurai
+	cursed_instance.take_damage(100) # Calls die(), which calls _on_death
+
+	# Assert: Returned Samurai is now in lane 2
+	assert_true(player.lanes[1] is SummonInstance and player.lanes[1].card_resource.id == "ReturnedSamurai", "Returned Samurai should be in lane 2.")
+	# Assert: Returned Samurai is Undead
+	assert_true(player.lanes[1].tags.has(Constants.TAG_UNDEAD), "Returned Samurai should be Undead.")
+
+	# Assert: Events (Cursed defeated, Returned arrives)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var cursed_defeated = false
+	var returned_arrived = false
+	for event in events_after:
+		if event.get("event_type") == "creature_defeated" and event.get("lane") == 2: # Cursed died in lane 2
+			cursed_defeated = true
+		elif event.get("event_type") == "summon_arrives" and event.get("card_id") == "ReturnedSamurai":
+			returned_arrived = true
+			assert_eq(event.get("lane"), 2, "Returned Samurai arrived in wrong lane.")
+	assert_true(cursed_defeated, "Cursed Samurai defeated event not found.")
+	assert_true(returned_arrived, "Returned Samurai summon arrives event not found.")
+
+
+# --- Glassgraft Tests ---
+# Note: Glassgraft requires modifying SummonInstance._perform_direct_attack
+# Ensure that modification is present before running this test.
+func test_glassgraft_reanimates_and_sacrifices():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup graveyard: Scout leftmost, Knight rightmost
+	player.graveyard.clear()
+	player.graveyard.append(goblin_scout_res)
+	player.graveyard.append(knight_res)
+	# Empty opponent lane for direct attack
+	opponent.lanes[0] = null
+	# var initial_event_count = battle.battle_events.size()
+
+	# Action 1: Cast Glassgraft
+	glassgraft_res.apply_effect(glassgraft_res, player, opponent, battle)
+
+	# Assert: Knight (rightmost) was reanimated into lane 0 (first empty)
+	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "Knight", "Knight should be reanimated by Glassgraft.")
+	var reanimated_knight = player.lanes[0]
+	# Assert: It has the glassgrafted flag
+	assert_true(reanimated_knight.custom_state.get("glassgrafted", false), "Reanimated Knight should have glassgrafted flag.")
+	# Assert: Graveyard only contains Scout now
+	assert_eq(player.graveyard.size(), 1, "Graveyard size incorrect.")
+	var graveyard_lane1 = player.graveyard[0].id
+	assert_eq(graveyard_lane1, "GoblinScout", "Scout should remain in graveyard.")
+
+	# Action 2: Let the reanimated Knight attack directly
+	# Need to simulate a turn or manually call perform_turn_activity -> _perform_direct_attack
+	reanimated_knight.is_newly_arrived = false # Allow it to act
+	reanimated_knight.perform_turn_activity() # Should call _perform_direct_attack
+
+	# Assert: Knight is now gone (sacrificed after dealing damage)
+	assert_null(player.lanes[0], "Reanimated Knight should be gone after attacking.")
+	# Assert: Knight is now in graveyard
+	assert_eq(player.graveyard[-1].id, "Knight", "Knight should be in graveyard after sacrifice.")

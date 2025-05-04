@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dnkk5fakkerj"]
+
+[ext_resource type="Script" path="res://logic/card_effects/corpsecraft_titan_effect.gd" id="1_0fpa5"]
+
+[resource]
+script = ExtResource("1_0fpa5")
+base_power = 6
+base_max_hp = 6
+tags = Array[String](["Undead"])
+is_swift = false
+id = "CorpsecraftTitan"
+card_name = "Corpsecraft Titan"
+cost = 6
+artwork_path = "res://art/cards/corpsecraftTitan.webp"
+description_template = "Cannot be summoned unless you have three creatures in your graveyard. *Arrival*: Consume 3 creatures from your graveyard."

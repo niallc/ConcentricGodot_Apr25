@@ -111,6 +111,8 @@ func die():
 	})
 
 	var prevent_graveyard = false # Flag to check
+	var replaced_in_lane = false # Introduced for CursedSamurai
+
 	if custom_state.has("prevent_graveyard"):
 		prevent_graveyard = custom_state["prevent_graveyard"]
 		custom_state.erase("prevent_graveyard") # Clear the flag
@@ -123,7 +125,12 @@ func die():
 			prevent_graveyard = custom_state["prevent_graveyard"]
 			custom_state.erase("prevent_graveyard")
 
-	owner_combatant.remove_summon_from_lane(lane_index)
+	# Cursed Samurai handles its own lane update, so don't do anything else here.
+	if custom_state.has("replaced_in_lane"):
+		replaced_in_lane = custom_state["replaced_in_lane"]
+	if not replaced_in_lane:
+		owner_combatant.remove_summon_from_lane(lane_index)
+
 	# Add the card *resource* to graveyard ONLY if not prevented
 	if not prevent_graveyard:
 		owner_combatant.add_card_to_graveyard(card_resource, "lane")
@@ -152,9 +159,12 @@ func perform_turn_activity():
 
 func _perform_direct_attack():
 	var damage = max(0, get_current_power()) # Use calculated power
-	# ... (rest of direct attack logic as before) ...
 	print("%s attacks opponent directly for %d damage" % [card_resource.card_name, damage])
+	var _target_player_hp_before = opponent_combatant.current_hp
+	# take_damage generates hp_change event for the combatant
 	var _defeated = opponent_combatant.take_damage(damage, self)
+
+	# Generate direct_damage event (provides context for the hp_change)
 	battle_instance.add_event({
 		"event_type": "direct_damage",
 		"attacking_player": owner_combatant.combatant_name,
@@ -162,9 +172,18 @@ func _perform_direct_attack():
 		"target_player": opponent_combatant.combatant_name,
 		"amount": damage,
 		"target_player_remaining_hp": opponent_combatant.current_hp
-	})
-	battle_instance.check_game_over()
+	}) # direct_damage event
 
+	# --- Check for Glassgraft sacrifice ---
+	if custom_state.get("glassgrafted", false): # Check the flag
+		print("...Glassgrafted creature dealt damage, sacrificing!")
+		custom_state.erase("glassgrafted") # Remove flag
+		# Optional: Visual effect for sacrifice?
+		# battle_instance.add_event({...})
+		die() # Sacrifice self
+		# Note: Execution stops here if die() is called
+	else: # Only check game over if not sacrificed
+		battle_instance.check_game_over()
 
 func _perform_combat(target_instance):
 	var damage = max(0, get_current_power()) # Use calculated power

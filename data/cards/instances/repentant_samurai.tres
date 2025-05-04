@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://6wir430sxx62"]
+
+[ext_resource type="Script" path="res://logic/card_effects/repentant_samurai_effect.gd" id="1_cxe02"]
+
+[resource]
+script = ExtResource("1_cxe02")
+base_power = 4
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "RepentantSamurai"
+card_name = "Repentant Samurai"
+cost = 3
+artwork_path = "res://art/cards/repentantSamurai.webp"
+description_template = "When Repentant Samurai deals damage to the opponent for the second time, sacrifice it."
