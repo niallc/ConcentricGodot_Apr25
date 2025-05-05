@@ -58,8 +58,10 @@ The project follows a modular design separating data, logic, and presentation.
             C{Combatant}
             SI{SummonInstance}
             CE[Card Effects]
+            %% Simplified ID for Card Resources
             CR[CardResources]
-            JSON[CardDataJson] -- Used by --> TOOL[ImporterTool] %% Simplified ID
+            %% Simplified ID
+            JSON[CardDataJson] -- Used by --> TOOL[ImporterTool]
             TOOL -- Generates/Updates --> CR
             TOOL -- Generates --> CE
         end
@@ -79,7 +81,8 @@ The project follows a modular design separating data, logic, and presentation.
         GM -- Passes Events --> BRE;
         BRE -- Reads --> BE;
         BRE -- Instantiates/Updates --> SV;
-        BRE -- Updates --> UI[Replay UI]; %% Simplified ID
+        %% Simplified ID
+        BRE -- Updates --> UI[Replay UI];
 
         B -- Instantiates --> C;
         B -- Instantiates --> SI;
