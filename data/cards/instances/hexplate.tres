@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://be4q2e8gbkmtr"]
+
+[ext_resource type="Script" path="res://logic/card_effects/hexplate_effect.gd" id="1_wgqvy"]
+
+[resource]
+script = ExtResource("1_wgqvy")
+id = "Hexplate"
+card_name = "Hexplate"
+cost = 4
+artwork_path = "res://art/cards/hexplate.webp"
+description_template = "Boost your leftmost creature by +1/+4."

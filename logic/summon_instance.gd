@@ -183,6 +183,10 @@ func _perform_direct_attack():
 		# It should return true if it sacrificed the instance
 		sacrificed_by_effect = card_resource._on_deal_direct_damage(self, opponent_combatant, battle_instance)
 
+	# Call attack resolved hook (if not sacrificed) ---
+	if card_resource != null and card_resource.has_method("_on_attack_resolved"):
+		card_resource._on_attack_resolved(self, battle_instance)
+
 	# --- Check for Glassgraft sacrifice ---
 	if not sacrificed_by_effect and custom_state.get("glassgrafted", false):
 		print("...Glassgrafted creature dealt damage, sacrificing!")
@@ -210,15 +214,17 @@ func _perform_combat(target_instance):
 		"amount": damage,
 		"defender_remaining_hp": target_instance.current_hp
 	})
-	# --- NEW: Check if target died and trigger kill effect ---
+
 	if target_instance.current_hp <= 0 and target_hp_before > 0: # Check if this attack caused death
 		print("...%s killed %s!" % [self.card_resource.card_name, target_instance.card_resource.card_name])
 		# Call the killer's _on_kill_target method if it exists
 		if self.card_resource != null and self.card_resource.has_method("_on_kill_target"):
 			self.card_resource._on_kill_target(self, target_instance, battle_instance)
-	# --- END NEW ---
 
-	# Note: 'take_damage' on the target handles calling 'die' if HP <= 0
+	# Call attack resolved hook ---
+	# Call this regardless of whether target died, attack still resolved
+	if self.card_resource != null and self.card_resource.has_method("_on_attack_resolved"):
+		self.card_resource._on_attack_resolved(self, battle_instance)
 
 
 # --- Modifier Methods (Implemented) ---
@@ -294,6 +300,9 @@ func _end_of_turn_upkeep():
 				print("%s: Max HP modifier from %s expired." % [card_resource.card_name, mod["source"]])
 				max_hp_modifiers.remove_at(i)
 				stats_changed = true
+
+	# e.g. troll heals at EOT
+	card_resource._end_of_turn_upkeep_effect(self, battle_instance)
 
 	# --- Generate events and adjust HP if stats changed ---
 	if stats_changed:

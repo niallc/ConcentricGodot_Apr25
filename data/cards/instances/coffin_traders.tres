@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cvh5tiikqpo7s"]
+
+[ext_resource type="Script" path="res://logic/card_effects/coffin_traders_effect.gd" id="1_6d2de"]
+
+[resource]
+script = ExtResource("1_6d2de")
+base_power = 2
+base_max_hp = 4
+tags = Array[String]([])
+is_swift = false
+id = "CoffinTraders"
+card_name = "Coffin Traders"
+cost = 4
+artwork_path = "res://art/cards/coffinTraders.webp"
+description_template = "*Arrival*: Exchange graveyards with your opponent."

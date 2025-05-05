@@ -56,7 +56,6 @@ func _ready():
 	var _malignant_imp_res = load("res://data/cards/instances/malignant_imp.tres") as SummonCardResource
 	var _walking_sarcophagus_res = load("res://data/cards/instances/walking_sarcophagus.tres") as SummonCardResource
 	var _indulged_princeling_res = load("res://data/cards/instances/indulged_princeling.tres") as SummonCardResource
-
 	var _elsewhere_res = load("res://data/cards/instances/elsewhere.tres") as SpellCardResource
 	var _carnivorous_plant_res = load("res://data/cards/instances/carnivorous_plant.tres") as SummonCardResource
 	var _chanter_of_ashes_res = load("res://data/cards/instances/chanter_of_ashes.tres") as SummonCardResource
@@ -64,16 +63,29 @@ func _ready():
 	var _inferno_res = load("res://data/cards/instances/inferno.tres") as SpellCardResource
 	var _flamewielder_res = load("res://data/cards/instances/flamewielder.tres") as SummonCardResource
 	var _rampaging_cyclops_res = load("res://data/cards/instances/rampaging_cyclops.tres") as SummonCardResource
+	var _hexplate_res = load("res://data/cards/instances/hexplate.tres") as SpellCardResource
+	var _songs_of_the_lost_res = load("res://data/cards/instances/songs_of_the_lost.tres") as SpellCardResource
+	var _ascending_protoplasm_res = load("res://data/cards/instances/ascending_protoplasm.tres") as SummonCardResource
+	var _refined_impersonator_res = load("res://data/cards/instances/refined_impersonator.tres") as SummonCardResource
+	var _corpsetide_lich_res = load("res://data/cards/instances/corpsetide_lich.tres") as SummonCardResource
+	var _coffin_traders_res = load("res://data/cards/instances/coffin_traders.tres") as SummonCardResource
+	var _angel_of_justice_res = load("res://data/cards/instances/angel_of_justice.tres") as SummonCardResource
+	var _scavenger_ghoul_res = load("res://data/cards/instances/scavenger_ghoul.tres") as SummonCardResource
+	var _heedless_vandal_res = load("res://data/cards/instances/heedless_vandal.tres") as SummonCardResource
+	var _taunting_elf_res = load("res://data/cards/instances/taunting_elf.tres") as SummonCardResource
+	var _river_efreet_res = load("res://data/cards/instances/river_efreet.tres") as SummonCardResource
+	var _troll_res = load("res://data/cards/instances/troll.tres") as SummonCardResource
 
-	# Test instantiating Battle
+
+# 	# Test instantiating Battle
 	var battle_sim = Battle.new()
 	if battle_sim:
 		print("Battle instance created.")
 		print("Loaded Card: %s, Cost: %d" % [card_res.card_name, card_res.cost])
-		var deck1: Array[CardResource] = [_carnivorous_plant_res, _goblin_gladiator_res, _elsewhere_res, _flamewielder_res]
-		var deck2: Array[CardResource] = [_wall_of_vines_res, _rampaging_cyclops_res, _inferno_res, _chanter_of_ashes_res]
+		var pla_deck: Array[CardResource] = [_recurring_skeleton_res, _goblin_gladiator_res, _chanter_of_ashes_res]
+		var opp_deck: Array[CardResource] = [_troll_res, _taunting_elf_res, _hexplate_res, _scavenger_ghoul_res]
 		# ---<<< THIS WILL CALL YOUR FUNCTION >>>---
-		var events = battle_sim.run_battle(deck1, deck2, "Player", "Opponent")
+		var events = battle_sim.run_battle(pla_deck, opp_deck, "Player", "Opponent")
 
 		var event_count = events.size()
 		print("run_battle finished. Events list (%d events):" % event_count)

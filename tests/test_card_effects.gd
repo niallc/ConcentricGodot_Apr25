@@ -51,7 +51,6 @@ var knight_of_opposites_res = load("res://data/cards/instances/knight_of_opposit
 var malignant_imp_res = load("res://data/cards/instances/malignant_imp.tres") as SummonCardResource
 var walking_sarcophagus_res = load("res://data/cards/instances/walking_sarcophagus.tres") as SummonCardResource
 var indulged_princeling_res = load("res://data/cards/instances/indulged_princeling.tres") as SummonCardResource
-
 var elsewhere_res = load("res://data/cards/instances/elsewhere.tres") as SpellCardResource
 var carnivorous_plant_res = load("res://data/cards/instances/carnivorous_plant.tres") as SummonCardResource
 var chanter_of_ashes_res = load("res://data/cards/instances/chanter_of_ashes.tres") as SummonCardResource
@@ -59,7 +58,19 @@ var goblin_gladiator_res = load("res://data/cards/instances/goblin_gladiator.tre
 var inferno_res = load("res://data/cards/instances/inferno.tres") as SpellCardResource
 var flamewielder_res = load("res://data/cards/instances/flamewielder.tres") as SummonCardResource
 var rampaging_cyclops_res = load("res://data/cards/instances/rampaging_cyclops.tres") as SummonCardResource
+var hexplate_res = load("res://data/cards/instances/hexplate.tres") as SpellCardResource
+var songs_of_the_lost_res = load("res://data/cards/instances/songs_of_the_lost.tres") as SpellCardResource
+var ascending_protoplasm_res = load("res://data/cards/instances/ascending_protoplasm.tres") as SummonCardResource
+var refined_impersonator_res = load("res://data/cards/instances/refined_impersonator.tres") as SummonCardResource
+var corpsetide_lich_res = load("res://data/cards/instances/corpsetide_lich.tres") as SummonCardResource
+var coffin_traders_res = load("res://data/cards/instances/coffin_traders.tres") as SummonCardResource
+var angel_of_justice_res = load("res://data/cards/instances/angel_of_justice.tres") as SummonCardResource
+var scavenger_ghoul_res = load("res://data/cards/instances/scavenger_ghoul.tres") as SummonCardResource
+var heedless_vandal_res = load("res://data/cards/instances/heedless_vandal.tres") as SummonCardResource
+var taunting_elf_res = load("res://data/cards/instances/taunting_elf.tres") as SummonCardResource
+var troll_res = load("res://data/cards/instances/troll.tres") as SummonCardResource
 
+# 
 # --- Test Helper Functions ---
 # Creates a basic Battle setup for testing effects
 func create_test_battle_setup(deck1: Array[CardResource] = [], deck2: Array[CardResource] = []) -> Dictionary:
@@ -2134,11 +2145,335 @@ func test_rampaging_cyclops_damages_all_others():
 	assert_eq(p_scout.current_hp, 2 - 1, "Player Scout HP incorrect.")
 	assert_eq(o_knight.current_hp, 3 - 1, "Opponent Knight HP incorrect.")
 	# Assert: Cyclops itself unharmed
-	assert_eq(instance.current_hp, 5, "Cyclops HP should be unchanged.")
+	assert_eq(instance.current_hp, 4, "Cyclops HP should be reduced by 1.")
 	# Assert: Events (2x creature_hp_change)
 	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
 	var hp_changes = 0
 	for event in events_after:
 		if event.get("event_type") == "creature_hp_change" and event.get("amount") == -1:
 			hp_changes += 1
-	assert_eq(hp_changes, 2, "Incorrect hp_change count.")
+	assert_eq(hp_changes, 3, "Incorrect hp_change count.")
+
+# --- Hexplate Tests ---
+func test_hexplate_buffs_leftmost():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Place targets
+	var scout = place_summon_for_test(player, goblin_scout_res, 0, battle) # Leftmost
+	var knight = place_summon_for_test(player, knight_res, 1, battle)
+	var initial_scout_power = scout.get_current_power()
+	var initial_scout_hp = scout.get_current_max_hp()
+	var initial_knight_power = knight.get_current_power()
+	var initial_knight_hp = knight.get_current_max_hp()
+
+	# Action
+	hexplate_res.apply_effect(hexplate_res, player, player.opponent, battle)
+
+	# Assert: Scout buffed (+1/+4)
+	assert_eq(scout.get_current_power(), initial_scout_power + 1, "Hexplate: Scout power incorrect.")
+	assert_eq(scout.get_current_max_hp(), initial_scout_hp + 4, "Hexplate: Scout max HP incorrect.")
+	# Assert: Knight unchanged
+	assert_eq(knight.get_current_power(), initial_knight_power, "Hexplate: Knight power should be unchanged.")
+	assert_eq(knight.get_current_max_hp(), initial_knight_hp, "Hexplate: Knight max HP should be unchanged.")
+
+
+# --- Songs of the Lost Tests ---
+func test_songs_of_the_lost_mana_swing():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup: 3 summons in player grave, opponent has 5 mana
+	player.graveyard.clear()
+	player.graveyard.append(goblin_scout_res)
+	player.graveyard.append(knight_res)
+	player.graveyard.append(healer_res)
+	player.mana = 1
+	opponent.mana = 5
+	var initial_player_mana = player.mana
+	var initial_opp_mana = opponent.mana
+	var creature_count = 3
+	var expected_gain = creature_count * 2 # 6
+	var expected_loss = creature_count * 1 # 3
+
+	# Action
+	songs_of_the_lost_res.apply_effect(songs_of_the_lost_res, player, opponent, battle)
+
+	# Assert: Player mana gained (capped)
+	assert_eq(player.mana, min(initial_player_mana + expected_gain, Constants.MAX_MANA), "Songs: Player mana incorrect.")
+	# Assert: Opponent mana lost
+	assert_eq(opponent.mana, initial_opp_mana - expected_loss, "Songs: Opponent mana incorrect.")
+
+
+# --- Ascending Protoplasm Tests ---
+func test_ascending_protoplasm_grows_on_attack():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Place Protoplasm
+	var instance = place_summon_for_test(player, ascending_protoplasm_res, 0, battle) # P:1, HP:4
+	var initial_power = instance.get_current_power()
+	var initial_hp = instance.get_current_max_hp()
+
+	# Action 1: Attack (simulate call from _perform_combat/direct)
+	ascending_protoplasm_res._on_attack_resolved(instance, battle)
+	# Assert: Stats increased
+	assert_eq(instance.get_current_power(), initial_power + 1, "Protoplasm power after 1 attack incorrect.")
+	assert_eq(instance.get_current_max_hp(), initial_hp + 1, "Protoplasm max HP after 1 attack incorrect.")
+
+	# Action 2: Attack again
+	ascending_protoplasm_res._on_attack_resolved(instance, battle)
+	# Assert: Stats increased again
+	assert_eq(instance.get_current_power(), initial_power + 2, "Protoplasm power after 2 attacks incorrect.")
+	assert_eq(instance.get_current_max_hp(), initial_hp + 2, "Protoplasm max HP after 2 attacks incorrect.")
+
+
+# --- Refined Impersonator Tests ---
+func test_refined_impersonator_copies_stats():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place target Knight (P:3, HP:3)
+	var _target = place_summon_for_test(opponent, knight_res, 0, battle)
+	# Simulate Impersonator arrival opposite
+	var instance = SummonInstance.new()
+	instance.setup(refined_impersonator_res, player, opponent, 0, battle) # Base P:0, HP:1
+	# Action
+	refined_impersonator_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Stats copied (P=3, MaxHP=3+1=4)
+	assert_eq(instance.get_current_power(), 3, "Impersonator power incorrect.")
+	assert_eq(instance.get_current_max_hp(), 4, "Impersonator max HP incorrect.")
+	assert_eq(instance.current_hp, 4, "Impersonator current HP incorrect.") # Should be healed to new max
+
+
+func test_refined_impersonator_no_target():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Opponent lane empty
+	opponent.lanes[0] = null
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(refined_impersonator_res, player, opponent, 0, battle) # Base P:0, HP:1
+	# Action
+	refined_impersonator_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Stats remain base
+	assert_eq(instance.get_current_power(), 0, "Impersonator power should be base.")
+	assert_eq(instance.get_current_max_hp(), 1, "Impersonator max HP should be base.")
+
+
+# --- Corpsetide Lich Tests ---
+func test_corpsetide_lich_steals_grave():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup graves
+	player.graveyard.clear(); player.graveyard.append(goblin_scout_res)
+	opponent.graveyard.clear(); opponent.graveyard.append(knight_res); opponent.graveyard.append(healer_res)
+	var initial_player_grave_size = player.graveyard.size() # 1
+	var initial_opp_grave_size = opponent.graveyard.size() # 2
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(corpsetide_lich_res, player, opponent, 0, battle)
+	# Action
+	corpsetide_lich_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Opponent grave empty
+	assert_true(opponent.graveyard.is_empty(), "Opponent grave should be empty.")
+	# Assert: Player grave size increased
+	assert_eq(player.graveyard.size(), initial_player_grave_size + initial_opp_grave_size, "Player grave size incorrect.")
+	# Assert: Player grave contains all cards
+	var ids_in_grave = []
+	for card in player.graveyard: ids_in_grave.append(card.id)
+	assert_true(ids_in_grave.has("GoblinScout"), "Scout missing from player grave.")
+	assert_true(ids_in_grave.has("Knight"), "Knight missing from player grave.")
+	assert_true(ids_in_grave.has("Healer"), "Healer missing from player grave.")
+
+
+# --- Coffin Traders Tests ---
+func test_coffin_traders_swaps_graves():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup graves
+	player.graveyard.clear(); player.graveyard.append(goblin_scout_res) # Player has Scout
+	opponent.graveyard.clear(); opponent.graveyard.append(knight_res)  # Opponent has Knight
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(coffin_traders_res, player, opponent, 0, battle)
+	# Action
+	coffin_traders_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Player grave now has Knight
+	assert_eq(player.graveyard.size(), 1, "Player grave size incorrect.")
+	assert_eq(player.graveyard[0].id, "Knight", "Player grave content incorrect.")
+	# Assert: Opponent grave now has Scout
+	assert_eq(opponent.graveyard.size(), 1, "Opponent grave size incorrect.")
+	assert_eq(opponent.graveyard[0].id, "GoblinScout", "Opponent grave content incorrect.")
+
+
+# --- Angel of Justice Tests ---
+func test_angel_of_justice_destroys_if_fewer_creatures():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup: Player has ２ creatures (including angel), Opponent has 3
+	place_summon_for_test(player, goblin_scout_res, 0, battle)
+	place_summon_for_test(opponent, knight_res, 0, battle)       # Lane 1
+	place_summon_for_test(opponent, knight_res, 1, battle)       # Lane 2
+	place_summon_for_test(opponent, goblin_scout_res, 2, battle) # Lane 3 (Rightmost)
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(angel_of_justice_res, player, opponent, 1, battle) # Angel in lane 2
+	player.lanes[1] = instance # Place it
+	# Action
+	angel_of_justice_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Opponent's rightmost (Scout in lane 3) is gone
+	assert_true(opponent.lanes[0] != null, "Knight should remain.")
+	assert_null(opponent.lanes[2], "Scout in lane 3 should be destroyed.")
+
+
+func test_angel_of_justice_does_not_destroy_if_equal_creatures():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup: Player has 1, Opponent has 1
+	place_summon_for_test(player, goblin_scout_res, 0, battle)
+	place_summon_for_test(opponent, knight_res, 0, battle)
+	var instance = SummonInstance.new()
+	instance.setup(angel_of_justice_res, player, opponent, 1, battle)
+	player.lanes[1] = instance
+	angel_of_justice_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Opponent Knight still present
+	assert_true(opponent.lanes[0] != null, "Knight should not be destroyed.")
+
+
+# --- Scavenger Ghoul Tests ---
+func test_scavenger_ghoul_consumes_and_heals():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup graves and player HP
+	player.graveyard.clear(); player.graveyard.append(goblin_scout_res); player.graveyard.append(energy_axe_res) # 1 summon
+	opponent.graveyard.clear(); opponent.graveyard.append(knight_res); opponent.graveyard.append(healer_res)     # 2 summons
+	player.current_hp = 5
+	var initial_hp = player.current_hp
+	var expected_consumed = 1 + 2 # 3 summons total
+	var expected_heal = expected_consumed * 2 # 6
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(scavenger_ghoul_res, player, opponent, 0, battle)
+	# Action
+	scavenger_ghoul_res._on_arrival(instance, player, opponent, battle)
+
+	# Assert: Graves contain only non-summons (Energy Axe)
+	assert_eq(player.graveyard.size(), 1, "Player grave size incorrect.")
+	assert_eq(player.graveyard[0].id, "EnergyAxe", "Player grave content incorrect.")
+	assert_true(opponent.graveyard.is_empty(), "Opponent grave should be empty.")
+	# Assert: Player healed correctly
+	assert_eq(player.current_hp, min(initial_hp + expected_heal, player.max_hp), "Player HP after heal incorrect.")
+
+# --- Heedless Vandal Tests ---
+func test_heedless_vandal_mills_both():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup libraries
+	player.library.clear(); player.library.append(knight_res)
+	opponent.library.clear(); opponent.library.append(goblin_scout_res)
+	var initial_player_lib = player.library.size()
+	var initial_opp_lib = opponent.library.size()
+	var initial_player_grave = player.graveyard.size()
+	var initial_opp_grave = opponent.graveyard.size()
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(heedless_vandal_res, player, opponent, 0, battle)
+	# Action
+	heedless_vandal_res._on_arrival(instance, player, opponent, battle)
+
+	# Assert: Libraries decreased
+	assert_eq(player.library.size(), initial_player_lib - 1, "Player library size incorrect.")
+	assert_eq(opponent.library.size(), initial_opp_lib - 1, "Opponent library size incorrect.")
+	# Assert: Graveyards increased
+	assert_eq(player.graveyard.size(), initial_player_grave + 1, "Player graveyard size incorrect.")
+	assert_eq(opponent.graveyard.size(), initial_opp_grave + 1, "Opponent graveyard size incorrect.")
+	# Assert: Correct cards milled
+	assert_eq(player.graveyard[-1].id, "Knight", "Wrong card milled for player.")
+	assert_eq(opponent.graveyard[-1].id, "GoblinScout", "Wrong card milled for opponent.")
+
+	# Assert: Events generated (2x card_moved library->graveyard)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var player_milled = false
+	var opp_milled = false
+	for event in events_after:
+		if event.get("event_type") == "card_moved" and event.get("to_zone") == "graveyard":
+			if event.get("player") == player.combatant_name and event.get("card_id") == "Knight":
+				player_milled = true
+			elif event.get("player") == opponent.combatant_name and event.get("card_id") == "GoblinScout":
+				opp_milled = true
+	assert_true(player_milled, "Player mill event missing.")
+	assert_true(opp_milled, "Opponent mill event missing.")
+
+
+# --- Taunting Elf Tests ---
+func test_taunting_elf_makes_opponent_relentless():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place target Knight
+	var target_knight = place_summon_for_test(opponent, knight_res, 0, battle) # Lane 1
+	assert_false(target_knight.is_relentless, "Knight should start non-relentless.")
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(taunting_elf_res, player, opponent, 0, battle) # Arrives opposite
+	# Action
+	taunting_elf_res._on_arrival(instance, player, opponent, battle)
+
+	# Assert: Target is now relentless
+	assert_true(target_knight.is_relentless, "Knight should become relentless.")
+
+	# Assert: Event generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var status_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "status_change" and \
+		   event.get("status") == "Relentless" and \
+		   event.get("gained") == true and \
+		   event.get("player") == opponent.combatant_name and \
+		   event.get("lane") == 1:
+			status_event_found = true; break
+	assert_true(status_event_found, "Relentless status gain event missing.")
+
+
+func test_taunting_elf_no_target():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Opponent lane empty
+	opponent.lanes[0] = null
+	var initial_event_count = battle.battle_events.size()
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(taunting_elf_res, player, opponent, 0, battle)
+	# Action
+	taunting_elf_res._on_arrival(instance, player, opponent, battle)
+	# Assert: No status event generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var status_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "status_change": status_event_found = true; break
+	assert_false(status_event_found, "No status change event should be generated.")

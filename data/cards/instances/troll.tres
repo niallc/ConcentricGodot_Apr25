@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://brv48m2jtvy5s"]
+
+[ext_resource type="Script" path="res://logic/card_effects/troll_effect.gd" id="1_llvk8"]
+
+[resource]
+script = ExtResource("1_llvk8")
+base_power = 2
+base_max_hp = 5
+tags = Array[String](["Regenerate"])
+is_swift = false
+id = "Troll"
+card_name = "Troll"
+cost = 5
+artwork_path = "res://art/cards/troll.webp"
+description_template = "Regenerates 1 HP each turn."

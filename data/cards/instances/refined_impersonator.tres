@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cbxj2xwoanuj2"]
+
+[ext_resource type="Script" path="res://logic/card_effects/refined_impersonator_effect.gd" id="1_wprwa"]
+
+[resource]
+script = ExtResource("1_wprwa")
+base_power = 0
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "RefinedImpersonator"
+card_name = "Refined Impersonator"
+cost = 5
+artwork_path = "res://art/cards/refinedImpersonator.webp"
+description_template = "*Arrival*: Copies the power of the creature opposite it, and has maximum HP equal to one more than that creature."

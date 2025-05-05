@@ -12,4 +12,4 @@ id = "GoblinFirework"
 card_name = "Goblin Firework"
 cost = 2
 artwork_path = "res://art/cards/goblinFirework.webp"
-description_template = "Death: Explodes, causing one damage to any creature opposite it."
+description_template = "*Death:* Explodes, causing one damage to any creature opposite it."

@@ -38,6 +38,7 @@ func _run():
 	ensure_dir_exists(EFFECT_SCRIPT_DIR)
 
 	# 2. Process each card entry
+	var card_ids_all = []
 	for card_entry in json_data:
 		# Call validation first
 		if not validate_card_entry(card_entry):
@@ -45,6 +46,7 @@ func _run():
 			return # Halt execution on first validation error
 
 		var card_id = card_entry["id"]
+		card_ids_all.append(card_id)
 		# Use snake_case for filenames
 		var filename_base = card_id.to_snake_case()
 		var resource_path = INSTANCE_DIR + filename_base + ".tres"
@@ -149,7 +151,8 @@ func _run():
 			else:
 				print("...Existing resource updated successfully.")
 
-
+	print("The full set of card IDs imported now is:")
+	print(card_ids_all)
 	print("\nCard Import Finished Successfully.")
 	print("Created: %d, Updated: %d" % [created_count, updated_count])
 

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://38n2qn5t523p"]
+
+[ext_resource type="Script" path="res://logic/card_effects/ascending_protoplasm_effect.gd" id="1_gt1jn"]
+
+[resource]
+script = ExtResource("1_gt1jn")
+base_power = 1
+base_max_hp = 4
+tags = Array[String]([])
+is_swift = false
+id = "AscendingProtoplasm"
+card_name = "Ascending Protoplasm"
+cost = 5
+artwork_path = "res://art/cards/ascendingProtoplasm.webp"
+description_template = "Gains +1/+1 permanently after each attack."

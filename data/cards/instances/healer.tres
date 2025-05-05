@@ -11,5 +11,5 @@ is_swift = false
 id = "Healer"
 card_name = "Healer"
 cost = 4
-artwork_path = "res://art/healer.webp"
-description_template = "Adds 8 health to the player on summon."
+artwork_path = "res://art/cards/healer.webp"
+description_template = "*Arrival:* Heals player for 8."

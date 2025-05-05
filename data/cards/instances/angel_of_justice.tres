@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://6y6e8idoak7n"]
+
+[ext_resource type="Script" path="res://logic/card_effects/angel_of_justice_effect.gd" id="1_te4li"]
+
+[resource]
+script = ExtResource("1_te4li")
+base_power = 3
+base_max_hp = 4
+tags = Array[String]([])
+is_swift = false
+id = "AngelOfJustice"
+card_name = "Angel of Justice"
+cost = 6
+artwork_path = "res://art/cards/angelOfJustice.webp"
+description_template = "*Arrival*: If you control fewer creatures than your opponent, destroy opponent's rightmost creature."

@@ -626,4 +626,175 @@
 	"tags": [],
 	"swift": false
   }
+  ,{
+	"id": "Hexplate",
+	"type": "Spell",
+	"name": "Hexplate",
+	"cost": 4,
+	"art": "res://art/cards/hexplate.webp",
+	"description": "Boost your leftmost creature by +1/+4.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "SongsOfTheLost",
+	"type": "Spell",
+	"name": "Songs of the Lost",
+	"cost": 3,
+	"art": "res://art/cards/songsOfTheLost.webp",
+	"description": "For each creature in your graveyard, you gain 2 mana and your opponent loses 1 mana.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "AscendingProtoplasm",
+	"type": "Summon",
+	"name": "Ascending Protoplasm",
+	"cost": 5,
+	"art": "res://art/cards/ascendingProtoplasm.webp",
+	"description": "Gains +1/+1 permanently after each attack.",
+	"power": 1,
+	"hp": 4,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "RefinedImpersonator",
+	"type": "Summon",
+	"name": "Refined Impersonator",
+	"cost": 5,
+	"art": "res://art/cards/refinedImpersonator.webp",
+	"description": "*Arrival*: Copies the power of the creature opposite it, and has maximum HP equal to one more than that creature.",
+	"power": 0,
+	"hp": 1,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "CorpsetideLich",
+	"type": "Summon",
+	"name": "Corpsetide Lich",
+	"cost": 5,
+	"art": "res://art/cards/corpsetideLich.webp",
+	"description": "*Arrival*: Place all cards from the opponent's graveyard into your graveyard.",
+	"power": 2,
+	"hp": 5,
+	"tags": ["Undead"],
+	"swift": false
+  },
+  {
+	"id": "CoffinTraders",
+	"type": "Summon",
+	"name": "Coffin Traders",
+	"cost": 4,
+	"art": "res://art/cards/coffinTraders.webp",
+	"description": "*Arrival*: Exchange graveyards with your opponent.",
+	"power": 2,
+	"hp": 4,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "AngelOfJustice",
+	"type": "Summon",
+	"name": "Angel of Justice",
+	"cost": 6,
+	"art": "res://art/cards/angelOfJustice.webp",
+	"description": "*Arrival*: If you control fewer creatures than your opponent, destroy opponent's rightmost creature.",
+	"power": 3,
+	"hp": 4,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "ScavengerGhoul",
+	"type": "Summon",
+	"name": "Scavenger Ghoul",
+	"cost": 5,
+	"art": "res://art/cards/scavengerGhoul.webp",
+	"description": "*Arrival*: Devour all creature cards from all graveyards. Gain life equal to double the number of cards consumed.",
+	"power": 2,
+	"hp": 5,
+	"tags": ["Undead"],
+	"swift": false
+  }
+  ,{
+	"id": "HeedlessVandal",
+	"type": "Summon",
+	"name": "Heedless Vandal",
+	"cost": 4,
+	"art": "res://art/cards/heedlessVandal.webp",
+	"description": "*Arrival*: Place the top card of each player's deck into their graveyard.",
+	"power": 3,
+	"hp": 1,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "TauntingElf",
+	"type": "Summon",
+	"name": "Taunting Elf",
+	"cost": 3,
+	"art": "res://art/cards/tauntingElf.webp",
+	"description": "*Arrival*: The creature in the lane opposite becomes Relentless.",
+	"power": 1,
+	"hp": 2,
+	"tags": [],
+	"swift": false
+  }
+  ,{
+	"id": "RiverEfreet",
+	"type": "Summon",
+	"name": "River Efreet",
+	"cost": 5,
+	"art": "res://art/cards/riverEfreet.webp",
+	"description": "*Relentless* (attacks opponent directly)",
+	"power": 5,
+	"hp": 5,
+	"tags": ["Relentless"],
+	"swift": false
+  }
+  ,{
+	"id": "Disarm",
+	"type": "Spell",
+	"name": "Disarm",
+	"cost": 3,
+	"art": "res://art/cards/disarm.webp",
+	"description": "Opponent's highest-power creature loses two power.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "GoblinFirework",
+	"type": "Summon",
+	"name": "Goblin Firework",
+	"cost": 2,
+	"art": "res://art/cards/goblinFirework.webp",
+	"description": "*Death:* Explodes, causing one damage to any creature opposite it.",
+	"power": 0,
+	"hp": 1,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "Healer",
+	"type": "Summon",
+	"name": "Healer",
+	"cost": 4,
+	"art": "res://art/cards/healer.webp",
+	"description": "*Arrival:* Heals player for 8.",
+	"power": 1,
+	"hp": 5,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "Troll",
+	"type": "Summon",
+	"name": "Troll",
+	"cost": 5,
+	"art": "res://art/cards/troll.webp",
+	"description": "Regenerates 1 HP each turn.",
+	"power": 2,
+	"hp": 5,
+	"tags": ["Regenerate"],
+	"swift": false
+  }
 ]

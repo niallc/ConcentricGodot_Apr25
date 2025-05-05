@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://olakjppi7n3c"]
+
+[ext_resource type="Script" path="res://logic/card_effects/heedless_vandal_effect.gd" id="1_vd8wc"]
+
+[resource]
+script = ExtResource("1_vd8wc")
+base_power = 3
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "HeedlessVandal"
+card_name = "Heedless Vandal"
+cost = 4
+artwork_path = "res://art/cards/heedlessVandal.webp"
+description_template = "*Arrival*: Place the top card of each player's deck into their graveyard."

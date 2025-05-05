@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://0ljdsfpuybql"]
+
+[ext_resource type="Script" path="res://logic/card_effects/taunting_elf_effect.gd" id="1_a2cmr"]
+
+[resource]
+script = ExtResource("1_a2cmr")
+base_power = 1
+base_max_hp = 2
+tags = Array[String]([])
+is_swift = false
+id = "TauntingElf"
+card_name = "Taunting Elf"
+cost = 3
+artwork_path = "res://art/cards/tauntingElf.webp"
+description_template = "*Arrival*: The creature in the lane opposite becomes Relentless."

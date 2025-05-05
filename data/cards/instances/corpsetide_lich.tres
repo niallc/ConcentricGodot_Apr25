@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://ck7j2ju4uagwc"]
+
+[ext_resource type="Script" path="res://logic/card_effects/corpsetide_lich_effect.gd" id="1_mu1ov"]
+
+[resource]
+script = ExtResource("1_mu1ov")
+base_power = 2
+base_max_hp = 5
+tags = Array[String](["Undead"])
+is_swift = false
+id = "CorpsetideLich"
+card_name = "Corpsetide Lich"
+cost = 5
+artwork_path = "res://art/cards/corpsetideLich.webp"
+description_template = "*Arrival*: Place all cards from the opponent's graveyard into your graveyard."

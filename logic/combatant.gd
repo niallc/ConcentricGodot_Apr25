@@ -159,3 +159,18 @@ func lose_mana(amount: int, source_id: String = "unknown"):
 			"new_total": mana,
 			"source": source_id # Optional source tracking
 		})
+
+# Helper function to mill the top card
+func mill_top_card(reason: String = "unknown"):
+	if not library.is_empty():
+		var milled_card = library.pop_front() # Remove from top
+		print("%s mills %s from top of library." % [combatant_name, milled_card.card_name])
+		# Add to graveyard (generates card_moved event)
+		add_card_to_graveyard(milled_card, "library_top_" + reason) # Add reason to source zone
+	else:
+		print("%s library empty, cannot mill." % combatant_name)
+		# Optional: Generate "mill_attempt_failed" event?
+		battle_instance.add_event({
+			"event_type": "log_message",
+			"message": "%s tried to mill top card but library was empty." % combatant_name
+		}) # log_message event

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://i47brwtgtgm3"]
+
+[ext_resource type="Script" path="res://logic/card_effects/songs_of_the_lost_effect.gd" id="1_ukokt"]
+
+[resource]
+script = ExtResource("1_ukokt")
+id = "SongsOfTheLost"
+card_name = "Songs of the Lost"
+cost = 3
+artwork_path = "res://art/cards/songsOfTheLost.webp"
+description_template = "For each creature in your graveyard, you gain 2 mana and your opponent loses 1 mana."
