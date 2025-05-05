@@ -58,8 +58,8 @@ The project follows a modular design separating data, logic, and presentation.
             C{Combatant}
             SI{SummonInstance}
             CE[Card Effects]
-            CR["Card Resources (.tres)"] %% Quoted node text
-            JSON["card_data.json"] -- Used by --> TOOL["Importer Tool"] %% Quoted node text
+            CR[CardResources] %% Simplified ID
+            JSON[CardDataJson] -- Used by --> TOOL[ImporterTool] %% Simplified ID
             TOOL -- Generates/Updates --> CR
             TOOL -- Generates --> CE
         end
@@ -79,7 +79,7 @@ The project follows a modular design separating data, logic, and presentation.
         GM -- Passes Events --> BRE;
         BRE -- Reads --> BE;
         BRE -- Instantiates/Updates --> SV;
-        BRE -- Updates --> UI["Replay UI (HP, Mana, etc)"]; %% Quoted node text
+        BRE -- Updates --> UI[Replay UI]; %% Simplified ID
 
         B -- Instantiates --> C;
         B -- Instantiates --> SI;
