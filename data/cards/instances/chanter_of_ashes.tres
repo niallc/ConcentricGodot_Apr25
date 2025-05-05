@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://ckv1b6v5kxm35"]
+
+[ext_resource type="Script" path="res://logic/card_effects/chanter_of_ashes_effect.gd" id="1_6u8yb"]
+
+[resource]
+script = ExtResource("1_6u8yb")
+base_power = 1
+base_max_hp = 1
+tags = Array[String]([])
+is_swift = false
+id = "ChanterOfAshes"
+card_name = "Chanter of Ashes"
+cost = 4
+artwork_path = "res://art/cards/chanterOfAshes.webp"
+description_template = "*Arrival*: Consume all creatures from your graveyard. Deal damage to the opponent equal to twice their number."

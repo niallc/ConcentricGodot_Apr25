@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://b2smvnjiv8w44"]
+
+[ext_resource type="Script" path="res://logic/card_effects/rampaging_cyclops_effect.gd" id="1_rya26"]
+
+[resource]
+script = ExtResource("1_rya26")
+base_power = 5
+base_max_hp = 5
+tags = Array[String]([])
+is_swift = false
+id = "RampagingCyclops"
+card_name = "Rampaging Cyclops"
+cost = 8
+artwork_path = "res://art/cards/rampagingCyclops.webp"
+description_template = "*Arrival*: Deal 1 damage to all creatures in all lanes."

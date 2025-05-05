@@ -13,6 +13,7 @@ var goblin_firework_res = load("res://data/cards/instances/goblin_firework.tres"
 var goblin_rally_res = load("res://data/cards/instances/goblin_rally.tres") as SpellCardResource
 var goblin_scout_res = load("res://data/cards/instances/goblin_scout.tres") as SummonCardResource
 var goblin_warboss_res = load("res://data/cards/instances/goblin_warboss.tres") as SummonCardResource
+var goliath_res = load("res://data/cards/instances/goliath.tres") as SummonCardResource
 var healer_res = load("res://data/cards/instances/healer.tres") as SummonCardResource
 var inexorable_ooze_res = load("res://data/cards/instances/inexorable_ooze.tres") as SummonCardResource
 var knight_res = load("res://data/cards/instances/knight.tres") as SummonCardResource # Needed for target
@@ -44,7 +45,6 @@ var unmake_res = load("res://data/cards/instances/unmake.tres") as SpellCardReso
 var skeletal_infantry_res = load("res://data/cards/instances/skeletal_infantry.tres") as SummonCardResource
 var reassembling_legion_res = load("res://data/cards/instances/reassembling_legion.tres") as SummonCardResource
 var ghoul_res = load("res://data/cards/instances/ghoul.tres") as SummonCardResource
-
 var dreadhorde_res = load("res://data/cards/instances/dreadhorde.tres") as SummonCardResource
 var bog_giant_res = load("res://data/cards/instances/bog_giant.tres") as SummonCardResource
 var knight_of_opposites_res = load("res://data/cards/instances/knight_of_opposites.tres") as SummonCardResource
@@ -52,6 +52,13 @@ var malignant_imp_res = load("res://data/cards/instances/malignant_imp.tres") as
 var walking_sarcophagus_res = load("res://data/cards/instances/walking_sarcophagus.tres") as SummonCardResource
 var indulged_princeling_res = load("res://data/cards/instances/indulged_princeling.tres") as SummonCardResource
 
+var elsewhere_res = load("res://data/cards/instances/elsewhere.tres") as SpellCardResource
+var carnivorous_plant_res = load("res://data/cards/instances/carnivorous_plant.tres") as SummonCardResource
+var chanter_of_ashes_res = load("res://data/cards/instances/chanter_of_ashes.tres") as SummonCardResource
+var goblin_gladiator_res = load("res://data/cards/instances/goblin_gladiator.tres") as SummonCardResource
+var inferno_res = load("res://data/cards/instances/inferno.tres") as SpellCardResource
+var flamewielder_res = load("res://data/cards/instances/flamewielder.tres") as SummonCardResource
+var rampaging_cyclops_res = load("res://data/cards/instances/rampaging_cyclops.tres") as SummonCardResource
 
 # --- Test Helper Functions ---
 # Creates a basic Battle setup for testing effects
@@ -1922,3 +1929,216 @@ func test_indulged_princeling_sacrifices_if_cant_mill():
 		if event.get("event_type") == "creature_defeated" and event.get("lane") == 1: # Lane 1 (index 0)
 			defeated_event_found = true; break
 	assert_true(defeated_event_found, "Creature defeated event for Princeling not found.")
+
+# --- Elsewhere Tests ---
+func test_elsewhere_bounces_leftmost():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place opponent creatures
+	var _scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # Lane 1 - Leftmost
+	var knight = place_summon_for_test(opponent, knight_res, 1, battle)     # Lane 2
+	opponent.library.clear() # Clear library for easy check
+	var initial_event_count = battle.battle_events.size()
+
+	# Action
+	elsewhere_res.apply_effect(elsewhere_res, player, opponent, battle)
+
+	# Assert: Scout (leftmost) is gone from lane
+	assert_null(opponent.lanes[0], "Lane 1 should be empty after Elsewhere.")
+	# Assert: Knight still in lane
+	assert_true(opponent.lanes[1] == knight, "Lane 2 should still contain Knight.")
+	# Assert: Scout is at bottom of library
+	assert_eq(opponent.library.size(), 1, "Opponent library should have 1 card.")
+	assert_eq(opponent.library[0].id, "GoblinScout", "Scout should be at library bottom.") # push_back adds to end
+
+	# Assert: Events generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var leaves_event = false
+	var moved_event = false
+	for event in events_after:
+		if event.get("event_type") == "summon_leaves_lane" and event.get("lane") == 1: leaves_event = true
+		elif event.get("event_type") == "card_moved" and event.get("card_id") == "GoblinScout" and event.get("to_zone") == "library": moved_event = true
+	assert_true(leaves_event, "Summon leaves event missing.")
+	assert_true(moved_event, "Card moved event missing.")
+
+
+# --- Carnivorous Plant Tests ---
+func test_carnivorous_plant_adds_scout_to_grave():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	player.graveyard.clear()
+	var initial_event_count = battle.battle_events.size()
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(carnivorous_plant_res, player, player.opponent, 0, battle)
+	# Action
+	carnivorous_plant_res._on_arrival(instance, player, player.opponent, battle)
+	# Assert: Graveyard contains Goblin Scout
+	assert_eq(player.graveyard.size(), 1, "Graveyard should contain 1 card.")
+	assert_eq(player.graveyard[0].id, "GoblinScout", "Graveyard should contain Goblin Scout.")
+	# Assert: Event generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var moved_event = false
+	for event in events_after:
+		if event.get("event_type") == "card_moved" and event.get("card_id") == "GoblinScout" and event.get("to_zone") == "graveyard":
+			moved_event = true; break
+	assert_true(moved_event, "Card moved event for Plant adding Scout missing.")
+
+
+# --- Chanter of Ashes Tests ---
+func test_chanter_of_ashes_consumes_and_damages():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup graveyard
+	player.graveyard.clear()
+	player.graveyard.append(goblin_scout_res)
+	player.graveyard.append(knight_res) # 2 summons
+	player.graveyard.append(energy_axe_res) # 1 spell
+	var initial_opp_hp = opponent.current_hp
+	var initial_event_count = battle.battle_events.size()
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(chanter_of_ashes_res, player, opponent, 0, battle)
+	# Action
+	chanter_of_ashes_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Graveyard contains only spell
+	assert_eq(player.graveyard.size(), 1, "Graveyard size incorrect.")
+	assert_eq(player.graveyard[0].id, "EnergyAxe", "Only spell should remain.")
+	# Assert: Opponent took damage (2 summons * 2 = 4 damage)
+	assert_eq(opponent.current_hp, initial_opp_hp - 4, "Opponent HP incorrect.")
+	# Assert: Events generated (2x card_removed, 1x hp_change/effect_damage)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var removed_count = 0
+	var damage_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "card_removed" and event.get("from_zone") == "graveyard": 
+			removed_count += 1
+		elif event.get("event_type") == "effect_damage" and event.get("source_card_id") == "ChanterOfAshes":
+			damage_event_found = true
+			assert_eq(event.get("amount"), 4, "Chanter damage amount incorrect.")
+	assert_eq(removed_count, 2, "Incorrect removed count.")
+	assert_true(damage_event_found, "Effect damage event not found.")
+
+
+# --- Goblin Gladiator Tests ---
+func test_goblin_gladiator_bonus_damage():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Gladiator and targets
+	var gladiator = place_summon_for_test(player, goblin_gladiator_res, 0, battle) # Power 2
+	var weak_target = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # Power 1
+	var strong_target = place_summon_for_test(opponent, goliath_res, 1, battle) # Power 7
+	var initial_weak_hp = weak_target.current_hp
+	var initial_strong_hp = strong_target.current_hp
+
+	# Action 1: Attack weak target
+	gladiator.lane_index = 0 # Ensure gladiator knows its lane
+	gladiator._perform_combat(weak_target)
+	# Assert: Weak target took base damage (2)
+	assert_eq(weak_target.current_hp, initial_weak_hp - 2, "Weak target took wrong damage.")
+
+	# Action 2: Attack strong target
+	gladiator.lane_index = 1 # Move gladiator conceptually for targeting
+	gladiator._perform_combat(strong_target)
+	# Assert: Strong target took base + bonus damage (2 + 3 = 5)
+	assert_eq(strong_target.current_hp, initial_strong_hp - 5, "Strong target took wrong damage.")
+
+
+# --- Inferno Tests ---
+func test_inferno_damages_all():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place creatures
+	var p_scout = place_summon_for_test(player, goblin_scout_res, 0, battle) # HP 2
+	var p_knight = place_summon_for_test(player, knight_res, 1, battle)     # HP 3
+	var o_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # HP 2
+	var o_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # HP 3
+	var initial_event_count = battle.battle_events.size()
+
+	# Action
+	inferno_res.apply_effect(inferno_res, player, opponent, battle)
+
+	# Assert: All creatures took 2 damage
+	assert_eq(p_scout.current_hp, 2 - 2, "Player Scout HP incorrect.") # Dies
+	assert_eq(p_knight.current_hp, 3 - 2, "Player Knight HP incorrect.")
+	assert_eq(o_scout.current_hp, 2 - 2, "Opponent Scout HP incorrect.") # Dies
+	assert_eq(o_knight.current_hp, 3 - 2, "Opponent Knight HP incorrect.")
+
+	# Assert: Events (4x creature_hp_change, 2x creature_defeated)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var hp_changes = 0
+	var defeats = 0
+	for event in events_after:
+		if event.get("event_type") == "creature_hp_change" and event.get("amount") == -2: hp_changes += 1
+		elif event.get("event_type") == "creature_defeated": defeats += 1
+	assert_eq(hp_changes, 4, "Incorrect hp_change count.")
+	assert_eq(defeats, 2, "Incorrect defeated count.")
+
+
+# --- Flamewielder Tests ---
+func test_flamewielder_damages_opponents():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place creatures
+	var p_knight = place_summon_for_test(player, knight_res, 0, battle)     # HP 3 (Should not be damaged)
+	var o_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # HP 2
+	var o_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # HP 3
+	var initial_event_count = battle.battle_events.size()
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(flamewielder_res, player, opponent, 0, battle)
+	# Action
+	flamewielder_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Opponent creatures took 1 damage
+	assert_eq(o_scout.current_hp, 2 - 1, "Opponent Scout HP incorrect.")
+	assert_eq(o_knight.current_hp, 3 - 1, "Opponent Knight HP incorrect.")
+	# Assert: Player creature unharmed
+	assert_eq(p_knight.current_hp, 3, "Player Knight HP should be unchanged.")
+	# Assert: Events (2x creature_hp_change for opponent)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var hp_changes = 0
+	for event in events_after:
+		if event.get("event_type") == "creature_hp_change" and event.get("player") == opponent.combatant_name and event.get("amount") == -1:
+			hp_changes += 1
+	assert_eq(hp_changes, 2, "Incorrect opponent hp_change count.")
+
+
+# --- Rampaging Cyclops Tests ---
+func test_rampaging_cyclops_damages_all_others():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place creatures
+	var p_scout = place_summon_for_test(player, goblin_scout_res, 0, battle) # HP 2
+	var o_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # HP 3
+	# Simulate Cyclops arrival in lane 2
+	var instance = SummonInstance.new()
+	instance.setup(rampaging_cyclops_res, player, opponent, 2, battle)
+	player.lanes[2] = instance # Place it
+	var initial_event_count = battle.battle_events.size()
+	# Action
+	rampaging_cyclops_res._on_arrival(instance, player, opponent, battle)
+	# Assert: Other creatures took 1 damage
+	assert_eq(p_scout.current_hp, 2 - 1, "Player Scout HP incorrect.")
+	assert_eq(o_knight.current_hp, 3 - 1, "Opponent Knight HP incorrect.")
+	# Assert: Cyclops itself unharmed
+	assert_eq(instance.current_hp, 5, "Cyclops HP should be unchanged.")
+	# Assert: Events (2x creature_hp_change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var hp_changes = 0
+	for event in events_after:
+		if event.get("event_type") == "creature_hp_change" and event.get("amount") == -1:
+			hp_changes += 1
+	assert_eq(hp_changes, 2, "Incorrect hp_change count.")

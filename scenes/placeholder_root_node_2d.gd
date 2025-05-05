@@ -50,7 +50,6 @@ func _ready():
 	var _skeletal_infantry_res = load("res://data/cards/instances/skeletal_infantry.tres") as SummonCardResource
 	var _reassembling_legion_res = load("res://data/cards/instances/reassembling_legion.tres") as SummonCardResource
 	var _ghoul_res = load("res://data/cards/instances/ghoul.tres") as SummonCardResource
-
 	var _dreadhorde_res = load("res://data/cards/instances/dreadhorde.tres") as SummonCardResource
 	var _bog_giant_res = load("res://data/cards/instances/bog_giant.tres") as SummonCardResource
 	var _knight_of_opposites_res = load("res://data/cards/instances/knight_of_opposites.tres") as SummonCardResource
@@ -58,13 +57,21 @@ func _ready():
 	var _walking_sarcophagus_res = load("res://data/cards/instances/walking_sarcophagus.tres") as SummonCardResource
 	var _indulged_princeling_res = load("res://data/cards/instances/indulged_princeling.tres") as SummonCardResource
 
+	var _elsewhere_res = load("res://data/cards/instances/elsewhere.tres") as SpellCardResource
+	var _carnivorous_plant_res = load("res://data/cards/instances/carnivorous_plant.tres") as SummonCardResource
+	var _chanter_of_ashes_res = load("res://data/cards/instances/chanter_of_ashes.tres") as SummonCardResource
+	var _goblin_gladiator_res = load("res://data/cards/instances/goblin_gladiator.tres") as SummonCardResource
+	var _inferno_res = load("res://data/cards/instances/inferno.tres") as SpellCardResource
+	var _flamewielder_res = load("res://data/cards/instances/flamewielder.tres") as SummonCardResource
+	var _rampaging_cyclops_res = load("res://data/cards/instances/rampaging_cyclops.tres") as SummonCardResource
+
 	# Test instantiating Battle
 	var battle_sim = Battle.new()
 	if battle_sim:
 		print("Battle instance created.")
 		print("Loaded Card: %s, Cost: %d" % [card_res.card_name, card_res.cost])
-		var deck1: Array[CardResource] = [_wall_of_vines_res, _wall_of_vines_res, _healer_res]
-		var deck2: Array[CardResource] = [_indulged_princeling_res, _healer_res, _knight_res, _walking_sarcophagus_res]
+		var deck1: Array[CardResource] = [_carnivorous_plant_res, _goblin_gladiator_res, _elsewhere_res, _flamewielder_res]
+		var deck2: Array[CardResource] = [_wall_of_vines_res, _rampaging_cyclops_res, _inferno_res, _chanter_of_ashes_res]
 		# ---<<< THIS WILL CALL YOUR FUNCTION >>>---
 		var events = battle_sim.run_battle(deck1, deck2, "Player", "Opponent")
 

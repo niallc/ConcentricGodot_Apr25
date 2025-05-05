@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cafxcomvhrra8"]
+
+[ext_resource type="Script" path="res://logic/card_effects/flamewielder_effect.gd" id="1_iifuf"]
+
+[resource]
+script = ExtResource("1_iifuf")
+base_power = 3
+base_max_hp = 2
+tags = Array[String]([])
+is_swift = false
+id = "Flamewielder"
+card_name = "Flamewielder"
+cost = 4
+artwork_path = "res://art/cards/flamewielder.webp"
+description_template = "*Arrival*: Deal 1 damage to all opposing creatures."

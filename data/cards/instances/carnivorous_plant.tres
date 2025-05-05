@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://c055sds8nf0ka"]
+
+[ext_resource type="Script" path="res://logic/card_effects/carnivorous_plant_effect.gd" id="1_g12um"]
+
+[resource]
+script = ExtResource("1_g12um")
+base_power = 3
+base_max_hp = 4
+tags = Array[String]([])
+is_swift = false
+id = "CarnivorousPlant"
+card_name = "Carnivorous Plant"
+cost = 5
+artwork_path = "res://art/cards/carnivorousPlant.webp"
+description_template = "*Arrival*: Place a Goblin Scout in your graveyard."

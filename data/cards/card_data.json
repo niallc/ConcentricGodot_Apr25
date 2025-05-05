@@ -548,4 +548,82 @@
 	"tags": [],
 	"swift": false
   }
+  ,{
+	"id": "Elsewhere",
+	"type": "Spell",
+	"name": "Elsewhere",
+	"cost": 5,
+	"art": "res://art/cards/elsewhere.webp",
+	"description": "Opponent's leftmost creature is returned to the bottom of their deck.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "CarnivorousPlant",
+	"type": "Summon",
+	"name": "Carnivorous Plant",
+	"cost": 5,
+	"art": "res://art/cards/carnivorousPlant.webp",
+	"description": "*Arrival*: Place a Goblin Scout in your graveyard.",
+	"power": 3,
+	"hp": 4,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "ChanterOfAshes",
+	"type": "Summon",
+	"name": "Chanter of Ashes",
+	"cost": 4,
+	"art": "res://art/cards/chanterOfAshes.webp",
+	"description": "*Arrival*: Consume all creatures from your graveyard. Deal damage to the opponent equal to twice their number.",
+	"power": 1,
+	"hp": 1,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "GoblinGladiator",
+	"type": "Summon",
+	"name": "Goblin Gladiator",
+	"cost": 3,
+	"art": "res://art/cards/goblinGladiator.webp",
+	"description": "Deals 3 additional damage to creatures with four or greater power.",
+	"power": 2,
+	"hp": 2,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "Inferno",
+	"type": "Spell",
+	"name": "Inferno",
+	"cost": 3,
+	"art": "res://art/cards/inferno.webp",
+	"description": "Deals 2 damage to all creatures.",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "Flamewielder",
+	"type": "Summon",
+	"name": "Flamewielder",
+	"cost": 4,
+	"art": "res://art/cards/flamewielder.webp",
+	"description": "*Arrival*: Deal 1 damage to all opposing creatures.",
+	"power": 3,
+	"hp": 2,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "RampagingCyclops",
+	"type": "Summon",
+	"name": "Rampaging Cyclops",
+	"cost": 8,
+	"art": "res://art/cards/rampagingCyclops.webp",
+	"description": "*Arrival*: Deal 1 damage to all creatures in all lanes.",
+	"power": 5,
+	"hp": 5,
+	"tags": [],
+	"swift": false
+  }
 ]

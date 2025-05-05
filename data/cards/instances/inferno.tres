@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://nb7nsql1w317"]
+
+[ext_resource type="Script" path="res://logic/card_effects/inferno_effect.gd" id="1_j7ntr"]
+
+[resource]
+script = ExtResource("1_j7ntr")
+id = "Inferno"
+card_name = "Inferno"
+cost = 3
+artwork_path = "res://art/cards/inferno.webp"
+description_template = "Deals 2 damage to all creatures."

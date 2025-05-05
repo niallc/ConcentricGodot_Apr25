@@ -190,13 +190,15 @@ func _perform_direct_attack():
 		die() # Sacrifice self
 		sacrificed_by_effect = true # Mark as sacrificed
 
-	# Only check game over if not sacrificed by an effect this turn
-	if not sacrificed_by_effect:
-		battle_instance.check_game_over()
+	battle_instance.check_game_over()
 
 func _perform_combat(target_instance):
-	var damage = max(0, get_current_power()) # Use calculated power
-	print("%s attacks %s for %d damage" % [card_resource.card_name, target_instance.card_resource.card_name, damage])
+	var bonus_damage = 0
+	if card_resource != null and card_resource.has_method("_get_bonus_combat_damage"):
+		bonus_damage = card_resource._get_bonus_combat_damage(self, target_instance)
+	var damage = max(0, get_current_power() + bonus_damage)
+
+	print("%s attacks %s for %d damage (%d base + %d bonus)" % [card_resource.card_name, target_instance.card_resource.card_name, damage, get_current_power(), bonus_damage])
 	var target_hp_before = target_instance.current_hp
 	target_instance.take_damage(damage, self)
 	battle_instance.add_event({

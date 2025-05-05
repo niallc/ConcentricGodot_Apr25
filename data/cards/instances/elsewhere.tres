@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://c8r4uy1v6mwef"]
+
+[ext_resource type="Script" path="res://logic/card_effects/elsewhere_effect.gd" id="1_kqxp4"]
+
+[resource]
+script = ExtResource("1_kqxp4")
+id = "Elsewhere"
+card_name = "Elsewhere"
+cost = 5
+artwork_path = "res://art/cards/elsewhere.webp"
+description_template = "Opponent's leftmost creature is returned to the bottom of their deck."

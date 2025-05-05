@@ -26,6 +26,10 @@ func perform_turn_activity_override(_summon_instance, _active_combatant, _oppone
 func _get_direct_attack_bonus_damage(_summon_instance: SummonInstance) -> int:
 	return 0 # Default is no bonus damage
 
+# --- NEW Virtual method for bonus combat damage ---
+func _get_bonus_combat_damage(_attacker_instance: SummonInstance, _target_instance: SummonInstance) -> int:
+	return 0 # Default is no bonus damage
+
 # --- NEW Virtual method for trigger after dealing direct damage ---
 # Return true if this effect caused the summon to be sacrificed/removed
 func _on_deal_direct_damage(_summon_instance: SummonInstance, _target_combatant: Combatant, _battle_instance) -> bool:
