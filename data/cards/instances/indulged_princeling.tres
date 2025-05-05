@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://chmawmn1a3i38"]
+
+[ext_resource type="Script" path="res://logic/card_effects/indulged_princeling_effect.gd" id="1_ynejb"]
+
+[resource]
+script = ExtResource("1_ynejb")
+base_power = 2
+base_max_hp = 6
+tags = Array[String]([])
+is_swift = false
+id = "IndulgedPrinceling"
+card_name = "Indulged Princeling"
+cost = 5
+artwork_path = "res://art/cards/indulgedPrinceling.webp"
+description_template = "*Arrival*: Place the top two cards of your library into your graveyard. (Sacrifice this creature if unable)"

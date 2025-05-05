@@ -158,12 +158,15 @@ func perform_turn_activity():
 		})
 
 func _perform_direct_attack():
-	var damage = max(0, get_current_power()) # Use calculated power
+	var bonus_damage = 0
+	if card_resource != null and card_resource.has_method("_get_direct_attack_bonus_damage"):
+		bonus_damage = card_resource._get_direct_attack_bonus_damage(self)
+	var damage = max(0, get_current_power() + bonus_damage)
 	print("%s attacks opponent directly for %d damage" % [card_resource.card_name, damage])
+
 	var _target_player_hp_before = opponent_combatant.current_hp
 	# take_damage generates hp_change event for the combatant
 	var _defeated = opponent_combatant.take_damage(damage, self)
-
 	# Generate direct_damage event (provides context for the hp_change)
 	battle_instance.add_event({
 		"event_type": "direct_damage",
@@ -174,15 +177,21 @@ func _perform_direct_attack():
 		"target_player_remaining_hp": opponent_combatant.current_hp
 	}) # direct_damage event
 
+	var sacrificed_by_effect = false
+	if card_resource != null and card_resource.has_method("_on_deal_direct_damage"):
+		# This method might sacrifice the creature (e.g., Sarcophagus)
+		# It should return true if it sacrificed the instance
+		sacrificed_by_effect = card_resource._on_deal_direct_damage(self, opponent_combatant, battle_instance)
+
 	# --- Check for Glassgraft sacrifice ---
-	if custom_state.get("glassgrafted", false): # Check the flag
+	if not sacrificed_by_effect and custom_state.get("glassgrafted", false):
 		print("...Glassgrafted creature dealt damage, sacrificing!")
 		custom_state.erase("glassgrafted") # Remove flag
-		# Optional: Visual effect for sacrifice?
-		# battle_instance.add_event({...})
 		die() # Sacrifice self
-		# Note: Execution stops here if die() is called
-	else: # Only check game over if not sacrificed
+		sacrificed_by_effect = true # Mark as sacrificed
+
+	# Only check game over if not sacrificed by an effect this turn
+	if not sacrificed_by_effect:
 		battle_instance.check_game_over()
 
 func _perform_combat(target_instance):

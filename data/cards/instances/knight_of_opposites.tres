@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://b084bo2o6vmfd"]
+
+[ext_resource type="Script" path="res://logic/card_effects/knight_of_opposites_effect.gd" id="1_naxf4"]
+
+[resource]
+script = ExtResource("1_naxf4")
+base_power = 3
+base_max_hp = 3
+tags = Array[String]([])
+is_swift = false
+id = "KnightOfOpposites"
+card_name = "Knight of Opposites"
+cost = 4
+artwork_path = "res://art/cards/knightOfOpposites.webp"
+description_template = "*Arrival:* Swaps the HP of the players."

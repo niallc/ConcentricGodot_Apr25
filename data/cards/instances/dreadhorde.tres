@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://dwaytgd3px3sr"]
+
+[ext_resource type="Script" path="res://logic/card_effects/dreadhorde_effect.gd" id="1_wd3xa"]
+
+[resource]
+script = ExtResource("1_wd3xa")
+base_power = 5
+base_max_hp = 3
+tags = Array[String](["Undead"])
+is_swift = false
+id = "Dreadhorde"
+card_name = "Dreadhorde"
+cost = 6
+artwork_path = "res://art/cards/dreadfulHorde.webp"
+description_template = "*Vanilla Undead*"

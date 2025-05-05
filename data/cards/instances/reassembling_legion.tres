@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://o7ulfrgbju33"]
+
+[ext_resource type="Script" path="res://logic/card_effects/reassembling_legion_effect.gd" id="1_3jusp"]
+
+[resource]
+script = ExtResource("1_3jusp")
+base_power = 3
+base_max_hp = 4
+tags = Array[String](["Undead", "Immortal"])
+is_swift = false
+id = "ReassemblingLegion"
+card_name = "Reassembling Legion"
+cost = 5
+artwork_path = "res://art/cards/reassemblingLegion.webp"
+description_template = "*Immortal:* Upon death, returns to the bottom of your deck."

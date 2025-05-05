@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://d6k4cjt05g8f"]
+
+[ext_resource type="Script" path="res://logic/card_effects/goliath_effect.gd" id="1_8y0k3"]
+
+[resource]
+script = ExtResource("1_8y0k3")
+base_power = 7
+base_max_hp = 8
+tags = Array[String]([])
+is_swift = false
+id = "Goliath"
+card_name = "Goliath"
+cost = 10
+artwork_path = "res://art/cards/goliath.webp"
+description_template = "*Vanilla*"

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://bk20t5w3giry0"]
+
+[ext_resource type="Script" path="res://logic/card_effects/unmake_effect.gd" id="1_uc4o5"]
+
+[resource]
+script = ExtResource("1_uc4o5")
+id = "Unmake"
+card_name = "Unmake"
+cost = 5
+artwork_path = "res://art/cards/unmake.webp"
+description_template = "Destroy opponent's leftmost living creature. (Living creatures are not Undead or Inanimate)"

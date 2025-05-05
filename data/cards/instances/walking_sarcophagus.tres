@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://bnbmea1yls6cc"]
+
+[ext_resource type="Script" path="res://logic/card_effects/walking_sarcophagus_effect.gd" id="1_h7tme"]
+
+[resource]
+script = ExtResource("1_h7tme")
+base_power = 2
+base_max_hp = 2
+tags = Array[String](["Undead"])
+is_swift = false
+id = "WalkingSarcophagus"
+card_name = "Walking Sarcophagus"
+cost = 3
+artwork_path = "res://art/cards/walkingSarcophagus.webp"
+description_template = "When this creature deals damage to the opponent, sacrifice it, then return the leftmost creature of your graveyard."

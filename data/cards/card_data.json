@@ -395,4 +395,157 @@
 	"tags": ["Undead"],
 	"swift": false
   }
+  ,{
+	"id": "Unmake",
+	"type": "Spell",
+	"name": "Unmake",
+	"cost": 5,
+	"art": "res://art/cards/unmake.webp",
+	"description": "Destroy opponent's leftmost living creature. (Living creatures are not Undead or Inanimate)",
+	"power": null, "hp": null, "tags": [], "swift": null
+  },
+  {
+	"id": "SkeletalInfantry",
+	"type": "Summon",
+	"name": "Skeletal Infantry",
+	"cost": 4,
+	"art": "res://art/cards/skeletonInfantry.webp",
+	"description": "Upon killing an enemy, heals to full health and becomes *Relentless*.",
+	"power": 2,
+	"hp": 4,
+	"tags": ["Undead"],
+	"swift": false
+  },
+  {
+	"id": "ReassemblingLegion",
+	"type": "Summon",
+	"name": "Reassembling Legion",
+	"cost": 5,
+	"art": "res://art/cards/reassemblingLegion.webp",
+	"description": "*Immortal:* Upon death, returns to the bottom of your deck.",
+	"power": 3,
+	"hp": 4,
+	"tags": ["Undead", "Immortal"],
+	"swift": false
+  },
+  {
+	"id": "Ghoul",
+	"type": "Summon",
+	"name": "Ghoul",
+	"cost": 4,
+	"art": "res://art/cards/ghoul.webp",
+	"description": "*Arrival:* Place the bottom card of opponent's deck into their graveyard.",
+	"power": 1,
+	"hp": 4,
+	"tags": ["Undead"],
+	"swift": false
+  },
+  {
+	"id": "Pikemen",
+	"type": "Summon",
+	"name": "Pikemen",
+	"cost": 4,
+	"art": "res://art/cards/pikemen.webp",
+	"description": "*Vanilla*",
+	"power": 2,
+	"hp": 4,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "Goliath",
+	"type": "Summon",
+	"name": "Goliath",
+	"cost": 10,
+	"art": "res://art/cards/goliath.webp",
+	"description": "*Vanilla*",
+	"power": 7,
+	"hp": 8,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "WarElephant",
+	"type": "Summon",
+	"name": "War Elephant",
+	"cost": 6,
+	"art": "res://art/cards/warElephant.webp",
+	"description": "*Vanilla*",
+	"power": 4,
+	"hp": 4,
+	"tags": [],
+	"swift": false
+  }
+  ,{
+	"id": "Dreadhorde",
+	"type": "Summon",
+	"name": "Dreadhorde",
+	"cost": 6,
+	"art": "res://art/cards/dreadfulHorde.webp",
+	"description": "*Vanilla Undead*",
+	"power": 5,
+	"hp": 3,
+	"tags": ["Undead"],
+	"swift": false
+  },
+  {
+	"id": "BogGiant",
+	"type": "Summon",
+	"name": "Bog Giant",
+	"cost": 6,
+	"art": "res://art/cards/bogGiant.webp",
+	"description": "*Vanilla*",
+	"power": 3,
+	"hp": 5,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "KnightOfOpposites",
+	"type": "Summon",
+	"name": "Knight of Opposites",
+	"cost": 4,
+	"art": "res://art/cards/knightOfOpposites.webp",
+	"description": "*Arrival:* Swaps the HP of the players.",
+	"power": 3,
+	"hp": 3,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "MalignantImp",
+	"type": "Summon",
+	"name": "Malignant Imp",
+	"cost": 3,
+	"art": "res://art/cards/malignantImp.webp",
+	"description": "Deals one additional damage if attacking the opponent directly.",
+	"power": 2,
+	"hp": 2,
+	"tags": [],
+	"swift": false
+  },
+  {
+	"id": "WalkingSarcophagus",
+	"type": "Summon",
+	"name": "Walking Sarcophagus",
+	"cost": 3,
+	"art": "res://art/cards/walkingSarcophagus.webp",
+	"description": "When this creature deals damage to the opponent, sacrifice it, then return the leftmost creature of your graveyard.",
+	"power": 2,
+	"hp": 2,
+	"tags": ["Undead"],
+	"swift": false
+  },
+  {
+	"id": "IndulgedPrinceling",
+	"type": "Summon",
+	"name": "Indulged Princeling",
+	"cost": 5,
+	"art": "res://art/cards/indulgedPrinceling.webp",
+	"description": "*Arrival*: Place the top two cards of your library into your graveyard. (Sacrifice this creature if unable)",
+	"power": 2,
+	"hp": 6,
+	"tags": [],
+	"swift": false
+  }
 ]

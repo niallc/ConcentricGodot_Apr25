@@ -32,7 +32,6 @@ var nap_res = load("res://data/cards/instances/nap.tres") as SpellCardResource
 var totem_of_champions_res = load("res://data/cards/instances/totem_of_champions.tres") as SpellCardResource
 var amnesia_mage_res = load("res://data/cards/instances/amnesia_mage.tres") as SummonCardResource
 var overconcentrate_res = load("res://data/cards/instances/overconcentrate.tres") as SpellCardResource
-
 var goblin_recruiter_res = load("res://data/cards/instances/goblin_recruiter.tres") as SummonCardResource
 var vengeful_warlord_res = load("res://data/cards/instances/vengeful_warlord.tres") as SummonCardResource
 var corpsecraft_titan_res = load("res://data/cards/instances/corpsecraft_titan.tres") as SummonCardResource
@@ -41,6 +40,18 @@ var repentant_samurai_res = load("res://data/cards/instances/repentant_samurai.t
 var cursed_samurai_res = load("res://data/cards/instances/cursed_samurai.tres") as SummonCardResource
 var glassgraft_res = load("res://data/cards/instances/glassgraft.tres") as SpellCardResource
 var returned_samurai_res = load("res://data/cards/instances/returned_samurai.tres") as SummonCardResource
+var unmake_res = load("res://data/cards/instances/unmake.tres") as SpellCardResource
+var skeletal_infantry_res = load("res://data/cards/instances/skeletal_infantry.tres") as SummonCardResource
+var reassembling_legion_res = load("res://data/cards/instances/reassembling_legion.tres") as SummonCardResource
+var ghoul_res = load("res://data/cards/instances/ghoul.tres") as SummonCardResource
+
+var dreadhorde_res = load("res://data/cards/instances/dreadhorde.tres") as SummonCardResource
+var bog_giant_res = load("res://data/cards/instances/bog_giant.tres") as SummonCardResource
+var knight_of_opposites_res = load("res://data/cards/instances/knight_of_opposites.tres") as SummonCardResource
+var malignant_imp_res = load("res://data/cards/instances/malignant_imp.tres") as SummonCardResource
+var walking_sarcophagus_res = load("res://data/cards/instances/walking_sarcophagus.tres") as SummonCardResource
+var indulged_princeling_res = load("res://data/cards/instances/indulged_princeling.tres") as SummonCardResource
+
 
 # --- Test Helper Functions ---
 # Creates a basic Battle setup for testing effects
@@ -1557,3 +1568,357 @@ func test_glassgraft_reanimates_and_sacrifices():
 	assert_null(player.lanes[0], "Reanimated Knight should be gone after attacking.")
 	# Assert: Knight is now in graveyard
 	assert_eq(player.graveyard[-1].id, "Knight", "Knight should be in graveyard after sacrifice.")
+
+# --- Unmake Tests ---
+func test_unmake_destroys_non_undead():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place targets: Undead (Skeleton) left, Living (Knight) right
+	place_summon_for_test(opponent, recurring_skeleton_res, 0, battle) # Lane 1
+	place_summon_for_test(opponent, knight_res, 1, battle)             # Lane 2
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Apply effect
+	unmake_res.apply_effect(unmake_res, player, opponent, battle)
+
+	# Assert: Skeleton (leftmost, undead) still exists
+	assert_true(opponent.lanes[0] is SummonInstance and opponent.lanes[0].card_resource.id == "RecurringSkeleton", "Skeleton should not be Unmade.")
+	# Assert: Knight (next leftmost, living) is gone
+	assert_null(opponent.lanes[1], "Knight should be Unmade.")
+	# Assert: Knight is in graveyard
+	assert_true(opponent.graveyard.size() > 0, "Opponent graveyard should not be empty.")
+	assert_eq(opponent.graveyard[-1].id, "Knight", "Knight should be in graveyard.")
+
+	# Assert: Events (Knight defeated)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var defeated_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "creature_defeated" and event.get("lane") == 2 and event.get("player") == opponent.combatant_name:
+			defeated_event_found = true; break
+	assert_true(defeated_event_found, "Creature defeated event for Knight not found.")
+
+
+func test_unmake_can_play():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.mana = 5 # Enough mana
+
+	# Case 1: No creatures
+	assert_false(unmake_res.can_play(player, opponent, 0, battle), "Unmake needs a target.")
+	# Case 2: Only Undead creatures
+	place_summon_for_test(opponent, recurring_skeleton_res, 0, battle)
+	assert_false(unmake_res.can_play(player, opponent, 0, battle), "Unmake needs a non-Undead target.")
+	# Case 3: Non-Undead creature exists
+	place_summon_for_test(opponent, knight_res, 1, battle)
+	assert_true(unmake_res.can_play(player, opponent, 0, battle), "Unmake should be playable with non-Undead target.")
+	# Case 4: Not enough mana
+	player.mana = 4
+	assert_false(unmake_res.can_play(player, opponent, 0, battle), "Unmake needs 5 mana.")
+
+
+# --- Skeletal Infantry Tests ---
+func test_skeletal_infantry_heals_and_relentless_on_kill():
+	# Similar to Bloodrager test, just using the Infantry resource
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Place Infantry and weak target
+	var infantry_instance = place_summon_for_test(player, skeletal_infantry_res, 0, battle) # Power 2
+	var target_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # HP 2
+	# Damage infantry
+	infantry_instance.current_hp = 1
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Simulate combat kill
+	infantry_instance._perform_combat(target_scout) # Calls _on_kill_target
+
+	# Assert: Scout is dead
+	assert_lte(target_scout.current_hp, 0, "Target scout should be dead.")
+	# Assert: Infantry healed to full
+	assert_eq(infantry_instance.current_hp, infantry_instance.get_current_max_hp(), "Infantry should heal to full.")
+	# Assert: Infantry is now relentless
+	assert_true(infantry_instance.is_relentless, "Infantry should become relentless.")
+
+	# Assert: Events generated (heal + status change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var heal_event_found = false
+	var status_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "creature_hp_change" and event.get("player") == player.combatant_name and event.get("lane") == 1 and event.get("amount") > 0:
+			heal_event_found = true
+		elif event.get("event_type") == "status_change" and event.get("status") == "Relentless" and event.get("gained") == true and event.get("lane") == 1:
+			status_event_found = true
+	assert_true(heal_event_found, "Heal event for Infantry not found.")
+	assert_true(status_event_found, "Relentless status gain event not found.")
+
+
+# --- Reassembling Legion Tests ---
+func test_reassembling_legion_returns_to_deck_on_death():
+	# Similar to Recurring Skeleton test
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Place Legion
+	var legion_instance = place_summon_for_test(player, reassembling_legion_res, 0, battle)
+	var initial_deck_size = player.library.size()
+	var initial_grave_size = player.graveyard.size()
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Kill the legion
+	legion_instance.take_damage(100)
+
+	# Assert: Instance removed from lane
+	assert_null(player.lanes[0], "Lane should be empty after legion dies.")
+	# Assert: Card added to bottom of library
+	assert_eq(player.library.size(), initial_deck_size + 1, "Library size should increase by 1.")
+	assert_eq(player.library[-1].id, "ReassemblingLegion", "Legion should be at the bottom of the library.")
+	# Assert: Card NOT added to graveyard
+	assert_eq(player.graveyard.size(), initial_grave_size, "Graveyard size should not increase.")
+
+	# Assert: Events (creature_defeated + card_moved to library)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var defeated_event_found = false
+	var moved_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "creature_defeated" and event.get("lane") == 1:
+			defeated_event_found = true
+		elif event.get("event_type") == "card_moved" and \
+			 event.get("card_id") == "ReassemblingLegion" and \
+			 event.get("to_zone") == "library":
+			moved_event_found = true
+			assert_eq(event.get("to_details", {}).get("position"), "bottom", "Card moved event should specify bottom.")
+	assert_true(defeated_event_found, "Creature defeated event not found for Legion.")
+	assert_true(moved_event_found, "Card moved to library event not found for Legion.")
+
+
+# --- Ghoul Tests ---
+func test_ghoul_mills_opponent_bottom_card():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup opponent library
+	opponent.library.clear()
+	opponent.library.append(knight_res) # Top
+	opponent.library.append(goblin_scout_res) # Bottom
+	var initial_opp_lib_size = opponent.library.size()
+	var initial_opp_grave_size = opponent.graveyard.size()
+	var bottom_card_id = opponent.library[-1].id # Should be GoblinScout
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(ghoul_res, player, opponent, 0, battle)
+	var initial_event_count = battle.battle_events.size()
+
+	# Action: Call arrival effect
+	ghoul_res._on_arrival(instance, player, opponent, battle)
+
+	# Assert: Opponent library size decreased
+	assert_eq(opponent.library.size(), initial_opp_lib_size - 1, "Opponent library size should decrease.")
+	# Assert: Opponent graveyard size increased
+	assert_eq(opponent.graveyard.size(), initial_opp_grave_size + 1, "Opponent graveyard size should increase.")
+	# Assert: Correct card moved to opponent graveyard
+	assert_eq(opponent.graveyard[-1].id, bottom_card_id, "Incorrect card milled to graveyard.")
+
+	# Assert: Event generated (card_moved library_bottom -> graveyard)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var moved_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "card_moved" and \
+		   event.get("player") == opponent.combatant_name and \
+		   event.get("from_zone") == "library_bottom" and \
+		   event.get("to_zone") == "graveyard":
+			moved_event_found = true
+			assert_eq(event.get("card_id"), bottom_card_id, "Milled card ID incorrect in event.")
+			break
+	assert_true(moved_event_found, "Card moved event for Ghoul mill not found.")
+
+# --- Knight of Opposites Tests ---
+func test_knight_of_opposites_swaps_hp():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.current_hp = 5
+	opponent.current_hp = 18
+	var initial_event_count = battle.battle_events.size()
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(knight_of_opposites_res, player, opponent, 0, battle)
+	# Action
+	knight_of_opposites_res._on_arrival(instance, player, opponent, battle)
+
+	# Assert HP swapped
+	assert_eq(player.current_hp, 18, "Player HP incorrect after swap.")
+	assert_eq(opponent.current_hp, 5, "Opponent HP incorrect after swap.")
+
+	# Assert events generated (2x hp_change)
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var player_hp_event = false
+	var opp_hp_event = false
+	for event in events_after:
+		if event.get("event_type") == "hp_change":
+			if event.get("player") == player.combatant_name:
+				player_hp_event = true
+				assert_eq(event.get("new_total"), 18)
+				assert_eq(event.get("amount"), 13) # 18 - 5
+			elif event.get("player") == opponent.combatant_name:
+				opp_hp_event = true
+				assert_eq(event.get("new_total"), 5)
+				assert_eq(event.get("amount"), -13) # 5 - 18
+	assert_true(player_hp_event, "Player HP change event missing.")
+	assert_true(opp_hp_event, "Opponent HP change event missing.")
+
+
+func test_knight_of_opposites_no_swap_if_equal_hp():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	player.current_hp = 10
+	opponent.current_hp = 10
+	var initial_event_count = battle.battle_events.size()
+	var instance = SummonInstance.new()
+	instance.setup(knight_of_opposites_res, player, opponent, 0, battle)
+	knight_of_opposites_res._on_arrival(instance, player, opponent, battle)
+	# Assert HP unchanged
+	assert_eq(player.current_hp, 10, "Player HP should not change.")
+	assert_eq(opponent.current_hp, 10, "Opponent HP should not change.")
+	# Assert no hp_change events
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var hp_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "hp_change": hp_event_found = true; break
+	assert_false(hp_event_found, "No HP change events should be generated.")
+
+
+# --- Malignant Imp Tests ---
+func test_malignant_imp_bonus_direct_damage():
+	# Test the bonus damage getter directly
+	assert_eq(malignant_imp_res._get_direct_attack_bonus_damage(null), 1, "Imp bonus damage getter incorrect.")
+	# Test the interaction in _perform_direct_attack
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	var imp_instance = place_summon_for_test(player, malignant_imp_res, 0, battle) # Power 2
+	opponent.lanes[0] = null # Ensure direct attack
+	var initial_opp_hp = opponent.current_hp
+	var expected_damage = imp_instance.get_current_power() + 1 # 2 + 1 = 3
+
+	# Action: Simulate direct attack
+	imp_instance._perform_direct_attack()
+
+	# Assert opponent HP reduced by correct amount
+	assert_eq(opponent.current_hp, initial_opp_hp - expected_damage, "Opponent HP incorrect after Imp attack.")
+	# Assert direct_damage event shows correct total amount
+	var events = battle.battle_events
+	var direct_damage_event_found = false
+	for event in events:
+		if event.get("event_type") == "direct_damage" and event.get("attacking_lane") == 1:
+			direct_damage_event_found = true
+			assert_eq(event.get("amount"), expected_damage, "Direct damage event amount incorrect for Imp.")
+			break
+	assert_true(direct_damage_event_found, "Direct damage event not found for Imp.")
+
+
+# --- Walking Sarcophagus Tests ---
+func test_walking_sarcophagus_sacrifices_and_reanimates():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var opponent = setup["opponent"]
+	var battle = setup["battle"]
+	# Setup: Sarcophagus in lane 0, Knight in grave (leftmost), Scout also in grave
+	var sarc_instance = place_summon_for_test(player, walking_sarcophagus_res, 0, battle)
+	player.graveyard.clear()
+	player.graveyard.append(knight_res)
+	player.graveyard.append(goblin_scout_res)
+	opponent.lanes[0] = null # Ensure direct attack
+
+	# Action: Simulate direct attack
+	sarc_instance.is_newly_arrived = false # Needs to be able to act
+	sarc_instance.perform_turn_activity() # Calls _perform_direct_attack -> _on_deal_direct_damage -> die -> reanimate logic
+
+	# Assert: Lane 0 now contains Knight (reanimated leftmost)
+	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "Knight", "Knight should be reanimated in lane 1.")
+	# Assert: Sarcophagus is now in graveyard
+	assert_true(player.graveyard.size() > 0, "Graveyard should not be empty.")
+	assert_eq(player.graveyard[-1].id, "WalkingSarcophagus", "Sarcophagus should be in graveyard.")
+	# Assert: Scout is still in graveyard
+	var scout_in_grave = false
+	for card in player.graveyard:
+		if card.id == "GoblinScout": scout_in_grave = true; break
+	assert_true(scout_in_grave, "Scout should still be in graveyard.")
+
+
+# --- Indulged Princeling Tests ---
+func test_indulged_princeling_mills_self():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Setup library
+	player.library.clear()
+	player.library.append(knight_res)
+	player.library.append(goblin_scout_res)
+	player.library.append(healer_res) # 3 cards
+	var initial_lib_size = player.library.size()
+	var initial_grave_size = player.graveyard.size()
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(indulged_princeling_res, player, player.opponent, 0, battle)
+	player.lanes[0] = instance # Place it
+
+	# Action
+	indulged_princeling_res._on_arrival(instance, player, player.opponent, battle)
+
+	# Assert: Library size decreased by 2
+	assert_eq(player.library.size(), initial_lib_size - 2, "Library size incorrect.")
+	# Assert: Graveyard size increased by 2
+	assert_eq(player.graveyard.size(), initial_grave_size + 2, "Graveyard size incorrect.")
+	# Assert: Correct cards milled (Knight and Scout were top)
+	assert_eq(player.graveyard[-1].id, "GoblinScout", "Scout should be last card milled.")
+	assert_eq(player.graveyard[-2].id, "Knight", "Knight should be first card milled.")
+	# Assert: Princeling still in lane
+	assert_true(player.lanes[0] == instance, "Princeling should remain in lane.")
+
+
+func test_indulged_princeling_sacrifices_if_cant_mill():
+	var setup = create_test_battle_setup()
+	var player = setup["player"]
+	var battle = setup["battle"]
+	# Setup library with only 1 card
+	player.library.clear()
+	player.library.append(knight_res)
+	var initial_grave_size = player.graveyard.size()
+
+	# Simulate arrival
+	var instance = SummonInstance.new()
+	instance.setup(indulged_princeling_res, player, player.opponent, 0, battle)
+	player.lanes[0] = instance # Place it
+	var initial_event_count = battle.battle_events.size()
+
+	# Action
+	indulged_princeling_res._on_arrival(instance, player, player.opponent, battle)
+
+	# Assert: Princeling removed from lane
+	assert_null(player.lanes[0], "Princeling should be removed from lane.")
+	# Assert: Princeling added to graveyard
+	assert_eq(player.graveyard.size(), initial_grave_size + 1, "Graveyard size incorrect.") # Only Princeling added
+	assert_eq(player.graveyard[-1].id, "IndulgedPrinceling", "Princeling should be in graveyard.")
+	# Assert: Library is empty (the one card was NOT milled)
+	assert_true(player.library.size() == 1, "Library should still contain the knight (only).")
+
+	# Assert: Creature defeated event generated
+	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+	var defeated_event_found = false
+	for event in events_after:
+		if event.get("event_type") == "creature_defeated" and event.get("lane") == 1: # Lane 1 (index 0)
+			defeated_event_found = true; break
+	assert_true(defeated_event_found, "Creature defeated event for Princeling not found.")

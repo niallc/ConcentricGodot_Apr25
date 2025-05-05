@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://cs1pigj0607e2"]
+
+[ext_resource type="Script" path="res://logic/card_effects/malignant_imp_effect.gd" id="1_vu1ln"]
+
+[resource]
+script = ExtResource("1_vu1ln")
+base_power = 2
+base_max_hp = 2
+tags = Array[String]([])
+is_swift = false
+id = "MalignantImp"
+card_name = "Malignant Imp"
+cost = 3
+artwork_path = "res://art/cards/malignantImp.webp"
+description_template = "Deals one additional damage if attacking the opponent directly."

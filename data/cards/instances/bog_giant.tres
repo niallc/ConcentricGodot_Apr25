@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://chl3n5et16cje"]
+
+[ext_resource type="Script" path="res://logic/card_effects/bog_giant_effect.gd" id="1_2nx7m"]
+
+[resource]
+script = ExtResource("1_2nx7m")
+base_power = 3
+base_max_hp = 5
+tags = Array[String]([])
+is_swift = false
+id = "BogGiant"
+card_name = "Bog Giant"
+cost = 6
+artwork_path = "res://art/cards/bogGiant.webp"
+description_template = "*Vanilla*"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://d1pv08obfq7y7"]
+
+[ext_resource type="Script" path="res://logic/card_effects/ghoul_effect.gd" id="1_t7qvp"]
+
+[resource]
+script = ExtResource("1_t7qvp")
+base_power = 1
+base_max_hp = 4
+tags = Array[String](["Undead"])
+is_swift = false
+id = "Ghoul"
+card_name = "Ghoul"
+cost = 4
+artwork_path = "res://art/cards/ghoul.webp"
+description_template = "*Arrival:* Place the bottom card of opponent's deck into their graveyard."

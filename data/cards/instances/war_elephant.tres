@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://c6tlkyy302iy5"]
+
+[ext_resource type="Script" path="res://logic/card_effects/war_elephant_effect.gd" id="1_f01w6"]
+
+[resource]
+script = ExtResource("1_f01w6")
+base_power = 4
+base_max_hp = 4
+tags = Array[String]([])
+is_swift = false
+id = "WarElephant"
+card_name = "War Elephant"
+cost = 6
+artwork_path = "res://art/cards/warElephant.webp"
+description_template = "*Vanilla*"
