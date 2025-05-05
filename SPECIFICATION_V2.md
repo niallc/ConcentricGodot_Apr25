@@ -58,7 +58,8 @@ The project follows a modular design separating data, logic, and presentation.
             C{Combatant}
             SI{SummonInstance}
             CE[Card Effects]
-            CR[CardResources] %% Simplified ID
+            %% Simplified ID for Card Resources
+            CR[CardResources]
             JSON[CardDataJson] -- Used by --> TOOL[ImporterTool] %% Simplified ID
             TOOL -- Generates/Updates --> CR
             TOOL -- Generates --> CE
