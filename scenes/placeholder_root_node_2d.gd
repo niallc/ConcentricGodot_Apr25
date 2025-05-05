@@ -1,5 +1,7 @@
-# res://scenes/placeholder_root_node_2d.gd
 extends Node2D
+
+# Preload the replay scene
+const BattleReplayScene = preload("res://scenes/battle_replay_scene.tscn")
 
 func _ready():
 	print("--- Running Temporary _ready() Test ---")
@@ -79,13 +81,20 @@ func _ready():
 
 # 	# Test instantiating Battle
 	var battle_sim = Battle.new()
+	print("Battle instance created.")
+	print("Loaded Card: %s, Cost: %d" % [card_res.card_name, card_res.cost])
+	var pla_deck: Array[CardResource] = [_recurring_skeleton_res, _goblin_gladiator_res, _chanter_of_ashes_res]
+	var opp_deck: Array[CardResource] = [_troll_res, _taunting_elf_res, _hexplate_res, _scavenger_ghoul_res]
+	var events = battle_sim.run_battle(pla_deck, opp_deck, "Player", "Opponent")
+	print("--- Battle Simulation Finished (%d events) ---" % events.size())
+
+	# --- Start Replay ---
+	if events.is_empty():
+		printerr("No events generated, cannot start replay.")
+		return
+		
 	if battle_sim:
-		print("Battle instance created.")
-		print("Loaded Card: %s, Cost: %d" % [card_res.card_name, card_res.cost])
-		var pla_deck: Array[CardResource] = [_recurring_skeleton_res, _goblin_gladiator_res, _chanter_of_ashes_res]
-		var opp_deck: Array[CardResource] = [_troll_res, _taunting_elf_res, _hexplate_res, _scavenger_ghoul_res]
-		# ---<<< THIS WILL CALL YOUR FUNCTION >>>---
-		var events = battle_sim.run_battle(pla_deck, opp_deck, "Player", "Opponent")
+		#var events = battle_sim.run_battle(pla_deck, opp_deck, "Player", "Opponent")
 
 		var event_count = events.size()
 		print("run_battle finished. Events list (%d events):" % event_count)
@@ -121,3 +130,18 @@ func _ready():
 		# --- End New Printing Logic ---
 	else:
 		printerr("Failed to create Battle instance!")
+
+	# --- Start Replay ---
+	if events.is_empty():
+		printerr("No events generated, cannot start replay.")
+		return
+
+	# Instantiate the replay scene
+	var replay_instance = BattleReplayScene.instantiate()
+	# Add it to this scene so it becomes visible
+	add_child(replay_instance)
+
+	# Get the script and load events
+	# Use call_deferred to ensure the replay scene's _ready() has run
+	replay_instance.call_deferred("load_and_start_simple_replay", events)
+	print("--- Battle Replay Initiated ---")
