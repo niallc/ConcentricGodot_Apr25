@@ -8,17 +8,23 @@ var turn_count: int = 0
 var battle_events: Array[Dictionary] = []
 var _event_timestamp_counter: float = 0.0 # Use float for finer granularity
 var _event_id_counter: int = 0 # Unique ID per event
+var _next_instance_id: int = 0 # Counter for summon instances
 
 var rng = RandomNumberGenerator.new()
 var current_seed = 0 # Store the seed used
 
 var battle_state = "Ongoing" # "Ongoing", "Finished"
 
+func get_new_instance_id() -> int:
+	_next_instance_id += 1
+	return _next_instance_id
+
 func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: String, name2: String, my_seed: int = 0) -> Array[Dictionary]:
 	# print("Is it an Ostrich, a Quokka, a Polar Bear, or a Marmot?")
 	battle_events.clear()
 	_event_timestamp_counter = 0.0
 	_event_id_counter = 0
+	_next_instance_id = 0 # Reset instance counter for each battle
 	turn_count = 0
 	battle_state = "Ongoing"
 
@@ -128,7 +134,8 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 						if target_lane_index != -1:
 							var new_summon = SummonInstance.new()
 							# Pass references needed by SummonInstance and its effects
-							new_summon.setup(summon_card_res, active_duelist, opponent_duelist, target_lane_index, self)
+							var new_id = get_new_instance_id()
+							new_summon.setup(summon_card_res, active_duelist, opponent_duelist, target_lane_index, self, new_id) # Pass ID
 
 							# Place in logic lane
 							active_duelist.place_summon_in_lane(new_summon, target_lane_index)
@@ -139,6 +146,7 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 								"player": active_duelist.combatant_name,
 								"card_id": summon_card_res.id,
 								"lane": target_lane_index + 1, # 1-based
+								"instance_id": new_id, 
 								"power": new_summon.get_current_power(), # Use calculated value
 								"max_hp": new_summon.get_current_max_hp(),
 								"current_hp": new_summon.current_hp,

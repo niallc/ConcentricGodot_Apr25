@@ -22,7 +22,8 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 				summoned_count += 1
 				# Simulate Summoning
 				var new_summon = SummonInstance.new()
-				new_summon.setup(goblin_scout_res, active_combatant, opponent_combatant, i, battle_instance)
+				var new_id = battle_instance.get_new_instance_id()
+				new_summon.setup(goblin_scout_res, active_combatant, opponent_combatant, i, battle_instance, new_id)
 				active_combatant.place_summon_in_lane(new_summon, i)
 				# Generate Arrives Event (ensure dictionary is complete)
 				battle_instance.add_event({
@@ -30,6 +31,7 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 					"player": active_combatant.combatant_name,
 					"card_id": goblin_scout_res.id,
 					"lane": i + 1, # 1-based
+					"instance_id": new_id,
 					"power": new_summon.get_current_power(),
 					"max_hp": new_summon.get_current_max_hp(),
 					"current_hp": new_summon.current_hp,

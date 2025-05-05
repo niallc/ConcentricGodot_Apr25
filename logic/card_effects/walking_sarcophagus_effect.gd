@@ -35,7 +35,8 @@ func _on_deal_direct_damage(summon_instance: SummonInstance, _target_combatant: 
 			# Simulate Summoning
 			var new_summon = SummonInstance.new()
 			# Reanimated creature is NOT swift by default unless card says so
-			new_summon.setup(target_card_res, active_combatant, opponent_combatant, current_lane_index, battle_instance)
+			var new_id = battle_instance.get_new_instance_id()
+			new_summon.setup(target_card_res, active_combatant, opponent_combatant, current_lane_index, battle_instance, new_id)
 			active_combatant.place_summon_in_lane(new_summon, current_lane_index)
 			battle_instance.add_event({  }) # summon_arrives event
 			battle_instance.add_event({  }) # card_moved limbo->lane

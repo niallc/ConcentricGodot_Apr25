@@ -20,7 +20,8 @@ func _on_death(summon_instance: SummonInstance, active_combatant, opponent_comba
 	print("...Summoning Returned Samurai in lane %d" % (target_lane_index + 1))
 	# Simulate Summoning
 	var new_summon = SummonInstance.new()
-	new_summon.setup(returned_samurai_res, active_combatant, opponent_combatant, target_lane_index, battle_instance)
+	var new_id = battle_instance.get_new_instance_id()
+	new_summon.setup(returned_samurai_res, active_combatant, opponent_combatant, target_lane_index, battle_instance, new_id)
 	# Directly assign to the lane array, with a custom lane check ---
 	if active_combatant.lanes[target_lane_index] == null:
 		printerr("Expected Cursed Samurai in %d but fund null.", target_lane_index)
@@ -44,6 +45,7 @@ func _on_death(summon_instance: SummonInstance, active_combatant, opponent_comba
 		"player": active_combatant.combatant_name,
 		"card_id": returned_samurai_res.id,
 		"lane": target_lane_index + 1,
+		"instance_id": new_id,
 		"power": new_summon.get_current_power(),
 		"max_hp": new_summon.get_current_max_hp(),
 		"current_hp": new_summon.current_hp,

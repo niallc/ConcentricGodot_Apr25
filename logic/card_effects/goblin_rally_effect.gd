@@ -27,7 +27,8 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent
 			var target_lane_index = i
 			var new_summon = SummonInstance.new()
 			# Pass references needed by SummonInstance and its effects
-			new_summon.setup(goblin_scout_res, active_combatant, opponent_combatant, target_lane_index, battle_instance)
+			var new_id = battle_instance.get_new_instance_id()
+			new_summon.setup(goblin_scout_res, active_combatant, opponent_combatant, target_lane_index, battle_instance, new_id) # Pass ID
 			# Place in logic lane
 			active_combatant.place_summon_in_lane(new_summon, target_lane_index)
 			# Generate Arrives Event
@@ -36,6 +37,7 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent
 				"player": active_combatant.combatant_name,
 				"card_id": goblin_scout_res.id,
 				"lane": target_lane_index + 1, # 1-based
+				"instance_id": new_id,
 				"power": new_summon.get_current_power(),
 				"max_hp": new_summon.get_current_max_hp(),
 				"current_hp": new_summon.current_hp,

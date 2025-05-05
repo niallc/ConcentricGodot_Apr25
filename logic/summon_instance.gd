@@ -8,6 +8,7 @@ var owner_combatant: Combatant
 var opponent_combatant: Combatant
 var battle_instance: Battle
 var lane_index: int = -1
+var instance_id: int = -1 # Unique ID for this instance
 var base_power: int = 0
 var base_max_hp: int = 1
 var current_hp: int = 1
@@ -37,12 +38,13 @@ func get_current_max_hp() -> int:
 
 
 # --- Setup (as before) ---
-func setup(card_res: SummonCardResource, owner, opp, lane_idx: int, battle):
+func setup(card_res: SummonCardResource, owner, opp, lane_idx: int, battle, new_instance_id: int):
 	self.card_resource = card_res
 	self.owner_combatant = owner
 	self.opponent_combatant = opp
 	self.battle_instance = battle
 	self.lane_index = lane_idx
+	self.instance_id = new_instance_id # 
 	self.base_power = card_res.base_power
 	self.base_max_hp = card_res.base_max_hp
 	self.current_hp = self.base_max_hp
@@ -71,7 +73,8 @@ func take_damage(amount: int, _source = null):
 		"event_type": "creature_hp_change",
 		"player": owner_combatant.combatant_name,
 		"lane": lane_index + 1,
-		"amount": -hp_decrement, # Use the actual decrement
+		"instance_id": instance_id,
+		"amount": -hp_decrement, 
 		"new_hp": current_hp,
 		"new_max_hp": get_current_max_hp()
 	})
@@ -93,7 +96,8 @@ func heal(amount: int):
 			"event_type": "creature_hp_change",
 			"player": owner_combatant.combatant_name,
 			"lane": lane_index + 1,
-			"amount": current_hp - hp_before, # Actual amount healed
+			"instance_id": instance_id,
+			"amount": current_hp - hp_before,
 			"new_hp": current_hp,
 			"new_max_hp": max_hp
 		})
@@ -105,7 +109,8 @@ func die():
 	battle_instance.add_event({
 		"event_type": "creature_defeated",
 		"player": owner_combatant.combatant_name,
-		"lane": lane_index + 1 # 1-based for events
+		"lane": lane_index + 1, # 1-based for events
+		"instance_id": instance_id,
 		# Optional: Add card_id if needed by replay?
 		# "card_id": card_resource.id
 	})
@@ -154,6 +159,7 @@ func perform_turn_activity():
 			"event_type": "summon_turn_activity",
 			"player": owner_combatant.combatant_name,
 			"lane": lane_index + 1,
+			"instance_id": instance_id,
 			"activity_type": activity_type
 		})
 
@@ -172,6 +178,7 @@ func _perform_direct_attack():
 		"event_type": "direct_damage",
 		"attacking_player": owner_combatant.combatant_name,
 		"attacking_lane": lane_index + 1,
+		"attacking_instance_id": instance_id,
 		"target_player": opponent_combatant.combatant_name,
 		"amount": damage,
 		"target_player_remaining_hp": opponent_combatant.current_hp
@@ -209,8 +216,10 @@ func _perform_combat(target_instance):
 		"event_type": "combat_damage",
 		"attacking_player": owner_combatant.combatant_name,
 		"attacking_lane": lane_index + 1,
+		"attacking_instance_id": instance_id,
 		"defending_player": target_instance.owner_combatant.combatant_name,
 		"defending_lane": target_instance.lane_index + 1,
+		"defending_instance_id": target_instance.instance_id,
 		"amount": damage,
 		"defender_remaining_hp": target_instance.current_hp
 	})
@@ -239,6 +248,7 @@ func add_power(amount: int, source_id: String = "unknown", duration: int = -1):
 		"event_type": "stat_change",
 		"player": owner_combatant.combatant_name,
 		"lane": lane_index + 1,
+		"instance_id": instance_id,
 		"stat": "power",
 		"amount": amount, # The change amount
 		"new_value": get_current_power() # The resulting value after change
@@ -256,6 +266,7 @@ func add_hp(amount: int, source_id: String = "unknown", duration: int = -1):
 		"event_type": "stat_change",
 		"player": owner_combatant.combatant_name,
 		"lane": lane_index + 1,
+		"instance_id": instance_id,
 		"stat": "max_hp",
 		"amount": amount, # The change amount
 		"new_value": new_max_hp # The resulting value
@@ -317,6 +328,7 @@ func _end_of_turn_upkeep():
 				"event_type": "stat_change",
 				"player": owner_combatant.combatant_name,
 				"lane": lane_index + 1,
+				"instance_id": instance_id,
 				"stat": "power",
 				"amount": final_power - power_before_upkeep, # Net change
 				"new_value": final_power,
@@ -327,6 +339,7 @@ func _end_of_turn_upkeep():
 				"event_type": "stat_change",
 				"player": owner_combatant.combatant_name,
 				"lane": lane_index + 1,
+				"instance_id": instance_id,
 				"stat": "max_hp",
 				"amount": final_max_hp - max_hp_before_upkeep, # Net change
 				"new_value": final_max_hp,

@@ -30,7 +30,8 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent
 
 		# --- Simulate Summoning ---
 		var new_summon = SummonInstance.new()
-		new_summon.setup(target_card_res, active_combatant, opponent_combatant, target_lane_index, battle_instance)
+		var new_id = battle_instance.get_new_instance_id()
+		new_summon.setup(target_card_res, active_combatant, opponent_combatant, target_lane_index, battle_instance, new_id) # Pass ID
 		# Add the Undead tag dynamically
 		if not new_summon.tags.has(Constants.TAG_UNDEAD):
 			new_summon.tags.append(Constants.TAG_UNDEAD)
@@ -44,6 +45,7 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent
 			"player": active_combatant.combatant_name,
 			"card_id": target_card_res.id,
 			"lane": target_lane_index + 1,
+			"instance_id": new_id,
 			"power": new_summon.get_current_power(),
 			"max_hp": new_summon.get_current_max_hp(),
 			"current_hp": new_summon.current_hp,
