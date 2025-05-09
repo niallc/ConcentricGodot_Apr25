@@ -16,8 +16,8 @@ const SummonVisualScene = preload("res://ui/summon_visual.tscn")
 
 # --- Node References ---
 # Use @onready to ensure nodes are available when script runs
-@onready var turn_label: Label = $TurnLabel # Adjust path if needed
-@onready var event_log_label: Label = $EventLogLabel # Adjust path if needed
+@onready var turn_label: Label = $MainMarginContainer/MainVBox/TurnLabel # Adjust path if needed
+@onready var event_log_label: Label = $MainMarginContainer/MainVBox/EventLogLabel # Adjust path if needed
 # TODO: Get references to lane container nodes later
 
 # --- Public API ---
@@ -34,23 +34,23 @@ func load_and_start_simple_replay(events: Array[Dictionary]):
 	# TODO: Clear existing summon visuals from lanes
 	active_summon_visuals.clear()
 	# For now, let's just step once manually to show the first event
-	_on_StepButton_pressed() # Simulate pressing step
+	_on_step_button_pressed() # Simulate pressing step
 
 
 # --- Playback Control Logic (Connect Buttons to these in Editor) ---
 
-func _on_PlayButton_pressed():
+func _on_play_button_pressed():
 	print("Replay: Play pressed")
 	is_playing = true
 	# Start processing events using a timer
 	$PlaybackTimer.start(step_delay / playback_speed_scale) # Assumes you add a Timer node named PlaybackTimer
 
-func _on_PauseButton_pressed():
+func _on_pause_button_pressed():
 	print("Replay: Pause pressed")
 	is_playing = false
 	$PlaybackTimer.stop()
 
-func _on_StepButton_pressed():
+func _on_step_button_pressed():
 	print("Replay: Step pressed")
 	if not is_playing:
 		process_next_event()
@@ -62,7 +62,7 @@ func _on_SpeedSlider_value_changed(value): # Example for speed control
 	print("Replay: Speed changed to ", playback_speed_scale)
 
 # Called by the PlaybackTimer timeout signal
-func _on_PlaybackTimer_timeout():
+func _on_playback_timer_timeout():
 	if is_playing:
 		process_next_event()
 	else:
@@ -237,18 +237,11 @@ func handle_battle_end(event):
 	$PlaybackTimer.stop()
 	# TODO: Display prominent Victory/Defeat message
 
-
-func _on_playback_timer_timeout() -> void:
-	pass # Replace with function body.
-
-
-func _on_play_button_pressed() -> void:
-	pass # Replace with function body.
-
-
-func _on_pause_button_pressed() -> void:
-	pass # Replace with function body.
-
-
-func _on_step_button_pressed() -> void:
-	pass # Replace with function body.
+#func _on_play_button_pressed() -> void:
+	#pass # Replace with function body.
+#
+#func _on_pause_button_pressed() -> void:
+	#pass # Replace with function body.
+#
+#func _on_step_button_pressed() -> void:
+	#pass # Replace with function body.

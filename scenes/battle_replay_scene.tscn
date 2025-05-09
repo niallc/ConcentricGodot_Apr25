@@ -7,46 +7,221 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+mouse_filter = 2
 script = ExtResource("1_03sn8")
 
-[node name="TurnLabel" type="Label" parent="."]
+[node name="MainMarginContainer" type="MarginContainer" parent="."]
+custom_minimum_size = Vector2(800, 400)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 65.0
+offset_top = 53.0
+offset_right = 1025.0
+offset_bottom = 548.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="PlayButton" type="Button" parent="MainMarginContainer"]
+custom_minimum_size = Vector2(100, 60)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="PlayButtonColour" type="ColorRect" parent="MainMarginContainer/PlayButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 1, 0.156863)
+
+[node name="PlaybackTimer" type="Timer" parent="MainMarginContainer"]
+
+[node name="PauseButton" type="Button" parent="MainMarginContainer"]
+custom_minimum_size = Vector2(200, 100)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+
+[node name="PauseButtonColour" type="ColorRect" parent="MainMarginContainer/PauseButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.196078, 0, 1, 0.156863)
+
+[node name="StepButton" type="Button" parent="MainMarginContainer"]
+custom_minimum_size = Vector2(200, 100)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+
+[node name="StepButtonColour" type="ColorRect" parent="MainMarginContainer/StepButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0.196078, 1, 0.156863)
+
+[node name="MainVBox" type="VBoxContainer" parent="MainMarginContainer"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="EventLogLabel" type="Label" parent="MainMarginContainer/MainVBox"]
+custom_minimum_size = Vector2(50, 130)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 6
+
+[node name="EventLogColour" type="ColorRect" parent="MainMarginContainer/MainVBox/EventLogLabel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 0, 0.156863)
+
+[node name="TurnLabel" type="Label" parent="MainMarginContainer/MainVBox"]
+custom_minimum_size = Vector2(110, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="TurnlabelColour" type="ColorRect" parent="MainMarginContainer/MainVBox/TurnLabel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 1, 0.156863)
+
+[node name="GameAreaVBox" type="VBoxContainer" parent="MainMarginContainer/MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TopPlayerArea" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="LaneContainer" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea"]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+offset_right = 978.0
+offset_bottom = 100.0
 
-[node name="EventLogLabel" type="Label" parent="."]
+[node name="Lane1" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/LaneContainer"]
+custom_minimum_size = Vector2(80, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TopLane1Colour" type="ColorRect" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/LaneContainer/Lane1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 1, 0.196078)
+
+[node name="Lane2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/LaneContainer"]
+custom_minimum_size = Vector2(80, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Lane3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/LaneContainer"]
+custom_minimum_size = Vector2(80, 100)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TopLane3Colour" type="ColorRect" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/LaneContainer/Lane3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 0, 0.196078)
+
+[node name="TopPlayerAreaColour" type="ColorRect" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0, 0, 0.235294)
+
+[node name="BottomPlayerArea" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="LaneContainer" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea"]
 layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+offset_right = 980.0
+offset_bottom = 100.0
 
-[node name="TopPlayerArea" type="Panel" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="Lane1" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/LaneContainer"]
+custom_minimum_size = Vector2(80, 100)
+layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="BottomPlayerArea" type="Panel" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="Lane2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/LaneContainer"]
+custom_minimum_size = Vector2(80, 100)
+layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="PlaybackTimer" type="Timer" parent="."]
+[node name="BottomLane2Colour" type="ColorRect" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/LaneContainer/Lane2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 1, 0.196078)
 
-[node name="PlayButton" type="Button" parent="."]
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+[node name="Lane3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/LaneContainer"]
+custom_minimum_size = Vector2(80, 100)
+layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="PauseButton" type="Button" parent="."]
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+[node name="BottomPlayerAreaColour" type="ColorRect" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 0, 0.235294)
 
-[node name="StepButton" type="Button" parent="."]
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+[node name="GameAreaVBoColour" type="ColorRect" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 2
+color = Color(1, 0, 0, 0.117647)
 
-[connection signal="timeout" from="PlaybackTimer" to="." method="_on_playback_timer_timeout"]
-[connection signal="pressed" from="PlayButton" to="." method="_on_play_button_pressed"]
-[connection signal="pressed" from="PauseButton" to="." method="_on_pause_button_pressed"]
-[connection signal="pressed" from="StepButton" to="." method="_on_step_button_pressed"]
+[node name="MainVBoxColour" type="ColorRect" parent="MainMarginContainer/MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+color = Color(1, 0.392157, 1, 0.117647)
+
+[node name="MainMarginColour" type="ColorRect" parent="MainMarginContainer"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0.117647)
+
+[connection signal="pressed" from="MainMarginContainer/PlayButton" to="." method="_on_play_button_pressed"]
+[connection signal="timeout" from="MainMarginContainer/PlaybackTimer" to="." method="_on_playback_timer_timeout"]
+[connection signal="pressed" from="MainMarginContainer/PauseButton" to="." method="_on_pause_button_pressed"]
+[connection signal="pressed" from="MainMarginContainer/StepButton" to="." method="_on_step_button_pressed"]
