@@ -46,14 +46,12 @@ func load_and_start_simple_replay(events: Array[Dictionary]):
 					break # Found both distinct players
 	# Fallback if only one player found (e.g., very short battle)
 	if player1_name != "" and player2_name == "":
-		# This logic might need adjustment based on how your player names are set in Battle.gd
-		# For now, assume if "Player" is found, it's player1_name.
 		if player1_name == "Player" and events.size() > 0 and events[0].has("player") and events[0].player != "Player":
-			player2_name = events[0].player # A bit of a guess
-		elif player1_name != "Opponent": # Generic opponent name
+			player2_name = events[0].player
+		elif player1_name != "Opponent":
 			player2_name = "Opponent"
 		else:
-			player2_name = "Player" # Default if player1 was "Opponent"
+			player2_name = "Player"
 
 	print("Player 1 (Bottom assumed): ", player1_name)
 	print("Player 2 (Top assumed): ", player2_name)
@@ -82,7 +80,6 @@ func load_and_start_simple_replay(events: Array[Dictionary]):
 
 
 # --- Playback Control Logic ---
-# ... (as before, ensure signal connections match these snake_case names) ...
 func _on_play_button_pressed():
 	print("Replay: Play pressed")
 	is_playing = true
@@ -94,7 +91,7 @@ func _on_pause_button_pressed():
 	if playback_timer: playback_timer.stop()
 
 func _on_step_button_pressed():
-	print("Replay: Step pressed") # Ensure this prints
+	print("Replay: Step pressed")
 	if not is_playing:
 		process_next_event()
 
@@ -106,7 +103,6 @@ func _on_playback_timer_timeout():
 
 
 # --- Core Event Processing ---
-# ... (process_next_event and match statement as before) ...
 func process_next_event():
 	current_event_index += 1
 	if current_event_index >= battle_events.size():
@@ -146,8 +142,8 @@ func process_next_event():
 			print("  -> Unhandled event type: ", event.event_type)
 			if is_playing: await get_tree().create_timer(0.1 / playback_speed_scale).timeout
 
-	if is_playing and current_event_index < battle_events.size() -1 : # Check if battle ended
-		if playback_timer and not playback_timer.is_stopped(): # Check if timer is already running
+	if is_playing and current_event_index < battle_events.size() -1 :
+		if playback_timer and not playback_timer.is_stopped():
 			playback_timer.start(step_delay / playback_speed_scale)
 
 
@@ -158,9 +154,7 @@ func get_player_prefix(player_name_from_event: String) -> String:
 	elif player_name_from_event == player2_name:
 		return "Top"
 	else:
-		# Fallback if names don't match (e.g., "Player" vs "PlayerEffectTester")
-		# This might happen if test names differ from actual simulation names
-		if player_name_from_event.contains("Player"): # Crude check
+		if player_name_from_event.contains("Player"):
 			return "Bottom"
 		elif player_name_from_event.contains("Opponent"):
 			return "Top"
@@ -176,7 +170,7 @@ func get_lane_node(player_name_from_event: String, lane_number_from_event: int) 
 		container_node = top_lane_container
 
 	if container_node and lane_number_from_event >= 1 and lane_number_from_event <= container_node.get_child_count():
-		return container_node.get_child(lane_number_from_event - 1) # Children are 0-indexed
+		return container_node.get_child(lane_number_from_event - 1)
 	else:
 		printerr("Could not find lane node for %s lane %d" % [player_name_from_event, lane_number_from_event])
 		return null
@@ -190,15 +184,15 @@ func handle_turn_start(event):
 	await get_tree().create_timer(0.5 / playback_speed_scale).timeout
 
 # --- MODIFIED BLOCK START ---
+# (Incorporated user's fix for tags default)
 func handle_summon_arrives(event):
 	print("  -> %s summons %s (ID: %d) in lane %d. Stats P:%d HP:%d/%d Swift:%s Tags:%s" % [
 		event.player, event.card_id, event.instance_id, event.lane,
-		event.power, event.current_hp, event.max_hp, event.is_swift, str(event.get("tags", []))
+		event.power, event.current_hp, event.max_hp, event.is_swift, str(event.get("tags", PackedStringArray())) # Use PackedStringArray for default
 	])
 
 	var target_lane_node = get_lane_node(event.player, event.lane)
 	if target_lane_node and SummonVisualScene:
-		# Clear any existing visual in that lane first
 		for child in target_lane_node.get_children():
 			child.queue_free()
 
@@ -211,17 +205,15 @@ func handle_summon_arrives(event):
 
 		if card_res is SummonCardResource:
 			if visual_node.has_method("update_display"):
-				var string_array = PackedStringArray()
-				visual_node.update_display(event.instance_id, card_res, event.power, event.current_hp, event.max_hp, event.get("tags", string_array))
+				# Pass the correctly typed default if "tags" is missing
+				visual_node.update_display(event.instance_id, card_res, event.power, event.current_hp, event.max_hp, event.get("tags", PackedStringArray()))
 			else:
 				printerr("SummonVisual node is missing update_display method.")
 		else:
 			printerr("Failed to load SummonCardResource for %s at %s" % [event.card_id, card_res_path])
 
 		if visual_node.has_method("play_animation"):
-			visual_node.play_animation("arrive") # Assume "arrive" animation exists
-			# if visual_node.animation_player and visual_node.animation_player.has_animation("arrive"):
-			# 	await visual_node.animation_player.animation_finished
+			visual_node.play_animation("arrive")
 	else:
 		printerr("Could not place summon visual for event: ", event)
 
@@ -229,22 +221,22 @@ func handle_summon_arrives(event):
 # --- MODIFIED BLOCK END ---
 
 # --- MODIFIED BLOCK START ---
+# (Ensure is_instance_valid checks)
 func handle_creature_defeated(event):
 	print("  -> Creature Defeated: %s lane %d (ID: %d, Card: %s)" % [event.player, event.lane, event.instance_id, event.get("card_id", "N/A")])
 	if active_summon_visuals.has(event.instance_id):
 		var visual_node = active_summon_visuals[event.instance_id]
-		if visual_node.has_method("play_animation"):
+		if is_instance_valid(visual_node) and visual_node.has_method("play_animation"): # Check valid before calling
 			visual_node.play_animation("death")
-			# Wait for animation if it exists and is playing
 			if visual_node.animation_player and visual_node.animation_player.is_playing() and visual_node.animation_player.has_animation("death"):
 				await visual_node.animation_player.animation_finished
-			else: # Default delay if no death animation or not playing
+			else: 
 				await get_tree().create_timer(0.5 / playback_speed_scale).timeout
-		else: # Default delay if no play_animation method
+		else: 
 			await get_tree().create_timer(0.5 / playback_speed_scale).timeout
 
 		active_summon_visuals.erase(event.instance_id)
-		if is_instance_valid(visual_node): # Check before queue_free
+		if is_instance_valid(visual_node): 
 			visual_node.queue_free()
 	else:
 		printerr("Could not find visual for defeated instance ID %d." % event.instance_id)
@@ -252,13 +244,13 @@ func handle_creature_defeated(event):
 # --- MODIFIED BLOCK END ---
 
 # --- MODIFIED BLOCK START ---
-func handle_summon_leaves_lane(event): # For bounces etc.
+# (Ensure is_instance_valid checks)
+func handle_summon_leaves_lane(event): 
 	print("  -> %s's %s (ID: %d) leaves lane %d (Reason: %s)" % [event.player, event.card_id, event.instance_id, event.lane, event.reason])
 	if active_summon_visuals.has(event.instance_id):
 		var visual_node = active_summon_visuals[event.instance_id]
-		if visual_node.has_method("play_animation"):
-			visual_node.play_animation("leave") # Assume "leave" animation
-			# Similar animation waiting logic as creature_defeated if needed
+		if is_instance_valid(visual_node) and visual_node.has_method("play_animation"): # Check valid
+			visual_node.play_animation("leave")
 			if visual_node.animation_player and visual_node.animation_player.is_playing() and visual_node.animation_player.has_animation("leave"):
 				await visual_node.animation_player.animation_finished
 			else:
@@ -295,13 +287,11 @@ func handle_summon_turn_activity(event):
 	print("  -> %s's summon (ID: %d) in lane %d performs action: %s" % [event.player, event.instance_id, event.lane, event.activity_type])
 	if active_summon_visuals.has(event.instance_id):
 		var visual_node = active_summon_visuals[event.instance_id]
-		if visual_node.has_method("play_animation"):
+		if is_instance_valid(visual_node) and visual_node.has_method("play_animation"): # Check valid
 			match event.activity_type:
 				"attack", "direct_attack": visual_node.play_animation("attack")
 				"ability_mana_gen": visual_node.play_animation("ability")
 				_: visual_node.play_animation("ability") # Default
-			# if visual_node.animation_player and visual_node.animation_player.is_playing():
-			# 	await visual_node.animation_player.animation_finished
 	await get_tree().create_timer(0.5 / playback_speed_scale).timeout
 
 func handle_combat_damage(event):
@@ -328,6 +318,7 @@ func handle_effect_damage(event):
 
 func handle_hp_change(event):
 	print("  -> Player HP Change: %s amount %d. New total: %d (Source: %s)" % [event.player, event.amount, event.new_total, event.get("source", "N/A")])
+	# TODO: Update player HP bar/label
 	await get_tree().create_timer(0.3 / playback_speed_scale).timeout
 
 func handle_creature_hp_change(event):
@@ -336,10 +327,11 @@ func handle_creature_hp_change(event):
 	])
 	if active_summon_visuals.has(event.instance_id):
 		var visual_node = active_summon_visuals[event.instance_id]
-		if visual_node.hp_label: visual_node.hp_label.text = "%d/%d" % [event.new_hp, event.new_max_hp]
-		if visual_node.has_method("play_animation"):
-			if event.amount > 0: visual_node.play_animation("heal")
-			elif event.amount < 0: visual_node.play_animation("damage")
+		if is_instance_valid(visual_node): # Check valid
+			if visual_node.hp_label: visual_node.hp_label.text = "%d/%d" % [event.new_hp, event.new_max_hp]
+			if visual_node.has_method("play_animation"):
+				if event.amount > 0: visual_node.play_animation("heal")
+				elif event.amount < 0: visual_node.play_animation("damage")
 	await get_tree().create_timer(0.4 / playback_speed_scale).timeout
 
 func handle_stat_change(event):
@@ -348,27 +340,31 @@ func handle_stat_change(event):
 	])
 	if active_summon_visuals.has(event.instance_id):
 		var visual_node = active_summon_visuals[event.instance_id]
-		if event.stat == "power" and visual_node.power_label:
-			visual_node.power_label.text = str(event.new_value)
-		elif event.stat == "max_hp" and visual_node.hp_label:
-			var hp_parts = visual_node.hp_label.text.split("/")
-			if hp_parts.size() == 2: visual_node.hp_label.text = "%s/%d" % [hp_parts[0], event.new_value]
-		if visual_node.has_method("play_animation"):
-			visual_node.play_animation("buff" if event.amount > 0 else "debuff")
+		if is_instance_valid(visual_node): # Check valid
+			if event.stat == "power" and visual_node.power_label:
+				visual_node.power_label.text = str(event.new_value)
+			elif event.stat == "max_hp" and visual_node.hp_label:
+				var hp_parts = visual_node.hp_label.text.split("/")
+				if hp_parts.size() == 2: visual_node.hp_label.text = "%s/%d" % [hp_parts[0], event.new_value]
+			if visual_node.has_method("play_animation"):
+				visual_node.play_animation("buff" if event.amount > 0 else "debuff")
 	await get_tree().create_timer(0.4 / playback_speed_scale).timeout
 
 func handle_status_change(event):
 	print("  -> Status Change: %s lane %d (ID: %d) %s status '%s' (Source: %s)" % [
 		event.player, event.lane, event.instance_id, "gained" if event.gained else "lost", event.status, event.get("source", "N/A")
 	])
+	# TODO: Find SummonVisual node, update status icons visibility
 	await get_tree().create_timer(0.2 / playback_speed_scale).timeout
 
 func handle_visual_effect(event):
 	print("  -> Visual Effect: ID '%s', Targets: %s, Details: %s" % [event.effect_id, str(event.target_locations), str(event.details)])
-	await get_tree().create_timer(0.5 / playback_speed_scale).timeout
+	# TODO: Implement specific visual effects based on effect_id
+	await get_tree().create_timer(0.5 / playback_speed_scale).timeout # Default delay
 
 func handle_log_message(event):
 	print("  -> Log Message: %s" % event.message)
+	# Optionally display in a dedicated log UI area
 	await get_tree().create_timer(0.1 / playback_speed_scale).timeout
 
 func handle_battle_end(event):
