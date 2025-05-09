@@ -88,7 +88,8 @@ func create_test_battle_setup(deck1: Array[CardResource] = [], deck2: Array[Card
 # Creates a SummonInstance and places it in a lane for testing
 func place_summon_for_test(combatant, card_res: SummonCardResource, lane_idx: int, battle) -> SummonInstance:
 	var instance = SummonInstance.new()
-	instance.setup(card_res, combatant, combatant.opponent, lane_idx, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(card_res, combatant, combatant.opponent, lane_idx, battle, new_id)
 	combatant.lanes[lane_idx] = instance
 	# Manually add summon_arrives event for consistency if needed by effect
 	# battle.add_event({... summon_arrives data ...})
@@ -172,7 +173,8 @@ func test_healer_on_arrival_heals_player():
 	# Simulate arrival (create instance, then call _on_arrival)
 	# Note: Normally Battle logic calls this after summon_arrives event
 	var healer_instance = SummonInstance.new()
-	healer_instance.setup(healer_res, player, player.opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	healer_instance.setup(healer_res, player, player.opponent, 0, battle, new_id)
 
 	# Action: Call the arrival effect
 	effect_script._on_arrival(healer_instance, player, player.opponent, battle)
@@ -349,7 +351,9 @@ func test_charging_bull_is_swift():
 	# Test that SummonInstance gets the flag
 	var setup = create_test_battle_setup()
 	var bull_instance = SummonInstance.new()
-	bull_instance.setup(charging_bull_res, setup["player"], setup["opponent"], 0, setup["battle"])
+	var battle = setup["battle"]
+	var new_id = battle.get_new_instance_id()
+	bull_instance.setup(charging_bull_res, setup["player"], setup["opponent"], 0, setup["battle"], new_id)
 	assert_true(bull_instance.is_swift, "Charging Bull instance should inherit is_swift = true.")
 	# The actual check for is_newly_arrived vs is_swift happens in Battle.conduct_turn
 
@@ -368,7 +372,8 @@ func test_portal_mage_bounces_opponent():
 
 	# Simulate Portal Mage arrival
 	var mage_instance = SummonInstance.new()
-	mage_instance.setup(portal_mage_res, player, opponent, 1, battle) # Arrives in Lane 2 opposite Knight
+	var new_id = battle.get_new_instance_id()
+	mage_instance.setup(portal_mage_res, player, opponent, 1, battle, new_id) # Arrives in Lane 2 opposite Knight
 	var initial_event_count = battle.battle_events.size()
 
 	# Action: Call the arrival effect
@@ -407,7 +412,8 @@ func test_portal_mage_arrival_no_target():
 
 	# Simulate Portal Mage arrival
 	var mage_instance = SummonInstance.new()
-	mage_instance.setup(portal_mage_res, player, opponent, 1, battle) # Arrives in Lane 2
+	var new_id = battle.get_new_instance_id()
+	mage_instance.setup(portal_mage_res, player, opponent, 1, battle, new_id) # Arrives in Lane 2
 
 	# Action: Call the arrival effect
 	portal_mage_res._on_arrival(mage_instance, player, opponent, battle)
@@ -538,7 +544,8 @@ func test_avenging_tiger_gains_swift_if_hp_lower():
 
 	# Simulate Tiger arrival
 	var tiger_instance = SummonInstance.new()
-	tiger_instance.setup(avenging_tiger_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	tiger_instance.setup(avenging_tiger_res, player, opponent, 0, battle, new_id)
 	var initial_event_count = battle.battle_events.size()
 
 	# Action: Call arrival effect
@@ -570,7 +577,8 @@ func test_avenging_tiger_does_not_gain_swift_if_hp_not_lower():
 
 	# Simulate Tiger arrival
 	var tiger_instance = SummonInstance.new()
-	tiger_instance.setup(avenging_tiger_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	tiger_instance.setup(avenging_tiger_res, player, opponent, 0, battle, new_id)
 
 	# Action: Call arrival effect
 	avenging_tiger_res._on_arrival(tiger_instance, player, opponent, battle)
@@ -698,7 +706,8 @@ func test_thought_acquirer_steals_card():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(thought_acquirer_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(thought_acquirer_res, player, opponent, 0, battle, new_id)
 	var initial_event_count = battle.battle_events.size()
 
 	# Action: Call arrival effect
@@ -736,7 +745,8 @@ func test_thought_acquirer_opponent_library_empty():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(thought_acquirer_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(thought_acquirer_res, player, opponent, 0, battle, new_id)
 
 	# Action: Call arrival effect
 	thought_acquirer_res._on_arrival(instance, player, opponent, battle)
@@ -758,7 +768,9 @@ func test_inexorable_ooze_is_relentless():
 	# Test the tag sets the flag correctly during setup
 	var setup = create_test_battle_setup()
 	var ooze_instance = SummonInstance.new()
-	ooze_instance.setup(inexorable_ooze_res, setup["player"], setup["opponent"], 0, setup["battle"])
+	var battle = setup["battle"]
+	var new_id = battle.get_new_instance_id()
+	ooze_instance.setup(inexorable_ooze_res, setup["player"], setup["opponent"], 0, setup["battle"], new_id)
 	assert_true(ooze_instance.is_relentless, "Inexorable Ooze instance should be relentless after setup.")
 	# Actual relentless behavior (calling _perform_direct_attack) is tested implicitly
 	# when simulating turns involving the Ooze.
@@ -853,7 +865,8 @@ func test_goblin_chieftain_adds_warboss_to_deck():
 	var initial_lib_size = player.library.size()
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(goblin_chieftain_res, player, player.opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(goblin_chieftain_res, player, player.opponent, 0, battle, new_id)
 	var initial_event_count = battle.battle_events.size()
 	# Action
 	goblin_chieftain_res._on_arrival(instance, player, player.opponent, battle)
@@ -875,7 +888,8 @@ func test_goblin_warboss_adds_expendable_to_deck():
 	var initial_lib_size = player.library.size()
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(goblin_warboss_res, player, player.opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(goblin_warboss_res, player, player.opponent, 0, battle, new_id)
 	var initial_event_count = battle.battle_events.size()
 	# Action
 	goblin_warboss_res._on_arrival(instance, player, player.opponent, battle)
@@ -932,7 +946,9 @@ func test_goblin_expendable_is_swift():
 	# Test instance setup
 	var setup = create_test_battle_setup()
 	var instance = SummonInstance.new()
-	instance.setup(goblin_expendable_res, setup["player"], setup["opponent"], 0, setup["battle"])
+	var battle = setup["battle"]
+	var new_id = battle.get_new_instance_id()
+	instance.setup(goblin_expendable_res, setup["player"], setup["opponent"], 0, setup["battle"], new_id)
 	assert_true(instance.is_swift, "Goblin Expendable instance should inherit is_swift = true.")
 
 # --- Master of Strategy Tests ---
@@ -950,7 +966,8 @@ func test_master_of_strategy_buffs_others():
 
 	# Simulate Master arrival in lane 1
 	var master_instance = SummonInstance.new()
-	master_instance.setup(master_of_strategy_res, player, player.opponent, 1, battle)
+	var new_id = battle.get_new_instance_id()
+	master_instance.setup(master_of_strategy_res, player, player.opponent, 1, battle, new_id)
 	player.lanes[1] = master_instance # Manually place for test setup
 	var initial_event_count = battle.battle_events.size()
 
@@ -989,7 +1006,8 @@ func test_slayer_kills_undead_opponent():
 
 	# Simulate Slayer arrival opposite target
 	var slayer_instance = SummonInstance.new()
-	slayer_instance.setup(slayer_res, player, opponent, 0, battle) # Arrives in Lane 1
+	var new_id = battle.get_new_instance_id()
+	slayer_instance.setup(slayer_res, player, opponent, 0, battle, new_id) # Arrives in Lane 1
 
 	# Action: Call arrival effect
 	slayer_res._on_arrival(slayer_instance, player, opponent, battle)
@@ -1024,7 +1042,8 @@ func test_slayer_does_not_kill_non_undead_opponent():
 
 	# Simulate Slayer arrival
 	var slayer_instance = SummonInstance.new()
-	slayer_instance.setup(slayer_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	slayer_instance.setup(slayer_res, player, opponent, 0, battle, new_id)
 
 	# Action: Call arrival effect
 	slayer_res._on_arrival(slayer_instance, player, opponent, battle)
@@ -1095,7 +1114,8 @@ func test_spiteful_fang_gets_buff_if_hp_lower():
 
 	# Simulate arrival
 	var fang_instance = SummonInstance.new()
-	fang_instance.setup(spiteful_fang_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	fang_instance.setup(spiteful_fang_res, player, opponent, 0, battle, new_id)
 
 	# Action: Call arrival effect
 	spiteful_fang_res._on_arrival(fang_instance, player, opponent, battle)
@@ -1127,7 +1147,8 @@ func test_spiteful_fang_no_buff_if_hp_not_lower():
 
 	# Simulate arrival
 	var fang_instance = SummonInstance.new()
-	fang_instance.setup(spiteful_fang_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	fang_instance.setup(spiteful_fang_res, player, opponent, 0, battle, new_id)
 
 	# Action: Call arrival effect
 	spiteful_fang_res._on_arrival(fang_instance, player, opponent, battle)
@@ -1149,7 +1170,9 @@ func test_spiteful_fang_is_relentless():
 	# Test instance setup sets flag based on tag
 	var setup = create_test_battle_setup()
 	var instance = SummonInstance.new()
-	instance.setup(spiteful_fang_res, setup["player"], setup["opponent"], 0, setup["battle"])
+	var battle = setup["battle"]
+	var new_id = battle.get_new_instance_id()
+	instance.setup(spiteful_fang_res, setup["player"], setup["opponent"], 0, setup["battle"], new_id)
 	assert_true(instance.is_relentless, "Spiteful Fang instance should be relentless after setup.")
 
 # --- Nap Tests ---
@@ -1229,7 +1252,8 @@ func test_amnesia_mage_drains_mana():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(amnesia_mage_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(amnesia_mage_res, player, opponent, 0, battle, new_id)
 
 	# Action: Call arrival effect
 	amnesia_mage_res._on_arrival(instance, player, opponent, battle)
@@ -1261,7 +1285,8 @@ func test_amnesia_mage_drain_limited_by_opponent_mana():
 	var actual_drain = min(expected_drain, opponent.mana) # Actual drain = 2
 
 	var instance = SummonInstance.new()
-	instance.setup(amnesia_mage_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(amnesia_mage_res, player, opponent, 0, battle, new_id)
 	amnesia_mage_res._on_arrival(instance, player, opponent, battle)
 
 	assert_eq(opponent.mana, 0, "Opponent mana should be 0.") # Drained to zero
@@ -1334,7 +1359,8 @@ func test_goblin_recruiter_summons_if_hp_lower():
 	var initial_event_count = battle.battle_events.size()
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(goblin_recruiter_res, player, opponent, 1, battle) # Assume it arrives in lane 1 (doesn't matter for effect)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(goblin_recruiter_res, player, opponent, 1, battle, new_id) # Assume it arrives in lane 1 (doesn't matter for effect)
 	# Action
 	goblin_recruiter_res._on_arrival(instance, player, opponent, battle)
 	# Assert: Scouts summoned in lanes 0 and 2
@@ -1357,7 +1383,8 @@ func test_goblin_recruiter_no_summon_if_hp_not_lower():
 	opponent.current_hp = 15 # Player HP not lower
 	var initial_event_count = battle.battle_events.size()
 	var instance = SummonInstance.new()
-	instance.setup(goblin_recruiter_res, player, opponent, 1, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(goblin_recruiter_res, player, opponent, 1, battle, new_id)
 	goblin_recruiter_res._on_arrival(instance, player, opponent, battle)
 	# Assert no scouts summoned
 	assert_null(player.lanes[0], "Lane 1 should be empty.")
@@ -1380,7 +1407,8 @@ func test_vengeful_warlord_gets_buff_if_hp_lower():
 	player.current_hp = 10
 	opponent.current_hp = 15
 	var instance = SummonInstance.new()
-	instance.setup(vengeful_warlord_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(vengeful_warlord_res, player, opponent, 0, battle, new_id)
 	var initial_power = instance.get_current_power()
 	var initial_hp = instance.get_current_max_hp()
 	vengeful_warlord_res._on_arrival(instance, player, opponent, battle)
@@ -1396,7 +1424,8 @@ func test_vengeful_warlord_no_buff_if_hp_not_lower():
 	player.current_hp = 15
 	opponent.current_hp = 15
 	var instance = SummonInstance.new()
-	instance.setup(vengeful_warlord_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(vengeful_warlord_res, player, opponent, 0, battle, new_id)
 	var initial_power = instance.get_current_power()
 	var initial_hp = instance.get_current_max_hp()
 	vengeful_warlord_res._on_arrival(instance, player, opponent, battle)
@@ -1440,7 +1469,8 @@ func test_corpsecraft_titan_consumes_grave():
 	player.graveyard.append(goblin_scout_res)
 	var initial_grave_size = player.graveyard.size()
 	var instance = SummonInstance.new()
-	instance.setup(corpsecraft_titan_res, player, player.opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(corpsecraft_titan_res, player, player.opponent, 0, battle, new_id)
 	var initial_event_count = battle.battle_events.size()
 	# Action
 	corpsecraft_titan_res._on_arrival(instance, player, player.opponent, battle)
@@ -1466,7 +1496,8 @@ func test_insatiable_devourer_sacrifices_and_grows():
 	var _knight1 = place_summon_for_test(player, knight_res, 2, battle)
 	# Simulate Devourer arrival in lane 1
 	var instance = SummonInstance.new()
-	instance.setup(insatiable_devourer_res, player, player.opponent, 1, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(insatiable_devourer_res, player, player.opponent, 1, battle, new_id)
 	player.lanes[1] = instance # Manually place
 	var initial_event_count = battle.battle_events.size()
 	# Action
@@ -1730,7 +1761,8 @@ func test_ghoul_mills_opponent_bottom_card():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(ghoul_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(ghoul_res, player, opponent, 0, battle, new_id)
 	var initial_event_count = battle.battle_events.size()
 
 	# Action: Call arrival effect
@@ -1768,7 +1800,8 @@ func test_knight_of_opposites_swaps_hp():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(knight_of_opposites_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(knight_of_opposites_res, player, opponent, 0, battle, new_id)
 	# Action
 	knight_of_opposites_res._on_arrival(instance, player, opponent, battle)
 
@@ -1803,7 +1836,8 @@ func test_knight_of_opposites_no_swap_if_equal_hp():
 	opponent.current_hp = 10
 	var initial_event_count = battle.battle_events.size()
 	var instance = SummonInstance.new()
-	instance.setup(knight_of_opposites_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(knight_of_opposites_res, player, opponent, 0, battle, new_id)
 	knight_of_opposites_res._on_arrival(instance, player, opponent, battle)
 	# Assert HP unchanged
 	assert_eq(player.current_hp, 10, "Player HP should not change.")
@@ -1890,7 +1924,8 @@ func test_indulged_princeling_mills_self():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(indulged_princeling_res, player, player.opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(indulged_princeling_res, player, player.opponent, 0, battle, new_id)
 	player.lanes[0] = instance # Place it
 
 	# Action
@@ -1918,7 +1953,8 @@ func test_indulged_princeling_sacrifices_if_cant_mill():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(indulged_princeling_res, player, player.opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(indulged_princeling_res, player, player.opponent, 0, battle, new_id)
 	player.lanes[0] = instance # Place it
 	var initial_event_count = battle.battle_events.size()
 
@@ -1984,7 +2020,8 @@ func test_carnivorous_plant_adds_scout_to_grave():
 	var initial_event_count = battle.battle_events.size()
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(carnivorous_plant_res, player, player.opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(carnivorous_plant_res, player, player.opponent, 0, battle, new_id)
 	# Action
 	carnivorous_plant_res._on_arrival(instance, player, player.opponent, battle)
 	# Assert: Graveyard contains Goblin Scout
@@ -2014,7 +2051,8 @@ func test_chanter_of_ashes_consumes_and_damages():
 	var initial_event_count = battle.battle_events.size()
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(chanter_of_ashes_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(chanter_of_ashes_res, player, opponent, 0, battle, new_id)
 	# Action
 	chanter_of_ashes_res._on_arrival(instance, player, opponent, battle)
 	# Assert: Graveyard contains only spell
@@ -2108,7 +2146,8 @@ func test_flamewielder_damages_opponents():
 	var initial_event_count = battle.battle_events.size()
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(flamewielder_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(flamewielder_res, player, opponent, 0, battle, new_id)
 	# Action
 	flamewielder_res._on_arrival(instance, player, opponent, battle)
 	# Assert: Opponent creatures took 1 damage
@@ -2136,7 +2175,8 @@ func test_rampaging_cyclops_damages_all_others():
 	var o_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # HP 3
 	# Simulate Cyclops arrival in lane 2
 	var instance = SummonInstance.new()
-	instance.setup(rampaging_cyclops_res, player, opponent, 2, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(rampaging_cyclops_res, player, opponent, 2, battle, new_id)
 	player.lanes[2] = instance # Place it
 	var initial_event_count = battle.battle_events.size()
 	# Action
@@ -2239,7 +2279,8 @@ func test_refined_impersonator_copies_stats():
 	var _target = place_summon_for_test(opponent, knight_res, 0, battle)
 	# Simulate Impersonator arrival opposite
 	var instance = SummonInstance.new()
-	instance.setup(refined_impersonator_res, player, opponent, 0, battle) # Base P:0, HP:1
+	var new_id = battle.get_new_instance_id()
+	instance.setup(refined_impersonator_res, player, opponent, 0, battle, new_id) # Base P:0, HP:1
 	# Action
 	refined_impersonator_res._on_arrival(instance, player, opponent, battle)
 	# Assert: Stats copied (P=3, MaxHP=3+1=4)
@@ -2257,7 +2298,8 @@ func test_refined_impersonator_no_target():
 	opponent.lanes[0] = null
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(refined_impersonator_res, player, opponent, 0, battle) # Base P:0, HP:1
+	var new_id = battle.get_new_instance_id()
+	instance.setup(refined_impersonator_res, player, opponent, 0, battle, new_id) # Base P:0, HP:1
 	# Action
 	refined_impersonator_res._on_arrival(instance, player, opponent, battle)
 	# Assert: Stats remain base
@@ -2278,7 +2320,8 @@ func test_corpsetide_lich_steals_grave():
 	var initial_opp_grave_size = opponent.graveyard.size() # 2
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(corpsetide_lich_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(corpsetide_lich_res, player, opponent, 0, battle, new_id)
 	# Action
 	corpsetide_lich_res._on_arrival(instance, player, opponent, battle)
 	# Assert: Opponent grave empty
@@ -2304,7 +2347,8 @@ func test_coffin_traders_swaps_graves():
 	opponent.graveyard.clear(); opponent.graveyard.append(knight_res)  # Opponent has Knight
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(coffin_traders_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(coffin_traders_res, player, opponent, 0, battle, new_id)
 	# Action
 	coffin_traders_res._on_arrival(instance, player, opponent, battle)
 	# Assert: Player grave now has Knight
@@ -2328,7 +2372,8 @@ func test_angel_of_justice_destroys_if_fewer_creatures():
 	place_summon_for_test(opponent, goblin_scout_res, 2, battle) # Lane 3 (Rightmost)
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(angel_of_justice_res, player, opponent, 1, battle) # Angel in lane 2
+	var new_id = battle.get_new_instance_id()
+	instance.setup(angel_of_justice_res, player, opponent, 1, battle, new_id) # Angel in lane 2
 	player.lanes[1] = instance # Place it
 	# Action
 	angel_of_justice_res._on_arrival(instance, player, opponent, battle)
@@ -2346,7 +2391,8 @@ func test_angel_of_justice_does_not_destroy_if_equal_creatures():
 	place_summon_for_test(player, goblin_scout_res, 0, battle)
 	place_summon_for_test(opponent, knight_res, 0, battle)
 	var instance = SummonInstance.new()
-	instance.setup(angel_of_justice_res, player, opponent, 1, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(angel_of_justice_res, player, opponent, 1, battle, new_id)
 	player.lanes[1] = instance
 	angel_of_justice_res._on_arrival(instance, player, opponent, battle)
 	# Assert: Opponent Knight still present
@@ -2369,7 +2415,8 @@ func test_scavenger_ghoul_consumes_and_heals():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(scavenger_ghoul_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(scavenger_ghoul_res, player, opponent, 0, battle, new_id)
 	# Action
 	scavenger_ghoul_res._on_arrival(instance, player, opponent, battle)
 
@@ -2397,7 +2444,8 @@ func test_heedless_vandal_mills_both():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(heedless_vandal_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(heedless_vandal_res, player, opponent, 0, battle, new_id)
 	# Action
 	heedless_vandal_res._on_arrival(instance, player, opponent, battle)
 
@@ -2438,7 +2486,8 @@ func test_taunting_elf_makes_opponent_relentless():
 
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(taunting_elf_res, player, opponent, 0, battle) # Arrives opposite
+	var new_id = battle.get_new_instance_id()
+	instance.setup(taunting_elf_res, player, opponent, 0, battle, new_id) # Arrives opposite
 	# Action
 	taunting_elf_res._on_arrival(instance, player, opponent, battle)
 
@@ -2468,7 +2517,8 @@ func test_taunting_elf_no_target():
 	var initial_event_count = battle.battle_events.size()
 	# Simulate arrival
 	var instance = SummonInstance.new()
-	instance.setup(taunting_elf_res, player, opponent, 0, battle)
+	var new_id = battle.get_new_instance_id()
+	instance.setup(taunting_elf_res, player, opponent, 0, battle, new_id)
 	# Action
 	taunting_elf_res._on_arrival(instance, player, opponent, battle)
 	# Assert: No status event generated
