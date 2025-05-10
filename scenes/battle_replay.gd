@@ -22,64 +22,54 @@ var player2_name: String = "" # Typically "Opponent"
 @onready var bottom_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/LaneContainer
 @onready var top_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/LaneContainer
 @onready var playback_timer: Timer = $MainMarginContainer/PlaybackTimer
-
+# --- Player UI References (Adjust paths as needed) ---
+@onready var bottom_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/PlayerHPLabel # Example path
+@onready var bottom_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/PlayerManaLabel # Example path
+@onready var top_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/PlayerHPLabel # Example path
+@onready var top_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/PlayerManaLabel # Example path
 
 # --- Public API ---
+# --- Public API & Playback Control ---
+# ... (load_and_start_simple_replay, _on_play_button_pressed, etc. as before) ...
 func load_and_start_simple_replay(events: Array[Dictionary]):
 	print("BattleReplay: Loading %d events." % events.size())
 	battle_events = events
 	current_event_index = -1
 	is_playing = false
-
-	# --- Determine Player Layout ---
-	player1_name = "" # Reset for new replay
-	player2_name = ""
+	player1_name = ""; player2_name = ""
 	var player_names_found = []
 	for event in battle_events:
 		if event.event_type == "turn_start":
 			if not event.player in player_names_found:
 				player_names_found.append(event.player)
-				if player1_name == "":
-					player1_name = event.player
-				elif player2_name == "" and event.player != player1_name:
-					player2_name = event.player
-					break # Found both distinct players
-	# Fallback if only one player found (e.g., very short battle)
+				if player1_name == "": player1_name = event.player
+				elif player2_name == "" and event.player != player1_name: player2_name = event.player; break
 	if player1_name != "" and player2_name == "":
-		if player1_name == "Player" and events.size() > 0 and events[0].has("player") and events[0].player != "Player":
-			player2_name = events[0].player
-		elif player1_name != "Opponent":
-			player2_name = "Opponent"
-		else:
-			player2_name = "Player"
-
-	print("Player 1 (Bottom assumed): ", player1_name)
-	print("Player 2 (Top assumed): ", player2_name)
-
-
+		if player1_name == "Player" and events.size() > 0 and events[0].has("player") and events[0].player != "Player": player2_name = events[0].player
+		elif player1_name != "Opponent": player2_name = "Opponent"
+		else: player2_name = "Player"
+	print("Player 1 (Bottom assumed): ", player1_name); print("Player 2 (Top assumed): ", player2_name)
 	if not is_node_ready(): await ready
-
-	# Clear previous state
 	if turn_label: turn_label.text = "Turn: -"
 	if event_log_label: event_log_label.text = "Press Step or Play"
 
-	# Clear existing summon visuals from lanes
+	# Initialize Player UI
+	if bottom_player_hp_label: bottom_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
+	if bottom_player_mana_label: bottom_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
+	if top_player_hp_label: top_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
+	if top_player_mana_label: top_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
+
 	for visual in active_summon_visuals.values():
 		if is_instance_valid(visual): visual.queue_free()
 	active_summon_visuals.clear()
-	# Clear lanes directly too
 	if is_instance_valid(bottom_lane_container):
 		for lane in bottom_lane_container.get_children():
 			for child in lane.get_children(): child.queue_free()
 	if is_instance_valid(top_lane_container):
 		for lane in top_lane_container.get_children():
 			for child in lane.get_children(): child.queue_free()
-
-
 	call_deferred("_on_step_button_pressed")
 
-
-# --- Playback Control Logic ---
 func _on_play_button_pressed():
 	print("Replay: Play pressed")
 	is_playing = true
@@ -92,12 +82,10 @@ func _on_pause_button_pressed():
 
 func _on_step_button_pressed():
 	print("Replay: Step pressed")
-	if not is_playing:
-		process_next_event()
+	if not is_playing: process_next_event()
 
 func _on_playback_timer_timeout():
-	if is_playing:
-		process_next_event()
+	if is_playing: process_next_event()
 	else:
 		if playback_timer: playback_timer.stop()
 
@@ -269,6 +257,17 @@ func handle_summon_leaves_lane(event):
 # --- Other handlers (mostly print for now, with await for pacing) ---
 func handle_mana_change(event):
 	print("  -> %s mana changes by %d. New total: %d (Source: %s)" % [event.player, event.amount, event.new_total, event.get("source", "N/A")])
+	var target_mana_label: Label = null
+	if event.player == player1_name: # Bottom player
+		target_mana_label = bottom_player_mana_label
+	elif event.player == player2_name: # Top player
+		target_mana_label = top_player_mana_label
+	
+	if is_instance_valid(target_mana_label):
+		target_mana_label.text = "Mana: %d" % event.new_total
+	else:
+		printerr("Could not find mana label for player: ", event.player)
+	# TODO: Visual update for mana crystals/bar
 	await get_tree().create_timer(0.2 / playback_speed_scale).timeout
 
 func handle_card_played(event):
@@ -316,9 +315,19 @@ func handle_effect_damage(event):
 	])
 	await get_tree().create_timer(0.5 / playback_speed_scale).timeout
 
-func handle_hp_change(event):
+func handle_hp_change(event): # Player HP
 	print("  -> Player HP Change: %s amount %d. New total: %d (Source: %s)" % [event.player, event.amount, event.new_total, event.get("source", "N/A")])
-	# TODO: Update player HP bar/label
+	var target_hp_label: Label = null
+	if event.player == player1_name: # Bottom player
+		target_hp_label = bottom_player_hp_label
+	elif event.player == player2_name: # Top player
+		target_hp_label = top_player_hp_label
+	
+	if is_instance_valid(target_hp_label):
+		target_hp_label.text = "HP: %d" % event.new_total
+	else:
+		printerr("Could not find HP label for player: ", event.player)
+	# TODO: Update player HP bar visual
 	await get_tree().create_timer(0.3 / playback_speed_scale).timeout
 
 func handle_creature_hp_change(event):
@@ -327,25 +336,29 @@ func handle_creature_hp_change(event):
 	])
 	if active_summon_visuals.has(event.instance_id):
 		var visual_node = active_summon_visuals[event.instance_id]
-		if is_instance_valid(visual_node): # Check valid
-			if visual_node.hp_label: visual_node.hp_label.text = "%d/%d" % [event.new_hp, event.new_max_hp]
+		if is_instance_valid(visual_node):
+			if visual_node.has_method("set_max_hp"): visual_node.set_max_hp(event.new_max_hp)
+			if visual_node.has_method("set_current_hp"): visual_node.set_current_hp(event.new_hp)
 			if visual_node.has_method("play_animation"):
 				if event.amount > 0: visual_node.play_animation("heal")
 				elif event.amount < 0: visual_node.play_animation("damage")
 	await get_tree().create_timer(0.4 / playback_speed_scale).timeout
-
+	
 func handle_stat_change(event):
 	print("  -> Stat Change: %s lane %d (ID: %d) stat '%s' changes by %d. New value: %d (Source: %s)" % [
 		event.player, event.lane, event.instance_id, event.stat, event.amount, event.new_value, event.get("source", "N/A")
 	])
 	if active_summon_visuals.has(event.instance_id):
 		var visual_node = active_summon_visuals[event.instance_id]
-		if is_instance_valid(visual_node): # Check valid
-			if event.stat == "power" and visual_node.power_label:
-				visual_node.power_label.text = str(event.new_value)
-			elif event.stat == "max_hp" and visual_node.hp_label:
-				var hp_parts = visual_node.hp_label.text.split("/")
-				if hp_parts.size() == 2: visual_node.hp_label.text = "%s/%d" % [hp_parts[0], event.new_value]
+		if is_instance_valid(visual_node):
+			if event.stat == "power" and visual_node.has_method("set_current_power"):
+				visual_node.set_current_power(event.new_value)
+			elif event.stat == "max_hp" and visual_node.has_method("set_max_hp"):
+				visual_node.set_max_hp(event.new_value)
+				# Also update current HP on the visual if max_hp changed, as it might need clamping
+				if visual_node.has_method("set_current_hp"):
+					visual_node.set_current_hp(min(visual_node.current_hp_val, event.new_value))
+
 			if visual_node.has_method("play_animation"):
 				visual_node.play_animation("buff" if event.amount > 0 else "debuff")
 	await get_tree().create_timer(0.4 / playback_speed_scale).timeout
@@ -373,3 +386,73 @@ func handle_battle_end(event):
 	if event_log_label: event_log_label.text = "Battle End: %s wins!" % event.winner
 	is_playing = false
 	if playback_timer: playback_timer.stop()
+
+func debug_print_node_layout_info(node: Control, node_description: String = ""):
+	if not is_instance_valid(node):
+		print("Debug Layout: Node is not valid for ", node_description)
+		return
+
+	print("\n--- Layout Info for: %s (%s) ---" % [node.name, node_description])
+	print("  Path: ", node.get_path())
+	print("  Type: ", node.get_class())
+	print("  Visible: ", node.visible)
+	print("  Layout Mode: ", node.layout_mode) # 0=Position, 1=Anchors, 2=Container
+	print("  Anchors Preset: ", node.anchors_preset) # -1=Custom, other values are presets
+
+	#if node.layout_mode == Control.LAYOUT_MODE_ANCHORS: # Only relevant if mode is Anchors
+	print("  Anchor Left: ", node.anchor_left)
+	print("  Anchor Top: ", node.anchor_top)
+	print("  Anchor Right: ", node.anchor_right)
+	print("  Anchor Bottom: ", node.anchor_bottom)
+	print("  Offset Left: ", node.offset_left)
+	print("  Offset Top: ", node.offset_top)
+	print("  Offset Right: ", node.offset_right)
+	print("  Offset Bottom: ", node.offset_bottom)
+
+	print("  Grow Horizontal: ", node.grow_horizontal) # How it behaves in some containers
+	print("  Grow Vertical: ", node.grow_vertical)   # How it behaves in some containers
+
+	print("  Position: ", node.position)
+	print("  Size: ", node.size)
+	print("  Scale: ", node.scale)
+	print("  Rotation (deg): ", node.rotation_degrees)
+	print("  Global Position: ", node.global_position)
+	print("  Custom Minimum Size: ", node.custom_minimum_size)
+
+	# Size Flags (relevant if child of a container)
+	print("  Size Flags Horizontal: ")
+	var h_flags = []
+	if node.size_flags_horizontal & Control.SIZE_FILL: h_flags.append("FILL")
+	if node.size_flags_horizontal & Control.SIZE_EXPAND: h_flags.append("EXPAND")
+	if node.size_flags_horizontal & Control.SIZE_SHRINK_CENTER: h_flags.append("SHRINK_CENTER")
+	if node.size_flags_horizontal & Control.SIZE_SHRINK_END: h_flags.append("SHRINK_END")
+	var print_val = str(h_flags) if not h_flags.is_empty() else "NONE"
+	print("     ", print_val)
+
+	print("  Size Flags Vertical: ")
+	var v_flags = []
+	if node.size_flags_vertical & Control.SIZE_FILL: v_flags.append("FILL")
+	if node.size_flags_vertical & Control.SIZE_EXPAND: v_flags.append("EXPAND")
+	if node.size_flags_vertical & Control.SIZE_SHRINK_CENTER: v_flags.append("SHRINK_CENTER")
+	if node.size_flags_vertical & Control.SIZE_SHRINK_END: v_flags.append("SHRINK_END")
+	print_val = str(v_flags) if not v_flags.is_empty() else "NONE"
+	print("    ", print_val)
+
+	print("  Mouse Filter: ", node.mouse_filter)
+	print("------------------------------------")
+
+# Optional: Recursive function to print tree upwards
+func debug_print_layout_hierarchy(node: Control, description: String = "Start Node"):
+	if not is_instance_valid(node):
+		return
+	var current_node = node
+	var current_desc = description
+	var depth = 0
+	while is_instance_valid(current_node) and current_node != get_tree().get_root():
+		debug_print_node_layout_info(current_node, current_desc + (" (Depth %d)" % depth))
+		current_node = current_node.get_parent() as Control # Only interested in Control parents for layout
+		current_desc = "Parent"
+		depth += 1
+		if depth > 10: # Safety break
+			print("Reached max depth in hierarchy print.")
+			break

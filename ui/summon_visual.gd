@@ -5,6 +5,9 @@ extends Control
 var instance_id: int = -1
 var card_id: String = ""
 var card_resource: SummonCardResource = null
+var current_power_val: int = 0
+var current_hp_val: int = 0
+var current_max_hp_val: int = 0
 
 # --- Node References ---
 @onready var card_art_texture: TextureRect = $CardArtTextureRect
@@ -13,54 +16,70 @@ var card_resource: SummonCardResource = null
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 
 
-# --- Public Methods ---
-func update_display(new_instance_id: int, new_card_res: SummonCardResource, power: int, hp: int, max_hp: int, _tags: Array[String]): # Added underscore to tags
+# Called by BattleReplay to initialize/update the visual display
+func update_display(new_instance_id: int, new_card_res: SummonCardResource, power: int, hp: int, max_hp: int, _tags: Array[String]):
 	self.instance_id = new_instance_id
 	self.card_resource = new_card_res
-	self.card_id = new_card_res.id if new_card_res else "UNKNOWN" # Handle null card_res
+	self.card_id = new_card_res.id if new_card_res else "UNKNOWN"
 
-	# --- MODIFIED BLOCK START ---
-	# Update Artwork (Simplified loading)
+	# --- Store stats ---
+	self.current_power_val = power
+	self.current_hp_val = hp
+	self.current_max_hp_val = max_hp
+	# --- End Store stats ---
+
+	# Update Artwork
 	if card_art_texture and card_resource and not card_resource.artwork_path.is_empty():
-		var test_location = "res://art/recurringSkeleton.webp"
-		var TEST_TEXTURE = load(test_location)
-		if TEST_TEXTURE is Texture2D: # Check if TEST load was successful and is a texture
-			print("Successfully loaded TEST art for %s from %s" % ["TEST", test_location])
-		else:
-			printerr("Failed to load TEST art at: %s" % [test_location])
-		var filename_check = test_location == card_resource.artwork_path
-		if filename_check:
-			print("Filenames apparently match.")
-		else:
-			print("Filenames do not match.")
-			print("test: ", test_location)
-			print("card: ", card_resource.artwork_path)
-
 		var loaded_texture = load(card_resource.artwork_path)
-		if loaded_texture is Texture2D: # Check if load was successful and is a texture
+		if loaded_texture is Texture2D:
 			card_art_texture.texture = loaded_texture
-			print("Successfully loaded art for %s from %s" % [card_id, card_resource.artwork_path])
+			# print("Successfully loaded art for %s from %s" % [card_id, card_resource.artwork_path]) # Less verbose
 		else:
-			card_art_texture.texture = null # Clear if load failed
+			card_art_texture.texture = null
 			printerr("Failed to load art for %s. Path: %s. Loaded type: %s" % [card_id, card_resource.artwork_path, typeof(loaded_texture)])
 	elif card_art_texture:
-		card_art_texture.texture = null # Clear if no path or resource
-		if card_resource:
-			print("Warning: No artwork path for ", card_id)
-		else:
-			print("Warning: Card resource is null for instance ", instance_id)
-	# --- MODIFIED BLOCK END ---
+		card_art_texture.texture = null
+		if card_resource: print("Warning: No artwork path for ", card_id)
+		else: print("Warning: Card resource is null for instance ", instance_id)
 
 	# Update Stats Labels
-	if power_label:
-		power_label.text = "P: " + str(power) # Added "P: " prefix
-	if hp_label:
-		hp_label.text = "%d/%d" % [hp, max_hp] # Format "Current/Max"
+	update_power_label()
+	update_hp_label()
 
 	# TODO: Update status icons based on tags array
 
-	print("Updated visual for instance %d (%s): P:%d HP:%d/%d" % [instance_id, card_id, power, hp, max_hp])
+	print("Updated visual for instance %d (%s): P:%d HP:%d/%d" % [instance_id, card_id, current_power_val, current_hp_val, current_max_hp_val])
 
+	# --- MODIFIED: Call debug print from here if needed ---
+	# if get_tree().get_root().get_node_or_null("Placeholder_Root_Node2D/BattleReplayScene"):
+	# 	var battle_replay_node = get_tree().get_root().get_node("Placeholder_Root_Node2D/BattleReplayScene")
+	# 	if battle_replay_node.has_method("debug_print_node_layout_info"):
+	# 		battle_replay_node.debug_print_node_layout_info(card_art_texture, "CardArtTextureRect (Child of SummonVisual)")
+	# 		battle_replay_node.debug_print_node_layout_info(self, "SummonVisual (Self)")
+	# 		if get_parent() is Control:
+	# 			battle_replay_node.debug_print_node_layout_info(get_parent(), "Parent Lane Panel")
+
+func update_power_label():
+	if power_label:
+		power_label.text = "P: " + str(current_power_val)
+
+func update_hp_label():
+	if hp_label:
+		hp_label.text = "%d/%d" % [current_hp_val, current_max_hp_val]
+
+func set_current_power(new_power: int):
+	current_power_val = new_power
+	update_power_label()
+
+func set_current_hp(new_hp: int):
+	current_hp_val = new_hp
+	update_hp_label() # Max HP hasn't changed, just current
+
+func set_max_hp(new_max_hp: int):
+	current_max_hp_val = new_max_hp
+	# current_hp_val might need clamping if max_hp decreased below current_hp
+	current_hp_val = min(current_hp_val, current_max_hp_val)
+	update_hp_label()
 
 func play_animation(anim_name: String):
 	if animation_player and animation_player.has_animation(anim_name):
