@@ -19,6 +19,11 @@ config/icon="res://icon.svg"
 
 Constants="*res://logic/constants.gd"
 
+[display]
+
+window/size/viewport_width=2300
+window/size/viewport_height=1300
+
 [dotnet]
 
 project/assembly_name="Concentric2_Apr2025"

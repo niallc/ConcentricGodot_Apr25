@@ -19,14 +19,14 @@ var player2_name: String = "" # Typically "Opponent"
 # --- Node References ---
 @onready var turn_label: Label = $MainMarginContainer/MainVBox/TurnLabel
 @onready var event_log_label: Label = $MainMarginContainer/MainVBox/EventLogLabel
-@onready var bottom_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/LaneContainer
-@onready var top_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/LaneContainer
+@onready var bottom_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LaneContainer
+@onready var top_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LaneContainer
 @onready var playback_timer: Timer = $MainMarginContainer/PlaybackTimer
 # --- Player UI References (Adjust paths as needed) ---
-@onready var bottom_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/PlayerHPLabel # Example path
-@onready var bottom_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/PlayerManaLabel # Example path
-@onready var top_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/PlayerHPLabel # Example path
-@onready var top_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/PlayerManaLabel # Example path
+@onready var bottom_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/PlayerHPLabel
+@onready var bottom_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/PlayerManaLabel
+@onready var top_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/PlayerHPLabel
+@onready var top_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/PlayerManaLabel
 
 # --- Public API ---
 # --- Public API & Playback Control ---

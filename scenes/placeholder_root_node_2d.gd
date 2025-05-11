@@ -99,9 +99,9 @@ func _ready():
 		var event_count = events.size()
 		print("run_battle finished. Events list (%d events):" % event_count)
 
-		var max_events_to_show = 25 # Show all if fewer than this
-		var head_count = 10
-		var tail_count = 10
+		var max_events_to_show = 90 # Show all if fewer than this
+		var head_count = 40
+		var tail_count = 40
 		# Middle count can be derived or fixed
 		if event_count <= max_events_to_show:
 			# Print all events
