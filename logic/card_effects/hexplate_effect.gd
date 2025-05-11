@@ -21,7 +21,8 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, _opponen
 			"event_type": "visual_effect",
 			"effect_id": "hexplate_buff",
 			"target_locations": ["%s lane %d" % [active_combatant.combatant_name, target_lane_index + 1]],
-			"details": {"power": 1, "hp": 4}
+			"details": {"power": 1, "hp": 4},
+			"instance_id": target_instance.instance_id
 		}) # visual_effect event
 	else:
 		print("...Found no target creature.")

@@ -13,11 +13,15 @@ func _ready():
 	else:
 		printerr("Failed to load card resource!")
 
-	var _apprentice_assassin_res = load("res://data/cards/instances/apprentice_assassin.tres") as SummonCardResource
 	var _amnesia_mage_res = load("res://data/cards/instances/amnesia_mage.tres") as SummonCardResource
+	var _angel_of_justice_res = load("res://data/cards/instances/angel_of_justice.tres") as SummonCardResource
+	var _apprentice_assassin_res = load("res://data/cards/instances/apprentice_assassin.tres") as SummonCardResource
+	var _ascending_protoplasm_res = load("res://data/cards/instances/ascending_protoplasm.tres") as SummonCardResource
 	var _avenging_tiger_res = load("res://data/cards/instances/avenging_tiger.tres") as SummonCardResource
 	var _bloodrager_res = load("res://data/cards/instances/bloodrager.tres") as SummonCardResource
 	var _charging_bull_res = load("res://data/cards/instances/charging_bull.tres") as SummonCardResource
+	var _coffin_traders_res = load("res://data/cards/instances/coffin_traders.tres") as SummonCardResource
+	var _corpsetide_lich_res = load("res://data/cards/instances/corpsetide_lich.tres") as SummonCardResource
 	var _cursed_samurai_res = load("res://data/cards/instances/cursed_samurai.tres") as SummonCardResource
 	var _disarm_res = load("res://data/cards/instances/disarm.tres") as SpellCardResource
 	var _energy_axe_res = load("res://data/cards/instances/energy_axe.tres") as SpellCardResource
@@ -48,6 +52,7 @@ func _ready():
 	var _goblin_recruiter_res = load("res://data/cards/instances/goblin_recruiter.tres") as SummonCardResource
 	var _corpsecraft_titan_res = load("res://data/cards/instances/corpsecraft_titan.tres") as SummonCardResource
 	var _glassgraft_res = load("res://data/cards/instances/glassgraft.tres") as SpellCardResource
+	var _heedless_vandal_res = load("res://data/cards/instances/heedless_vandal.tres") as SummonCardResource
 	var _unmake_res = load("res://data/cards/instances/unmake.tres") as SpellCardResource
 	var _skeletal_infantry_res = load("res://data/cards/instances/skeletal_infantry.tres") as SummonCardResource
 	var _reassembling_legion_res = load("res://data/cards/instances/reassembling_legion.tres") as SummonCardResource
@@ -67,13 +72,8 @@ func _ready():
 	var _rampaging_cyclops_res = load("res://data/cards/instances/rampaging_cyclops.tres") as SummonCardResource
 	var _hexplate_res = load("res://data/cards/instances/hexplate.tres") as SpellCardResource
 	var _songs_of_the_lost_res = load("res://data/cards/instances/songs_of_the_lost.tres") as SpellCardResource
-	var _ascending_protoplasm_res = load("res://data/cards/instances/ascending_protoplasm.tres") as SummonCardResource
 	var _refined_impersonator_res = load("res://data/cards/instances/refined_impersonator.tres") as SummonCardResource
-	var _corpsetide_lich_res = load("res://data/cards/instances/corpsetide_lich.tres") as SummonCardResource
-	var _coffin_traders_res = load("res://data/cards/instances/coffin_traders.tres") as SummonCardResource
-	var _angel_of_justice_res = load("res://data/cards/instances/angel_of_justice.tres") as SummonCardResource
 	var _scavenger_ghoul_res = load("res://data/cards/instances/scavenger_ghoul.tres") as SummonCardResource
-	var _heedless_vandal_res = load("res://data/cards/instances/heedless_vandal.tres") as SummonCardResource
 	var _taunting_elf_res = load("res://data/cards/instances/taunting_elf.tres") as SummonCardResource
 	var _river_efreet_res = load("res://data/cards/instances/river_efreet.tres") as SummonCardResource
 	var _troll_res = load("res://data/cards/instances/troll.tres") as SummonCardResource

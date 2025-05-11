@@ -78,7 +78,6 @@ func take_damage(amount: int, _source = null):
 		"new_hp": current_hp,
 		"new_max_hp": get_current_max_hp()
 	})
-
 	if current_hp <= 0:
 		die()
 
@@ -104,7 +103,6 @@ func heal(amount: int):
 
 func die():
 	print("%s dies!" % card_resource.card_name)
-	battle_instance.add_event({})
 
 	battle_instance.add_event({
 		"event_type": "creature_defeated",
@@ -181,7 +179,8 @@ func _perform_direct_attack():
 		"attacking_instance_id": instance_id,
 		"target_player": opponent_combatant.combatant_name,
 		"amount": damage,
-		"target_player_remaining_hp": opponent_combatant.current_hp
+		"target_player_remaining_hp": opponent_combatant.current_hp,
+		"instance_id": owner_combatant.combatant_name
 	}) # direct_damage event
 
 	var sacrificed_by_effect = false
@@ -221,7 +220,8 @@ func _perform_combat(target_instance):
 		"defending_lane": target_instance.lane_index + 1,
 		"defending_instance_id": target_instance.instance_id,
 		"amount": damage,
-		"defender_remaining_hp": target_instance.current_hp
+		"defender_remaining_hp": target_instance.current_hp,
+		"instance_id": "None, refer to attacking_instance_id or defending_instance_id"
 	})
 
 	if target_instance.current_hp <= 0 and target_hp_before > 0: # Check if this attack caused death

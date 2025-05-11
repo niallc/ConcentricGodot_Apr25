@@ -43,7 +43,8 @@ func take_damage(amount: int, _source = null) -> bool: # Returns true if defeate
 		"event_type": "hp_change",
 		"player": combatant_name,
 		"amount": -hp_decrement, # Negative for damage
-		"new_total": current_hp
+		"new_total": current_hp,
+		"instance_id": combatant_name
 		# TODO: Add source info?
 	})
 
@@ -78,7 +79,8 @@ func gain_mana(amount: int):
 			"event_type": "mana_change",
 			"player": combatant_name,
 			"amount": mana - old_mana, # Positive for gain
-			"new_total": mana
+			"new_total": mana,
+			"instance_id": combatant_name
 		})
 
 func pay_mana(amount: int) -> bool:
@@ -90,7 +92,8 @@ func pay_mana(amount: int) -> bool:
 			"event_type": "mana_change",
 			"player": combatant_name,
 			"amount": -amount, # Negative for cost
-			"new_total": mana
+			"new_total": mana,
+			"instance_id": combatant_name
 		})
 		return true
 	return false
@@ -108,6 +111,7 @@ func add_card_to_graveyard(card_res: CardResource, from_zone: String):
 		"player": combatant_name,
 		"from_zone": from_zone, # e.g., "library", "lane", "play"
 		"to_zone": "graveyard",
+		"instance_id": "None, card to graveyard"
 		# Include details like lane index if relevant (from_details?)
 	})
 
@@ -121,7 +125,8 @@ func remove_card_from_library() -> CardResource:
 			"card_id": card.id,
 			"player": combatant_name,
 			"from_zone": "library",
-			"to_zone": "play" # "play" is a temporary zone before lane/graveyard
+			"to_zone": "play", # "play" is a temporary zone before lane/graveyard
+			"instance_id": "none, card from library"
 		})
 		return card
 	return null

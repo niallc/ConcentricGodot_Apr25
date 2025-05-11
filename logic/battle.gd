@@ -67,7 +67,7 @@ func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: S
 func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 	if battle_state != "Ongoing": return
 
-	add_event({"event_type": "turn_start", "player": active_duelist.combatant_name})
+	add_event({"event_type": "turn_start", "player": active_duelist.combatant_name, "instance_id": active_duelist.combatant_name})
 
 	# 1. Start of Turn Effects / Mana Gain
 	active_duelist.gain_mana(Constants.MANA_PER_TURN)
@@ -122,7 +122,8 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 						"player": active_duelist.combatant_name,
 						"card_id": played_card_res.id,
 						"card_type": played_card_res.get_card_type(), # "Spell" or "Summon"
-						"remaining_mana": active_duelist.mana
+						"remaining_mana": active_duelist.mana,
+						"instance_id": "none, card played"
 						# Lane added by summon_arrives event if applicable
 					})
 
@@ -160,7 +161,8 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 								"player": active_duelist.combatant_name,
 								"from_zone": "play",
 								"to_zone": "lane",
-								"to_details": {"lane": target_lane_index + 1}
+								"to_details": {"lane": target_lane_index + 1},
+								"instance_id": new_id
 							})
 
 							# Call _on_arrival effect script (if it exists)
@@ -229,6 +231,13 @@ func add_event(event_data: Dictionary):
 	_event_timestamp_counter += 0.1 # Increment timestamp slightly for ordering
 	_event_id_counter += 1
 	battle_events.append(event_data)
+	#if _event_id_counter == 78:
+		#printerr("Temporary debugging to find out what's going on with instance_id.")
+	if "instance_id" not in event_data.keys():
+		printerr("instance_id missing from event_data")
+	if event_data.size() <= 3:
+		printerr("event_data does not contain required information: turn %d, timestamp %d, event_id %d",
+				 turn_count, _event_id_counter, _event_id_counter)
 	# print("Event Added: ", event_data) # Uncomment for verbose logging
 
 func check_game_over() -> bool:
@@ -255,6 +264,7 @@ func log_winner():
 	add_event({
 		"event_type": "battle_end",
 		"outcome": outcome,
-		"winner": winner_name
+		"winner": winner_name,
+		"instance_id": "None, logging winner."
 	})
 	print("Battle Over! Outcome: %s, Winner: %s" % [outcome, winner_name])

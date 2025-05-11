@@ -21,7 +21,8 @@ func _on_death(summon_instance: SummonInstance, active_combatant, _opponent_comb
 			"player": active_combatant.combatant_name,
 			"from_zone": "lane", # Died from lane
 			"to_zone": "library",
-			"to_details": {"position": "bottom"}
+			"to_details": {"position": "bottom"},
+			"instance_id": "None, card returning to library"
 		})
 		# We also need to ensure it's removed from the graveyard where die() put it.
 		# Add a flag to the instance maybe? Or handle in Battle logic?

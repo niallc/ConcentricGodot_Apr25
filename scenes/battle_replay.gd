@@ -5,7 +5,7 @@ extends Control
 var battle_events: Array[Dictionary] = []
 var current_event_index: int = -1
 var is_playing: bool = false
-var playback_speed_scale: float = 1.0
+var playback_speed_scale: float = 3.0
 var step_delay: float = 0.5
 
 var active_summon_visuals: Dictionary = {} # instance_id -> SummonVisual node
@@ -22,11 +22,17 @@ var player2_name: String = "" # Typically "Opponent"
 @onready var bottom_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LaneContainer
 @onready var top_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LaneContainer
 @onready var playback_timer: Timer = $MainMarginContainer/PlaybackTimer
-# --- Player UI References (Adjust paths as needed) ---
+# --- Player UI References ---
 @onready var bottom_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/PlayerHPLabel
 @onready var bottom_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/PlayerManaLabel
 @onready var top_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/PlayerHPLabel
 @onready var top_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/PlayerManaLabel
+# --- Player Graveyard and Library References ---
+@onready var bottom_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library
+@onready var bottom_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard
+@onready var top_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library
+@onready var top_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard
+
 
 # --- Public API ---
 # --- Public API & Playback Control ---
@@ -101,6 +107,17 @@ func process_next_event():
 		return
 
 	var event = battle_events[current_event_index]
+	if event_log_label:
+		# DEFENSIVE CHECKING
+		if not event is Dictionary:
+			event_log_label.text = "Event %d: ERROR - Event is not a Dictionary. Type: %s" % [current_event_index, typeof(event)]
+			printerr("Event %d is not a Dictionary: %s" % [current_event_index, event])
+		elif not event.has("event_type"):
+			event_log_label.text = "Event %d: ERROR - Event missing 'event_type'. Keys: %s" % [current_event_index, event.keys()]
+			printerr("Event %d missing 'event_type': %s" % [current_event_index, event])
+		else:
+			event_log_label.text = "Event %d: %s (%s)" % [current_event_index, event.event_type, event.get("player", "N/A")] # Your original line
+
 	print("\nProcessing Event %d: %s" % [current_event_index, event])
 
 	if event_log_label: event_log_label.text = "Event %d: %s (%s)" % [current_event_index, event.event_type, event.get("player", "N/A")]

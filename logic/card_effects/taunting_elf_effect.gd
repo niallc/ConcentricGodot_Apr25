@@ -16,14 +16,16 @@ func _on_arrival(summon_instance: SummonInstance, _active_combatant, opponent_co
 				"lane": target_lane_index + 1,
 				"status": "Relentless",
 				"gained": true,
-				"source": summon_instance.card_resource.id
+				"source": summon_instance.card_resource.id,
+				"instance_id": target_instance.instance_id
 			}) # status_change event
 			# Optional visual effect
 			battle_instance.add_event({
 				"event_type": "visual_effect",
 				"effect_id": "taunting_elf_debuff",
 				"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, target_lane_index + 1]],
-				"details": {}
+				"details": {},
+				"instance_id": target_instance.instance_id
 			}) # visual_effect event
 		else:
 			print("...Opposing %s is already Relentless." % target_instance.card_resource.card_name)
