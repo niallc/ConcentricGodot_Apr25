@@ -17,8 +17,8 @@ var player1_name: String = "" # Typically "Player"
 var player2_name: String = "" # Typically "Opponent"
 
 # --- Node References ---
-@onready var turn_label: Label = $MainMarginContainer/MainVBox/TurnLabel
-@onready var event_log_label: Label = $MainMarginContainer/MainVBox/EventLogLabel
+@onready var turn_label: Label = $MainMarginContainer/MainVBox/TurnAndEvents/TurnLabel
+@onready var event_log_label: Label = $MainMarginContainer/MainVBox/TurnAndEvents/EventLogLabel
 @onready var bottom_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LaneContainer
 @onready var top_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LaneContainer
 @onready var playback_timer: Timer = $MainMarginContainer/PlaybackTimer
@@ -28,21 +28,48 @@ var player2_name: String = "" # Typically "Opponent"
 @onready var top_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/PlayerHPLabel
 @onready var top_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/PlayerManaLabel
 # --- Player Graveyard and Library References ---
+#@onready var bottom_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library
+#@onready var bottom_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard
+#@onready var top_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library
+#@onready var top_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard
 @onready var bottom_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library
 @onready var bottom_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard
 @onready var top_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library
 @onready var top_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard
+@onready var top_player_library_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/LibraryCountLabel # Add this node in scene
+@onready var top_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
+@onready var bottom_player_library_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/LibraryCountLabel # Add this node in scene
+@onready var bottom_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
 
+# --- Store Graveyard and Library Card Names ---
+#var player1_library_cards: Array[String] = []
+#var player1_graveyard_cards: Array[String] = []
+#var player2_library_cards: Array[String] = []
+#var player2_graveyard_cards: Array[String] = []
+var player1_library_card_ids: Array[String] = []
+var player1_graveyard_card_ids: Array[String] = []
+var player2_library_card_ids: Array[String] = []
+var player2_graveyard_card_ids: Array[String] = []
 
-# --- Public API ---
 # --- Public API & Playback Control ---
-# ... (load_and_start_simple_replay, _on_play_button_pressed, etc. as before) ...
 func load_and_start_simple_replay(events: Array[Dictionary]):
 	print("BattleReplay: Loading %d events." % events.size())
 	battle_events = events
 	current_event_index = -1
 	is_playing = false
 	player1_name = ""; player2_name = ""
+
+	# --- Clear graveyards and libraries ----
+	player1_library_card_ids.clear()
+	player1_graveyard_card_ids.clear()
+	player2_library_card_ids.clear()
+	player2_graveyard_card_ids.clear()
+	# Clear initial display
+	_update_zone_display(top_player_library_hbox, player1_library_card_ids, top_player_library_count_label)
+	_update_zone_display(top_player_graveyard_hbox, player1_graveyard_card_ids, top_player_graveyard_count_label)
+	_update_zone_display(bottom_player_library_hbox, player2_library_card_ids, bottom_player_library_count_label) # Assuming player1 is bottom
+	_update_zone_display(bottom_player_graveyard_hbox, player2_graveyard_card_ids, bottom_player_graveyard_count_label)
+
 	var player_names_found = []
 	for event in battle_events:
 		if event.event_type == "turn_start":
@@ -50,11 +77,52 @@ func load_and_start_simple_replay(events: Array[Dictionary]):
 				player_names_found.append(event.player)
 				if player1_name == "": player1_name = event.player
 				elif player2_name == "" and event.player != player1_name: player2_name = event.player; break
-	if player1_name != "" and player2_name == "":
-		if player1_name == "Player" and events.size() > 0 and events[0].has("player") and events[0].player != "Player": player2_name = events[0].player
-		elif player1_name != "Opponent": player2_name = "Opponent"
-		else: player2_name = "Player"
-	print("Player 1 (Bottom assumed): ", player1_name); print("Player 2 (Top assumed): ", player2_name)
+
+	# --- Determine Player Names ---
+	# We'll assume the first 'initial_library_state' event for "Player" is the bottom player,
+	# and the other is the top player. This is more robust if event order is guaranteed.
+	var found_player_for_p1: bool = false
+	for event_peek in events:
+		if event_peek.get("event_type") == "initial_library_state":
+			var current_event_player = event_peek.get("player", "")
+			if current_event_player == "Player":
+				player1_name = "Player" # Bottom Player
+				found_player_for_p1 = true
+			elif player1_name != "" and current_event_player != player1_name: # Second unique player
+				player2_name = current_event_player # Top Player
+				break # Found both
+			elif player1_name == "" and current_event_player != "": # First player encountered isn't "Player"
+				player2_name = current_event_player # Tentatively assign to top
+		# If we found "Player" for p1, and then found a different player for p2, we are done.
+		if found_player_for_p1 and player2_name != "" and player2_name != player1_name:
+			break
+	
+	# Fallback if "Player" wasn't explicitly found but we have two names from initial_library_state
+	if not found_player_for_p1 and player2_name != "": # player2_name got the first one
+		var first_player_from_event = ""
+		var second_player_from_event = ""
+		for event_peek in events:
+			if event_peek.get("event_type") == "initial_library_state":
+				if first_player_from_event == "":
+					first_player_from_event = event_peek.get("player", "")
+				elif second_player_from_event == "" and event_peek.get("player","") != first_player_from_event:
+					second_player_from_event = event_peek.get("player", "")
+					break
+		if "Player" in [first_player_from_event, second_player_from_event]: # Should not happen if previous block failed
+			player1_name = "Player"
+			player2_name = first_player_from_event if first_player_from_event != "Player" else second_player_from_event
+		else: # Default to first found as player1 (bottom) if "Player" is not present at all.
+			player1_name = first_player_from_event
+			player2_name = second_player_from_event
+
+	# Final safety net if names are still not set (e.g. very short/unusual event log)
+	if player1_name == "": player1_name = "Player" # Default
+	if player2_name == "": player2_name = "Opponent" # Default
+
+	print("Player 1 (Bottom UI): ", player1_name)
+	print("Player 2 (Top UI): ", player2_name)
+
+
 	if not is_node_ready(): await ready
 	if turn_label: turn_label.text = "Turn: -"
 	if event_log_label: event_log_label.text = "Press Step or Play"
@@ -74,6 +142,46 @@ func load_and_start_simple_replay(events: Array[Dictionary]):
 	if is_instance_valid(top_lane_container):
 		for lane in top_lane_container.get_children():
 			for child in lane.get_children(): child.queue_free()
+
+	# --- Process initial library state events immediately ---
+	var initial_events_processed_count = 0
+	for i in range(events.size()):
+		var event = events[i]
+		if event.get("event_type") == "initial_library_state":
+			# Call directly, don't wait for timer in this initial setup
+			# handle_initial_library_state(event) # This has an await, let's inline a non-await version for setup
+			# --- Inlined version of handle_initial_library_state for setup ---
+			var target_library_arr_ref: Array = []
+			var target_library_display_node: HBoxContainer = null
+			var target_library_count_label: Label = null
+
+			if event.player == player1_name:
+				target_library_arr_ref = player1_library_card_ids
+				target_library_display_node = bottom_player_library_hbox
+				target_library_count_label = bottom_player_library_count_label
+			elif event.player == player2_name:
+				target_library_arr_ref = player2_library_card_ids
+				target_library_display_node = top_player_library_hbox
+				target_library_count_label = top_player_library_count_label
+			
+			if target_library_arr_ref != null:
+				target_library_arr_ref.clear()
+				for card_id_str in event.card_ids:
+					target_library_arr_ref.append(card_id_str)
+				if target_library_display_node:
+					_update_zone_display(target_library_display_node, target_library_arr_ref, target_library_count_label)
+			# --- End Inlined version ---
+			initial_events_processed_count += 1
+		elif event.get("event_type") == "turn_start": # Stop after initial library, before first turn starts
+			break 
+		else: # Should only be initial_library_state events before first turn_start
+			initial_events_processed_count += 1 # Count any other pre-turn_start events too
+
+	current_event_index = initial_events_processed_count - 1 # Start processing from the event AFTER initial ones
+	
+	if event_log_label: event_log_label.text = "Press Step or Play"
+	# call_deferred("_on_step_button_pressed") # Or let user press play/step
+
 	call_deferred("_on_step_button_pressed")
 
 func _on_play_button_pressed():
@@ -124,6 +232,8 @@ func process_next_event():
 
 
 	match event.event_type:
+		"initial_library_state": await handle_initial_library_state(event) # Add this
+		"turn_start": await handle_turn_start(event)
 		"turn_start": await handle_turn_start(event)
 		"mana_change": await handle_mana_change(event)
 		"card_played": await handle_card_played(event)
@@ -293,6 +403,75 @@ func handle_card_played(event):
 
 func handle_card_moved(event):
 	print("  -> %s's %s moved from %s to %s (Reason: %s)" % [event.player, event.card_id, event.from_zone, event.to_zone, event.get("reason", "N/A")])
+
+	var target_library_arr: Array = []
+	var target_graveyard_arr: Array = []
+	var target_library_display_node: HBoxContainer = null
+	var target_graveyard_display_node: HBoxContainer = null
+	var target_library_count_label: Label = null
+	var target_graveyard_count_label: Label = null
+
+	var card_id_to_move = event.card_id
+
+	if event.player == player1_name: # Assuming player1_name is bottom player
+		target_library_arr = player1_library_card_ids
+		target_graveyard_arr = player1_graveyard_card_ids
+		target_library_display_node = bottom_player_library_hbox
+		target_graveyard_display_node = bottom_player_graveyard_hbox
+		# target_library_count_label = bottom_player_library_count_label # Assign if you added these
+		# target_graveyard_count_label = bottom_player_graveyard_count_label
+	elif event.player == player2_name: # Assuming player2_name is top player
+		target_library_arr = player2_library_card_ids
+		target_graveyard_arr = player2_graveyard_card_ids
+		target_library_display_node = top_player_library_hbox
+		target_graveyard_display_node = top_player_graveyard_hbox
+		# target_library_count_label = top_player_library_count_label
+		# target_graveyard_count_label = top_player_graveyard_count_label
+	else:
+		printerr("Card Moved: Unknown player %s" % event.player)
+		await get_tree().create_timer(0.1 / playback_speed_scale).timeout
+		return
+
+	# Remove from 'from_zone'
+	match event.from_zone:
+		"library":
+			var idx = target_library_arr.find(card_id_to_move) # This assumes unique cards, or just removes first found
+			if idx != -1:
+				target_library_arr.remove_at(idx)
+			else: # If not found, it implies the library might not be fully tracked from turn 0.
+				print("Card %s not found in %s's library to remove (from_zone)." % [card_id_to_move, event.player])
+		"graveyard":
+			var idx = target_graveyard_arr.find(card_id_to_move)
+			if idx != -1:
+				target_graveyard_arr.remove_at(idx)
+		"lane":
+			pass # Handled by creature_defeated or summon_leaves_lane for visuals
+		"play":
+			pass # Transient zone, no persistent visual array needed
+
+	# Add to 'to_zone'
+	match event.to_zone:
+		"library":
+			# The event spec has from_details/to_details for top/bottom.
+			# For simplicity here, we'll just append. Precise ordering needs more.
+			var card_target_position = event.get("to_details", {}).get("position", "top")
+			if card_target_position == "bottom":
+				target_library_arr.append(card_id_to_move)
+			else: # top or unspecified
+				target_library_arr.insert(0, card_id_to_move)
+		"graveyard":
+			target_graveyard_arr.append(card_id_to_move)
+		"lane":
+			pass # Handled by summon_arrives for visuals
+		"play":
+			pass # Transient zone
+
+	# Update displays
+	if target_library_display_node:
+		_update_zone_display(target_library_display_node, target_library_arr, target_library_count_label)
+	if target_graveyard_display_node:
+		_update_zone_display(target_graveyard_display_node, target_graveyard_arr, target_graveyard_count_label)
+
 	await get_tree().create_timer(0.3 / playback_speed_scale).timeout
 
 func handle_card_removed(event):
@@ -404,6 +583,76 @@ func handle_battle_end(event):
 	is_playing = false
 	if playback_timer: playback_timer.stop()
 
+func _update_zone_display(container_node: HBoxContainer, card_ids: Array[String], count_label: Label):
+	if not is_instance_valid(container_node):
+		printerr("_update_zone_display: Invalid container node.")
+		return
+
+	# Clear existing card icons
+	for child in container_node.get_children():
+		child.queue_free()
+
+	# Add new card icons
+	for card_id_str in card_ids:
+		if not CardDB:
+			printerr("CardDB not available in _update_zone_display")
+			continue
+		var card_res = CardDB.get_card_resource(card_id_str)
+		if card_res and is_instance_valid(card_res):
+			var icon = TextureRect.new()
+			var tex = load(card_res.artwork_path) if ResourceLoader.exists(card_res.artwork_path) else null
+			if tex:
+				icon.texture = tex
+			else: # Fallback: use a ColorRect if art fails
+				icon.texture = null # Or a default "unknown card" texture
+				printerr("Missing art for %s at %s" % [card_id_str, card_res.artwork_path])
+				var color_rect_fallback = ColorRect.new()
+				color_rect_fallback.color = Color.DARK_SLATE_GRAY
+				color_rect_fallback.custom_minimum_size = Vector2(20,30) # Match your desired icon size
+				icon.add_child(color_rect_fallback)
+
+
+			icon.custom_minimum_size = Vector2(90, 100) # Adjust size as needed
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			container_node.add_child(icon)
+		else:
+			printerr("Could not get CardResource for ID: ", card_id_str)
+
+	if is_instance_valid(count_label):
+		count_label.text = str(card_ids.size())
+	# else:
+		# print("No count label provided for zone: ", container_node.name)
+
+func handle_initial_library_state(event):
+	print("  -> Initial Library for %s: %s cards" % [event.player, event.card_ids.size()])
+	var target_library_arr_ref: Array # Use a reference to the array
+	var target_library_display_node: HBoxContainer = null
+	var target_library_count_label: Label = null # Add if you have count labels
+
+	if event.player == player1_name: # Bottom player (assuming player1 is bottom)
+		target_library_arr_ref = player1_library_card_ids
+		target_library_display_node = bottom_player_library_hbox
+		# target_library_count_label = bottom_player_library_count_label
+	elif event.player == player2_name: # Top player
+		target_library_arr_ref = player2_library_card_ids
+		target_library_display_node = top_player_library_hbox
+		# target_library_count_label = top_player_library_count_label
+	else:
+		printerr("Initial Library: Unknown player %s" % event.player)
+		return # Don't await if erroring early
+
+	if target_library_arr_ref != null: # Check if we successfully got a reference
+		target_library_arr_ref.clear() # Clear any previous (e.g. hardcoded) state
+		for card_id_str in event.card_ids:
+			target_library_arr_ref.append(card_id_str)
+
+		if target_library_display_node:
+			_update_zone_display(target_library_display_node, target_library_arr_ref, target_library_count_label)
+
+	# No specific await needed here unless _update_zone_display adds one or you want a pause
+	await get_tree().create_timer(0.1 / playback_speed_scale).timeout # Small delay for pacing if desired
+
 func debug_print_node_layout_info(node: Control, node_description: String = ""):
 	if not is_instance_valid(node):
 		print("Debug Layout: Node is not valid for ", node_description)
@@ -473,3 +722,14 @@ func debug_print_layout_hierarchy(node: Control, description: String = "Start No
 		if depth > 10: # Safety break
 			print("Reached max depth in hierarchy print.")
 			break
+
+func _ready():
+	await get_tree().process_frame # Ensure autoloads are ready
+	if CardDB:
+		var test_card = CardDB.get_card_resource("RecurringSkeleton") # Or any valid card ID
+		if test_card:
+			print("CardDB Test: Found ", test_card.card_name)
+		else:
+			print("CardDB Test: RecurringSkeleton not found.")
+	else:
+		print("CardDB not available.")

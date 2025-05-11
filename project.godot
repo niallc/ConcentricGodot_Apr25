@@ -18,11 +18,12 @@ config/icon="res://icon.svg"
 [autoload]
 
 Constants="*res://logic/constants.gd"
+CardDB="*res://logic/tools/CardDB.gd"
 
 [display]
 
-window/size/viewport_width=2300
-window/size/viewport_height=1300
+window/size/viewport_width=1500
+window/size/viewport_height=1800
 
 [dotnet]
 

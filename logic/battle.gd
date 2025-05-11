@@ -45,6 +45,26 @@ func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: S
 	var active_duelist = duelist1
 	var opponent_duelist = duelist2
 
+	var p1_initial_library_ids: Array[String] = []
+	for card_res in duelist1.library: # deck1 is the array of CardResource
+		p1_initial_library_ids.append(card_res.id)
+	add_event({
+		"event_type": "initial_library_state",
+		"player": duelist1.combatant_name,
+		"card_ids": p1_initial_library_ids,
+		"instance_id": "None, Library Initialization"
+		# 'turn' will be 0, 'timestamp' will be among the first
+	})
+
+	var p2_initial_library_ids: Array[String] = []
+	for card_res in duelist2.library: # deck2 is the array of CardResource
+		p2_initial_library_ids.append(card_res.id)
+	add_event({
+		"event_type": "initial_library_state",
+		"player": duelist2.combatant_name,
+		"card_ids": p2_initial_library_ids,
+		"instance_id": "None, Library Initialization"
+	})
 	while battle_state == "Ongoing" and turn_count < Constants.MAX_TURNS:
 		print("\n--- Turn %d (%s) ---" % [turn_count, active_duelist.combatant_name])
 		conduct_turn(active_duelist, opponent_duelist)
