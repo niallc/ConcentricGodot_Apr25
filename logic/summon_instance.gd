@@ -128,6 +128,7 @@ func die():
 			prevent_graveyard = custom_state["prevent_graveyard"]
 			custom_state.erase("prevent_graveyard")
 
+	# At present the replaced_in_lane check only refers too Cursed Samurai
 	# Cursed Samurai handles its own lane update, so don't do anything else here.
 	if custom_state.has("replaced_in_lane"):
 		replaced_in_lane = custom_state["replaced_in_lane"]

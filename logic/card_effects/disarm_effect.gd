@@ -31,7 +31,8 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, _opponen
 			"event_type": "visual_effect",
 			"effect_id": "disarm_debuff",
 			"target_locations": ["%s lane %d" % [_opponent_combatant.combatant_name, target_lane_index + 1]],
-			"details": {"amount": power_reduction}
+			"details": {"amount": power_reduction},
+			"instance_id": "None yet, visual effect. But e.g. Disarm probably wants one."
 		})
 	else:
 		# Log if no target was found

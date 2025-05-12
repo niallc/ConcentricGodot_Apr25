@@ -21,7 +21,8 @@ func apply_effect(_source_card_res: SpellCardResource, active_combatant, opponen
 				"player": active_combatant.combatant_name,
 				"from_zone": "graveyard",
 				"to_zone": "library",
-				"to_details": {"position": "bottom"}
+				"to_details": {"position": "bottom"},
+				"instance_id": "None, card moving effect."
 			})
 		active_combatant.graveyard.clear() # Clear graveyard after moving
 
@@ -36,7 +37,8 @@ func apply_effect(_source_card_res: SpellCardResource, active_combatant, opponen
 				"card_id": card_to_remove.id,
 				"player": opponent_combatant.combatant_name,
 				"from_zone": "graveyard",
-				"reason": "superior_intellect"
+				"reason": "superior_intellect",
+				"instance_id": "None, card effect (emptying graveyard)."
 			})
 		opponent_combatant.graveyard.clear()
 
@@ -45,5 +47,6 @@ func apply_effect(_source_card_res: SpellCardResource, active_combatant, opponen
 		"event_type": "visual_effect",
 		"effect_id": "superior_intellect_cast",
 		"target_locations": [active_combatant.combatant_name + " graveyard", opponent_combatant.combatant_name + " graveyard"],
-		"details": {}
+		"details": {},
+		"instance_id": "None, visual effect."
 	})

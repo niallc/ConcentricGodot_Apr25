@@ -1,5 +1,6 @@
 # res://scenes/battle_replay.gd
 extends Control
+class_name BattleReplay
 
 # --- Properties ---
 var battle_events: Array[Dictionary] = []
@@ -52,12 +53,11 @@ var player2_library_card_ids: Array[String] = []
 var player2_graveyard_card_ids: Array[String] = []
 
 # --- Public API & Playback Control ---
-func load_and_start_simple_replay(events: Array[Dictionary]):
-	print("BattleReplay: Loading %d events." % events.size())
-	battle_events = events
+func load_and_start_simple_replay(initial_events: Array[Dictionary]):
+	print("BattleReplay: Loading %d events." % initial_events.size())
+	self.battle_events = initial_events
 	current_event_index = -1
 	is_playing = false
-	player1_name = ""; player2_name = ""
 
 	# --- Clear graveyards and libraries ----
 	player1_library_card_ids.clear()
@@ -70,58 +70,10 @@ func load_and_start_simple_replay(events: Array[Dictionary]):
 	_update_zone_display(bottom_player_library_hbox, player2_library_card_ids, bottom_player_library_count_label) # Assuming player1 is bottom
 	_update_zone_display(bottom_player_graveyard_hbox, player2_graveyard_card_ids, bottom_player_graveyard_count_label)
 
-	var player_names_found = []
-	for event in battle_events:
-		if event.event_type == "turn_start":
-			if not event.player in player_names_found:
-				player_names_found.append(event.player)
-				if player1_name == "": player1_name = event.player
-				elif player2_name == "" and event.player != player1_name: player2_name = event.player; break
-
 	# --- Determine Player Names ---
-	# We'll assume the first 'initial_library_state' event for "Player" is the bottom player,
-	# and the other is the top player. This is more robust if event order is guaranteed.
-	var found_player_for_p1: bool = false
-	for event_peek in events:
-		if event_peek.get("event_type") == "initial_library_state":
-			var current_event_player = event_peek.get("player", "")
-			if current_event_player == "Player":
-				player1_name = "Player" # Bottom Player
-				found_player_for_p1 = true
-			elif player1_name != "" and current_event_player != player1_name: # Second unique player
-				player2_name = current_event_player # Top Player
-				break # Found both
-			elif player1_name == "" and current_event_player != "": # First player encountered isn't "Player"
-				player2_name = current_event_player # Tentatively assign to top
-		# If we found "Player" for p1, and then found a different player for p2, we are done.
-		if found_player_for_p1 and player2_name != "" and player2_name != player1_name:
-			break
-	
-	# Fallback if "Player" wasn't explicitly found but we have two names from initial_library_state
-	if not found_player_for_p1 and player2_name != "": # player2_name got the first one
-		var first_player_from_event = ""
-		var second_player_from_event = ""
-		for event_peek in events:
-			if event_peek.get("event_type") == "initial_library_state":
-				if first_player_from_event == "":
-					first_player_from_event = event_peek.get("player", "")
-				elif second_player_from_event == "" and event_peek.get("player","") != first_player_from_event:
-					second_player_from_event = event_peek.get("player", "")
-					break
-		if "Player" in [first_player_from_event, second_player_from_event]: # Should not happen if previous block failed
-			player1_name = "Player"
-			player2_name = first_player_from_event if first_player_from_event != "Player" else second_player_from_event
-		else: # Default to first found as player1 (bottom) if "Player" is not present at all.
-			player1_name = first_player_from_event
-			player2_name = second_player_from_event
-
-	# Final safety net if names are still not set (e.g. very short/unusual event log)
-	if player1_name == "": player1_name = "Player" # Default
-	if player2_name == "": player2_name = "Opponent" # Default
-
+	_determine_player_identities(self.battle_events) # Uses the class member battle_events
 	print("Player 1 (Bottom UI): ", player1_name)
 	print("Player 2 (Top UI): ", player2_name)
-
 
 	if not is_node_ready(): await ready
 	if turn_label: turn_label.text = "Turn: -"
@@ -145,8 +97,8 @@ func load_and_start_simple_replay(events: Array[Dictionary]):
 
 	# --- Process initial library state events immediately ---
 	var initial_events_processed_count = 0
-	for i in range(events.size()):
-		var event = events[i]
+	for i in range(initial_events.size()):
+		var event = initial_events[i]
 		if event.get("event_type") == "initial_library_state":
 			# Call directly, don't wait for timer in this initial setup
 			# handle_initial_library_state(event) # This has an await, let's inline a non-await version for setup
@@ -230,6 +182,9 @@ func process_next_event():
 
 	if event_log_label: event_log_label.text = "Event %d: %s (%s)" % [current_event_index, event.event_type, event.get("player", "N/A")]
 
+	# Temporary debugging code:
+	#if event.event_id == 35:
+		#print("Checking Goblin Firework going to the graveyard.")
 
 	match event.event_type:
 		"initial_library_state": await handle_initial_library_state(event) # Add this
@@ -298,8 +253,7 @@ func handle_turn_start(event):
 	if turn_label: turn_label.text = "Turn: %d (%s)" % [event.turn, event.player]
 	await get_tree().create_timer(0.5 / playback_speed_scale).timeout
 
-# --- MODIFIED BLOCK START ---
-# (Incorporated user's fix for tags default)
+# Fix for tags default
 func handle_summon_arrives(event):
 	print("  -> %s summons %s (ID: %d) in lane %d. Stats P:%d HP:%d/%d Swift:%s Tags:%s" % [
 		event.player, event.card_id, event.instance_id, event.lane,
@@ -333,9 +287,7 @@ func handle_summon_arrives(event):
 		printerr("Could not place summon visual for event: ", event)
 
 	await get_tree().create_timer(0.8 / playback_speed_scale).timeout
-# --- MODIFIED BLOCK END ---
 
-# --- MODIFIED BLOCK START ---
 # (Ensure is_instance_valid checks)
 func handle_creature_defeated(event):
 	print("  -> Creature Defeated: %s lane %d (ID: %d, Card: %s)" % [event.player, event.lane, event.instance_id, event.get("card_id", "N/A")])
@@ -475,7 +427,64 @@ func handle_card_moved(event):
 	await get_tree().create_timer(0.3 / playback_speed_scale).timeout
 
 func handle_card_removed(event):
-	print("  -> %s's %s removed from %s (Reason: %s)" % [event.player, event.card_id, event.from_zone, event.get("reason", "N/A")])
+	var player_name_from_event = event.player
+	var card_id_str = event.card_id
+	var from_zone_str = event.from_zone
+	var reason_str = event.get("reason", "N/A")
+
+	print("  -> %s's %s removed from %s (Reason: %s)" % [player_name_from_event, card_id_str, from_zone_str, reason_str])
+
+	var target_array_ref: Array
+	var target_display_node: HBoxContainer = null
+	var target_count_label: Label = null
+	#var was_library_event = false
+
+	if player_name_from_event == self.player1_name: # Bottom player
+		match from_zone_str:
+			"graveyard":
+				target_array_ref = player1_graveyard_card_ids
+				target_display_node = bottom_player_graveyard_hbox
+				target_count_label = bottom_player_graveyard_count_label
+			"library":
+				target_array_ref = player1_library_card_ids
+				target_display_node = bottom_player_library_hbox
+				target_count_label = bottom_player_library_count_label
+				#was_library_event = true
+			_:
+				printerr("handle_card_removed: Unknown from_zone '%s' for player %s" % [from_zone_str, player_name_from_event])
+				
+	elif player_name_from_event == self.player2_name: # Top player
+		match from_zone_str:
+			"graveyard":
+				target_array_ref = player2_graveyard_card_ids
+				target_display_node = top_player_graveyard_hbox
+				target_count_label = top_player_graveyard_count_label
+			"library":
+				target_array_ref = player2_library_card_ids
+				target_display_node = top_player_library_hbox
+				target_count_label = top_player_library_count_label
+				#was_library_event = true
+			_:
+				printerr("handle_card_removed: Unknown from_zone '%s' for player %s" % [from_zone_str, player_name_from_event])
+	else:
+		printerr("handle_card_removed: Unknown player %s" % player_name_from_event)
+
+	if target_array_ref != null:
+		var card_idx = -1
+		# For "library", the event might need to specify "top" or "bottom" if it's not always the first match.
+		# The spec for card_removed doesn't specify position, so we assume removing any instance of it.
+		# If it's "mill from top/bottom", that should ideally be a 'card_moved' to a "limbo" or "removed" zone.
+		# If 'card_removed' from library is like "opponent discards random card", then finding is okay.
+		# For Superior Intellect clearing opponent's graveyard, this will remove all cards one by one.
+		
+		card_idx = target_array_ref.find(card_id_str) # Finds first occurrence
+		if card_idx != -1:
+			target_array_ref.remove_at(card_idx)
+			if is_instance_valid(target_display_node):
+				_update_zone_display(target_display_node, target_array_ref, target_count_label)
+		else:
+			printerr("handle_card_removed: Card '%s' not found in %s's %s to remove." % [card_id_str, player_name_from_event, from_zone_str])
+	
 	await get_tree().create_timer(0.2 / playback_speed_scale).timeout
 
 func handle_summon_turn_activity(event):
@@ -652,6 +661,64 @@ func handle_initial_library_state(event):
 
 	# No specific await needed here unless _update_zone_display adds one or you want a pause
 	await get_tree().create_timer(0.1 / playback_speed_scale).timeout # Small delay for pacing if desired
+
+# (player1_name and player2_name are already class member variables)
+
+func _determine_player_identities(all_events: Array[Dictionary]) -> void:
+	# Resets and determines player1_name (bottom) and player2_name (top)
+	# Assumes "Player" is the primary/bottom player if present.
+	# Otherwise, assigns based on first two distinct players found.
+
+	player1_name = ""
+	player2_name = ""
+
+	var distinct_players_found: Array[String] = []
+
+	# First pass: look for "Player" and another distinct player from any event
+	for event_peek in all_events:
+		var p = event_peek.get("player")
+		if p == null:
+			continue
+
+		if not p in distinct_players_found:
+			distinct_players_found.append(p)
+
+		if p == "Player":
+			player1_name = "Player"
+		elif p != "Player" and player2_name == "": # Found a candidate for opponent
+			player2_name = p
+		
+		# If we have "Player" and another name, we might be done
+		if player1_name == "Player" and player2_name != "" and player2_name != "Player":
+			break # Sufficiently identified
+
+	# Consolidate findings if "Player" wasn't explicitly first
+	if player1_name == "Player":
+		if player2_name == "" or player2_name == "Player": # Opponent not found or wrongly assigned
+			for p_name in distinct_players_found:
+				if p_name != "Player":
+					player2_name = p_name
+					break
+			if player2_name == "" or player2_name == "Player": # Still no distinct opponent
+				player2_name = "Opponent" # Default if only "Player" was found
+	elif distinct_players_found.size() > 0: # "Player" not found, use first found as p1
+		player1_name = distinct_players_found[0]
+		if distinct_players_found.size() > 1:
+			player2_name = distinct_players_found[1]
+		else:
+			player2_name = "Opponent" # Default if only one player type found (not "Player")
+	else: # No player names found in events at all (highly unlikely)
+		player1_name = "Player"
+		player2_name = "Opponent"
+	
+	# Final ensure they are not the same (should be rare with above logic)
+	if player1_name == player2_name:
+		if player1_name == "Player": player2_name = "Opponent"
+		else: player2_name = "Player" # Fallback if p1 was auto-assigned something else
+
+	# print("Determined Player 1 (Bottom UI): ", player1_name)
+	# print("Determined Player 2 (Top UI): ", player2_name)
+	
 
 func debug_print_node_layout_info(node: Control, node_description: String = ""):
 	if not is_instance_valid(node):

@@ -58,5 +58,6 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent
 		"event_type": "visual_effect",
 		"effect_id": "goblin_rally_cast",
 		"target_locations": [active_combatant.combatant_name], # General player area?
-		"details": {"summoned_count": summoned_count}
+		"details": {"summoned_count": summoned_count},
+		"instance_id": "None: Goblin Rally Visual Effect."
 	})

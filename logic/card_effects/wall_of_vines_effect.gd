@@ -12,7 +12,8 @@ func perform_turn_activity_override(summon_instance: SummonInstance, active_comb
 		"player": active_combatant.combatant_name,
 		"lane": summon_instance.lane_index + 1,
 		"activity_type": "ability_mana_gen", # Specific type for replay
-		"details": {"mana_gained": mana_gain}
+		"details": {"mana_gained": mana_gain},
+		"instance_id": "None, player mana gain (from ability)"
 	})
 
 	return true # Return true to indicate we handled the turn activity

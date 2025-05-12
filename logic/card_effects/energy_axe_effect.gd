@@ -22,7 +22,8 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, _opponen
 			"event_type": "visual_effect",
 			"effect_id": "energy_axe_boost", # Identifier for the visual effect
 			"target_locations": ["%s lane %d" % [active_combatant.combatant_name, target_lane_index + 1]], # Target lane (1-based)
-			"details": {"boost_amount": power_boost}
+			"details": {"boost_amount": power_boost},
+			"instance_id": "None, visual effect."
 		}
 		battle_instance.add_event(visual_event)
 

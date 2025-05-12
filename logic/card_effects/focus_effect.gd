@@ -11,5 +11,6 @@ func apply_effect(_source_card_res: SpellCardResource, active_combatant, _oppone
 		"event_type": "visual_effect",
 		"effect_id": "focus_mana_gain",
 		"target_locations": [active_combatant.combatant_name],
-		"details": {"amount": mana_gain}
+		"details": {"amount": mana_gain},
+		"instance_id": "None, player gaining mana from Focus."
 	})

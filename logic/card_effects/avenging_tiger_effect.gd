@@ -14,7 +14,10 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant, opponent_com
 			"player": active_combatant.combatant_name,
 			"lane": summon_instance.lane_index + 1,
 			"status": "Swift",
-			"gained": true
+			"gained": true,
+			# TODO: One way or another, handle instancing for status_change
+			#       events. There could be multiple e.g. tigers.
+			"instance_id": "Not implemented yet but needed. Gained swift event."
 		})
 	else:
 		print("...Player HP not lower, no Swift granted.")

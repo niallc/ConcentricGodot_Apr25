@@ -16,7 +16,8 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 			"from_zone": "library",
 			"from_details": {"position": "bottom"},
 			"to_zone": "limbo", # Or specific "stolen" zone?
-			"reason": "thought_acquirer"
+			"reason": "thought_acquirer",
+		"	instance_id": "Not implemented yet. Thought Acquirer card moved from target lbrary."
 		})
 
 		# Add it to bottom of active player's library
@@ -31,7 +32,8 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 			"from_zone": "limbo",
 			"to_zone": "library",
 			"to_details": {"position": "bottom"},
-			"reason": "thought_acquirer"
+			"reason": "thought_acquirer",
+		"	instance_id": "Not implemented yet. Thought Acquirer card moved to new library."
 		})
 
 		# Optional visual effect
@@ -39,7 +41,8 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 			"event_type": "visual_effect",
 			"effect_id": "thought_acquirer_steal",
 			"target_locations": [opponent_combatant.combatant_name + " library", active_combatant.combatant_name + " library"],
-			"details": {"card_id": stolen_card_res.id}
+			"details": {"card_id": stolen_card_res.id},
+		"	instance_id": "Not implemented yet, probably needed. Visual Effect."
 		})
 	else:
 		print("...Opponent library is empty, nothing to steal.")

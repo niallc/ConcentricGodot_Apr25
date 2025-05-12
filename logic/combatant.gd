@@ -65,7 +65,8 @@ func heal(amount: int):
 			"event_type": "hp_change",
 			"player": combatant_name,
 			"amount": current_hp - hp_before, # Positive for heal
-			"new_total": current_hp
+			"new_total": current_hp,
+			"instance_id": "None, player heal"
 		})
 
 func gain_mana(amount: int):
@@ -168,7 +169,8 @@ func lose_mana(amount: int, source_id: String = "unknown"):
 # Helper function to mill the top card
 func mill_top_card(reason: String = "unknown"):
 	if not library.is_empty():
-		var milled_card = library.pop_front() # Remove from top
+		#var milled_card = library.pop_front() # Remove from top
+		var milled_card = remove_card_from_library()
 		print("%s mills %s from top of library." % [combatant_name, milled_card.card_name])
 		# Add to graveyard (generates card_moved event)
 		add_card_to_graveyard(milled_card, "library_top_" + reason) # Add reason to source zone

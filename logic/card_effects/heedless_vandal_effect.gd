@@ -14,5 +14,6 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 		"event_type": "visual_effect",
 		"effect_id": "heedless_vandal_mill",
 		"target_locations": [active_combatant.combatant_name + " library", opponent_combatant.combatant_name + " library"],
-		"details": {}
+		"details": {},
+		"instance_id": "None, Heedless vandal arrival visual effect."
 	}) # visual_effect event

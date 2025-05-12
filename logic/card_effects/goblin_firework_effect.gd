@@ -22,7 +22,8 @@ func _on_death(summon_instance: SummonInstance, _active_combatant, opponent_comb
 				"event_type": "visual_effect",
 				"effect_id": "firework_explode",
 				"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, opposing_lane_index + 1]],
-				"details": {"damage": damage}
+				"details": {"damage": damage},
+				"instance_id": "None, visual effect on" + str(target_instance.instance_id)
 			})
 		else:
 			print("...no target found in opposing lane.")

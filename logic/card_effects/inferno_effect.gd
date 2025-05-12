@@ -25,7 +25,8 @@ func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent
 		"event_type": "visual_effect",
 		"effect_id": "inferno_damage",
 		"target_locations": affected_locations,
-		"details": {"damage": damage}
+		"details": {"damage": damage},
+		"instance_id": "None, Inferno visual effect"
 	}) # visual_effect event
 
 	# Apply damage to all targets

@@ -24,7 +24,8 @@ func _on_arrival(summon_instance: SummonInstance, _active_combatant, opponent_co
 			"player": opponent_combatant.combatant_name,
 			"lane": target_lane_index + 1,
 			"card_id": target_card_res.id,
-			"reason": "bounce_portal_mage"
+			"reason": "bounce_portal_mage",
+			"instance_id": "Not implemented yet. Portal mage leave-lane effect."
 		})
 		# Event for card moving to library
 		battle_instance.add_event({
@@ -33,14 +34,16 @@ func _on_arrival(summon_instance: SummonInstance, _active_combatant, opponent_co
 			"player": opponent_combatant.combatant_name,
 			"from_zone": "lane", # Or maybe "bounce_effect"?
 			"to_zone": "library",
-			"to_details": {"position": "top"} # Indicate it went to the top
+			"to_details": {"position": "top"},
+			"instance_id": "Not implemented yet. Portal mage back in library effect."
 		})
 		# Optional: Visual effect event
 		battle_instance.add_event({
 			"event_type": "visual_effect",
 			"effect_id": "portal_mage_bounce",
 			"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, target_lane_index + 1]],
-			"details": {}
+			"details": {},
+			"instance_id": "Not implemented yet. Portal mage visual effect."
 		})
 
 	else:
