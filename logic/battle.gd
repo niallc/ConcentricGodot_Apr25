@@ -9,6 +9,8 @@ var battle_events: Array[Dictionary] = []
 var _event_timestamp_counter: float = 0.0 # Use float for finer granularity
 var _event_id_counter: int = 0 # Unique ID per event
 var _next_instance_id: int = 0 # Counter for summon instances
+# New (2025/05/13) card instancing approach (below)
+var _next_card_instance_id: int = 1 
 
 var rng = RandomNumberGenerator.new()
 var current_seed = 0 # Store the seed used
@@ -19,12 +21,21 @@ func get_new_instance_id() -> int:
 	_next_instance_id += 1
 	return _next_instance_id
 
+# New (2025/05/13) method to generate unique card instance IDs for this battle
+## Generates and returns a new unique ID for a card instance.
+## These IDs are unique within the scope of this single battle.
+func _generate_new_card_instance_id() -> int:
+	var new_id = _next_card_instance_id
+	_next_card_instance_id += 1
+	return new_id
+
 func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: String, name2: String, my_seed: int = 0) -> Array[Dictionary]:
 	# print("Is it an Ostrich, a Quokka, a Polar Bear, or a Marmot?")
 	battle_events.clear()
 	_event_timestamp_counter = 0.0
 	_event_id_counter = 0
 	_next_instance_id = 0 # Reset instance counter for each battle
+	_next_card_instance_id = 1 # Crucial: Reset ID counter for each new battle
 	turn_count = 0
 	battle_state = "Ongoing"
 
@@ -105,15 +116,21 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 	# - If Spell: card_script.apply_effect(...); active_duelist.add_card_to_graveyard(...)
 	# - If Summon: Create SummonInstance, place in lane, generate summon_arrives, call _on_arrival
 	if not active_duelist.library.is_empty():
-		var top_card: CardResource = active_duelist.library[0]
+		var top_card_in_zone: CardInZone = active_duelist.library[0]
+		var top_card_resource: CardResource = top_card_in_zone.card_resource # Get the underlying resource
+		if not top_card_resource: # Safety check
+			printerr("Battle.conduct_turn: Top card in zone has no underlying CardResource!")
+			return 
+
 		var card_script_instance = null
-		if top_card.script != null:
+		if top_card_resource.script != null:
+			card_script_instance = top_card_resource.script.new()
 			# NOTE: We might want to cache these script instances if .new() is slow,
 			# but for now, creating it on demand is fine.
-			card_script_instance = top_card.script.new()
+			card_script_instance = top_card_resource.script.new()
 
 		# --- Check Playability ---
-		var play_cost = top_card.cost
+		var play_cost = top_card_resource.cost
 		var can_afford = active_duelist.mana >= play_cost
 		var custom_can_play = true
 		var lane_available = true # Assume true unless it's a summon that needs one
@@ -123,40 +140,41 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 			custom_can_play = card_script_instance.can_play(active_duelist, opponent_duelist, turn_count, self)
 
 		# Lane check (only if it's a SummonCardResource)
-		if top_card is SummonCardResource:
+		if top_card_in_zone is CardInZone:
 			if active_duelist.find_first_empty_lane() == -1:
 				lane_available = false
 
 		# --- Attempt Play ---
 		if can_afford and custom_can_play and lane_available:
-			print("Attempting to play: %s" % top_card.card_name)
+			print("Attempting to play: %s (Instance: %s)" % [top_card_resource.card_name, top_card_in_zone.instance_id])
+			var played_card_in_zone_obj: CardInZone = active_duelist.remove_card_from_library() 
 			# Pay Cost
 			if active_duelist.pay_mana(play_cost): # pay_mana generates mana_change event
 				# Remove Card from Library (generates card_moved library -> play)
-				var played_card_res = active_duelist.remove_card_from_library()
+				#var played_card_res = active_duelist.remove_card_from_library()
+				var underlying_played_card_res = played_card_in_zone_obj.card_resource
 
-				if played_card_res != null: # Should always succeed if library wasn't empty
+				if underlying_played_card_res != null: # Should always succeed if library wasn't empty
 					# Generate Summary Event
 					add_event({
 						"event_type": "card_played",
 						"player": active_duelist.combatant_name,
-						"card_id": played_card_res.id,
-						"card_type": played_card_res.get_card_type(), # "Spell" or "Summon"
+						"card_id": underlying_played_card_res.id,
+						"card_type": underlying_played_card_res.get_card_type(), # "Spell" or "Summon"
 						"remaining_mana": active_duelist.mana,
-						"instance_id": "none, card played"
+						"instance_id": played_card_in_zone_obj.instance_id # Log the instance_id of the card that was played
 						# Lane added by summon_arrives event if applicable
 					})
 
 					# --- Resolve Effect ---
-					if played_card_res is SummonCardResource:
-						var summon_card_res = played_card_res as SummonCardResource
+					if underlying_played_card_res is SummonCardResource:
+						var summon_card_res = underlying_played_card_res as SummonCardResource
 						var target_lane_index = active_duelist.find_first_empty_lane() # Find again to be safe
 
 						if target_lane_index != -1:
 							var new_summon = SummonInstance.new()
-							# Pass references needed by SummonInstance and its effects
-							var new_id = get_new_instance_id()
-							new_summon.setup(summon_card_res, active_duelist, opponent_duelist, target_lane_index, self, new_id) # Pass ID
+							var new_summon_instance_id = _generate_new_card_instance_id() # ID for the creature ON THE FIELD
+							new_summon.setup(summon_card_res, active_duelist, opponent_duelist, target_lane_index, self, new_summon_instance_id)
 
 							# Place in logic lane
 							active_duelist.place_summon_in_lane(new_summon, target_lane_index)
@@ -167,7 +185,7 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 								"player": active_duelist.combatant_name,
 								"card_id": summon_card_res.id,
 								"lane": target_lane_index + 1, # 1-based
-								"instance_id": new_id, 
+								"instance_id": new_summon_instance_id, # The SummonInstance's unique ID
 								"power": new_summon.get_current_power(), # Use calculated value
 								"max_hp": new_summon.get_current_max_hp(),
 								"current_hp": new_summon.current_hp,
@@ -177,12 +195,12 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 							# Generate Moved Event (play -> lane)
 							add_event({
 								"event_type": "card_moved",
-								"card_id": played_card_res.id,
+								"card_id": underlying_played_card_res.id,
 								"player": active_duelist.combatant_name,
 								"from_zone": "play",
 								"to_zone": "lane",
 								"to_details": {"lane": target_lane_index + 1},
-								"instance_id": new_id
+								"instance_id": new_summon_instance_id # The ID of the new SummonInstance in the lane
 							})
 
 							# Call _on_arrival effect script (if it exists)
@@ -192,13 +210,13 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 
 						else:
 							# This case should ideally be prevented by the lane_available check, but log defensively
-							printerr("Error: Tried to summon %s but no empty lane found after check!" % played_card_res.card_name)
+							printerr("Error: Tried to summon %s but no empty lane found after check!" % summon_card_res.card_name)
 							# Should the card go to graveyard? Or fizzle? Let's assume graveyard for now.
-							active_duelist.add_card_to_graveyard(played_card_res, "play")
+							active_duelist.add_card_to_graveyard(played_card_in_zone_obj, "play", played_card_in_zone_obj.instance_id)
 
 
-					elif played_card_res is SpellCardResource:
-						var spell_card_res = played_card_res as SpellCardResource
+					elif underlying_played_card_res is SpellCardResource:
+						var spell_card_res = underlying_played_card_res as SpellCardResource
 						# Call apply_effect script (if it exists)
 						# The effect script is responsible for its own events
 						if card_script_instance != null and card_script_instance.has_method("apply_effect"):
@@ -209,13 +227,18 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 							print("Warning: Spell %s has no apply_effect method." % spell_card_res.card_name)
 
 						# Add spell to graveyard (generates card_moved play -> graveyard)
-						active_duelist.add_card_to_graveyard(spell_card_res, "play")
+						# The played_card_in_zone_obj is the spell instance that was played.
+						# Its instance_id is passed as p_instance_id_if_relevant because that's the ID
+						# it had in the 'play' zone.
+						active_duelist.add_card_to_graveyard(played_card_in_zone_obj, "play", played_card_in_zone_obj.instance_id)
+						# I think the line below is now obsolete (13th May 2025, 19.25)
+						# active_duelist.add_card_to_graveyard(spell_card_res, "play")
 
 				else:
 					printerr("Error: Failed to remove card from library after paying mana.")
 			else:
 				# This shouldn't happen if can_afford was true, but log defensively
-				printerr("Error: Failed to pay mana for %s even though check passed." % top_card.card_name)
+				printerr("Error: Failed to pay mana for %s even though check passed." % top_card_resource.card_name)
 
 		# else: # Card could not be played (mana, custom check, or no lane)
 			# print("Could not play %s" % top_card.card_name) # Optional: Log non-play event?

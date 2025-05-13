@@ -18,25 +18,40 @@ func apply_effect(_source_card_res: SpellCardResource, _active_combatant, oppone
 		# 1. Remove from lane
 		opponent_combatant.remove_summon_from_lane(target_lane_index)
 		# 2. Add card resource to bottom of library
-		opponent_combatant.library.push_back(target_card_res)
+		var new_instance_id_for_library = battle_instance._generate_new_card_instance_id()
+		var card_in_zone_for_library = CardInZone.new(target_instance, new_instance_id_for_library)
+
+		opponent_combatant.library.push_back(card_in_zone_for_library)
 
 		# 3. Generate events
 		battle_instance.add_event({
 			"event_type": "summon_leaves_lane",
 			"player": opponent_combatant.combatant_name,
-			"lane": target_lane_index + 1,
-			"card_id": target_card_res.id,
-			"reason": "elsewhere_bounce"
+			"lane": target_instance.lane_index + 1,
+			"card_id": target_instance.instance_id,
+			"instance_id": target_instance.instance_id,
+			"reason": "elsewhere_effect_" + _source_card_res.id,
+			"source_instance_id": "None: Elsewhere spell (only summons need instances?)"
 		}) # summon_leaves_lane event
 		battle_instance.add_event({
 			"event_type": "card_moved",
-			"card_id": target_card_res.id,
+			"card_id": new_instance_id_for_library.id,
 			"player": opponent_combatant.combatant_name,
 			"from_zone": "lane",
+			"from_details": {
+				"lane": target_instance.lane_index + 1, # Lane it died in
+				"instance_id": target_instance.instance_id
+			},
 			"to_zone": "library",
-			"to_details": {"position": "bottom"},
-			"reason": "elsewhere_bounce"
-		}) # card_moved event
+			"to_details": {
+				"position": "bottom",
+				"instance_id": new_instance_id_for_library # The new ID in the library
+			},
+			# Main instance_id of the event: the ID of the entity as it was in the from_zone.
+			"instance_id": target_instance.instance_id, 
+			"reason": "elsewhere_effect_" + _source_card_res.id,
+			"source_instance_id": "None: Elsewhere spell (only summons need instances?)"
+		})
 		# Optional visual effect
 		battle_instance.add_event({
 			"event_type": "visual_effect",

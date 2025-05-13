@@ -135,9 +135,22 @@ func die():
 	if not replaced_in_lane:
 		owner_combatant.remove_summon_from_lane(lane_index)
 
-	# Add the card *resource* to graveyard ONLY if not prevented
+	# Add the card to graveyard ONLY if not prevented
 	if not prevent_graveyard:
-		owner_combatant.add_card_to_graveyard(card_resource, "lane")
+		if card_resource != null:
+			# 1. Create a *new* CardInZone for the graveyard representation.
+			#    This new CardInZone gets its own new instance_id.
+			var new_graveyard_instance_id = battle_instance._generate_new_card_instance_id()
+			var card_for_graveyard = CardInZone.new(card_resource, new_graveyard_instance_id)
+
+			# 2. Call add_card_to_graveyard:
+			#    - Pass the new CardInZone object.
+			#    - Pass the original SummonInstance's ID as 'p_instance_id_if_relevant'.
+			#      This tells the 'card_moved' event inside add_card_to_graveyard
+			#      to use *this* summon's instance_id for logging the "from lane" part.
+			owner_combatant.add_card_to_graveyard(card_for_graveyard, "lane", self.instance_id)
+		else:
+			printerr("SummonInstance.die: card_resource is null. Cannot add to graveyard.")
 
 # --- Turn Activity Logic ---
 func perform_turn_activity():

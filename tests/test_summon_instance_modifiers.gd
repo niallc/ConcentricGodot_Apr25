@@ -18,7 +18,7 @@ func create_test_summon_instance(card_res: SummonCardResource) -> SummonInstance
 	mock_opponent.setup([], Constants.STARTING_HP, "MockOpponent", mock_battle, mock_owner)
 
 	var instance = SummonInstance.new()
-	var new_id = mock_battle.get_new_instance_id()
+	var new_id = mock_battle._generate_new_card_instance_id()
 	instance.setup(card_res, mock_owner, mock_opponent, 0, mock_battle, new_id) # Assume lane 0
 	return instance
 

@@ -88,11 +88,27 @@ func create_test_battle_setup(deck1: Array[CardResource] = [], deck2: Array[Card
 # Creates a SummonInstance and places it in a lane for testing
 func place_summon_for_test(combatant, card_res: SummonCardResource, lane_idx: int, battle) -> SummonInstance:
 	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
+	# --- MODIFICATION START ---
+	var new_id = battle._generate_new_card_instance_id() # Use the new centralized ID generator
+	# --- MODIFICATION END ---
 	instance.setup(card_res, combatant, combatant.opponent, lane_idx, battle, new_id)
 	combatant.lanes[lane_idx] = instance
-	# Manually add summon_arrives event for consistency if needed by effect
-	# battle.add_event({... summon_arrives data ...})
+
+	# OPTIONAL BUT RECOMMENDED FOR TEST ACCURACY:
+	# Manually add summon_arrives event because the main battle loop isn't running
+	# This makes test conditions closer to actual gameplay if effects rely on this event.
+	battle.add_event({
+	 	"event_type": "summon_arrives",
+	 	"player": combatant.combatant_name,
+	 	"card_id": card_res.id,
+	 	"lane": lane_idx + 1, # 1-based
+	 	"instance_id": new_id,
+	 	"power": instance.get_current_power(),
+	 	"max_hp": instance.get_current_max_hp(),
+	 	"current_hp": instance.current_hp,
+	 	"is_swift": instance.is_swift,
+		"tags": instance.tags.duplicate() # Ensure tags are included
+	})
 	return instance
 
 # --- Energy Axe Tests ---
@@ -359,11 +375,13 @@ func test_charging_bull_is_swift():
 
 
 # --- Portal Mage Tests ---
+# --- Portal Mage Tests ---
 func test_portal_mage_bounces_opponent():
 	var setup = create_test_battle_setup()
 	var player = setup["player"]
 	var opponent = setup["opponent"]
-	var battle = setup["battle"]
+	var battle = setup["battle"] # Get the battle instance
+
 	# Place a target for the opponent
 	var _target_knight = place_summon_for_test(opponent, knight_res, 1, battle) # Lane 2
 
@@ -372,34 +390,50 @@ func test_portal_mage_bounces_opponent():
 
 	# Simulate Portal Mage arrival
 	var mage_instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	mage_instance.setup(portal_mage_res, player, opponent, 1, battle, new_id) # Arrives in Lane 2 opposite Knight
+	# --- MODIFICATION: Use new ID generator ---
+	var new_mage_id = battle._generate_new_card_instance_id()
+	mage_instance.setup(portal_mage_res, player, opponent, 1, battle, new_mage_id)
+	# --- END MODIFICATION ---
 	var initial_event_count = battle.battle_events.size()
 
 	# Action: Call the arrival effect
+	# Ensure portal_mage_res._on_arrival itself is creating CardInZone for the library
 	portal_mage_res._on_arrival(mage_instance, player, opponent, battle)
 
 	# Assert: Opponent's lane is now empty
 	assert_null(opponent.lanes[1], "Opponent's lane 2 should be empty after bounce.")
-	# Assert: Opponent's library now contains the Knight resource
+	# Assert: Opponent's library now contains the Knight resource (as a CardInZone)
 	assert_eq(opponent.library.size(), 1, "Opponent's library should have 1 card.")
-	assert_eq(opponent.library[0].id, "Knight", "Opponent's library top card should be Knight.") # Check ID
+	
+	# --- MODIFICATION: Access CardInZone correctly ---
+	assert_true(opponent.library[0] is CardInZone, "Bounced card in library should be a CardInZone object.")
+	if opponent.library[0] is CardInZone:
+		assert_eq(opponent.library[0].get_card_id(), "Knight", "Opponent's library top card should be Knight.")
+		# You could also assert the instance_id if it's predictable or if you capture it
+		# For example, if you want to ensure it got a *new* instance_id in the library:
+		# assert_ne(opponent.library[0].instance_id, _target_knight.instance_id, "Bounced card in library should have a new instance_id.")
+	# --- END MODIFICATION ---
 
 	# Assert: Events generated (summon_leaves_lane + card_moved)
 	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
 	assert_gte(events_after.size(), 2, "Portal Mage bounce should generate at least 2 events.")
 	var leaves_event_found = false
 	var moved_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "summon_leaves_lane" and event.get("lane") == 2:
+	for event_data in events_after: # Renamed 'event' to 'event_data' to avoid conflict with GDScript keyword
+		if event_data.get("event_type") == "summon_leaves_lane" and event_data.get("lane") == 2: # Lane index 1 is lane 2
 			leaves_event_found = true
-			assert_eq(event["card_id"], "Knight", "Summon leaves event card ID incorrect.")
-		elif event.get("event_type") == "card_moved" and event.get("to_zone") == "library":
+			assert_eq(event_data.get("card_id"), "Knight", "Summon leaves event card ID incorrect.")
+			# --- ADDITION: Check instance_id of the summon that left ---
+			assert_eq(event_data.get("instance_id"), _target_knight.instance_id, "Summon leaves event instance_id incorrect.")
+		elif event_data.get("event_type") == "card_moved" and event_data.get("to_zone") == "library":
 			moved_event_found = true
-			assert_eq(event["card_id"], "Knight", "Card moved event card ID incorrect.")
+			assert_eq(event_data.get("card_id"), "Knight", "Card moved event card ID incorrect.")
+			# --- ADDITION: Check instance_id of the summon that was moved ---
+			assert_eq(event_data.get("instance_id"), _target_knight.instance_id, "Card moved event instance_id incorrect.")
+			assert_eq(event_data.get("to_details", {}).get("position"), "top", "Portal Mage should bounce to top.")
+
 	assert_true(leaves_event_found, "Summon leaves lane event not found.")
 	assert_true(moved_event_found, "Card moved to library event not found.")
-
 
 func test_portal_mage_arrival_no_target():
 	var setup = create_test_battle_setup()
@@ -483,7 +517,10 @@ func test_recurring_skeleton_returns_to_deck_on_death():
 	assert_null(player.lanes[0], "Lane should be empty after skeleton dies.")
 	# Assert: Card added to bottom of library
 	assert_eq(player.library.size(), initial_deck_size + 1, "Library size should increase by 1.")
-	assert_eq(player.library[-1].id, "RecurringSkeleton", "Recurring Skeleton should be at the bottom of the library.")
+	#assert_eq(player.library[-1].id, "RecurringSkeleton", "Recurring Skeleton should be at the bottom of the library.")
+	assert_true(player.library[-1] is CardInZone, "Card at bottom of library should be CardInZone.")
+	if player.library[-1] is CardInZone:
+		assert_eq(player.library[-1].get_card_id(), "RecurringSkeleton", "Recurring Skeleton should be at the bottom of the library.")
 	# Assert: Card NOT added to graveyard
 	assert_eq(player.graveyard.size(), initial_grave_size, "Graveyard size should not increase.")
 
