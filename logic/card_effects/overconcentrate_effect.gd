@@ -1,6 +1,6 @@
 extends SpellCardResource
 
-func apply_effect(source_card_res: SpellCardResource, _active_combatant, opponent_combatant, battle_instance):
+func apply_effect(source_card_res: SpellCardResource, source_instance_id: int, _active_combatant, opponent_combatant, battle_instance):
 	print("Overconcentrate effect.")
 	# Find opponent's leftmost creature
 	var target_instance = null # SummonInstance
@@ -22,7 +22,7 @@ func apply_effect(source_card_res: SpellCardResource, _active_combatant, opponen
 				"lane": target_lane_index + 1,
 				"status": "Relentless",
 				"gained": true,
-				"source": source_card_res.id
+				"source": source_card_res.id,
 			})
 			# Optional visual effect
 			battle_instance.add_event({

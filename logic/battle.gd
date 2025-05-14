@@ -101,7 +101,7 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 	add_event({"event_type": "turn_start", "player": active_duelist.combatant_name, "instance_id": active_duelist.combatant_name})
 
 	# 1. Start of Turn Effects / Mana Gain
-	active_duelist.gain_mana(Constants.MANA_PER_TURN)
+	active_duelist.gain_mana(Constants.MANA_PER_TURN, "None, turn start mana", -1)
 	# TODO: Add start-of-turn triggers for summons/player effects here
 
 	if check_game_over(): return
@@ -221,7 +221,7 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 						# The effect script is responsible for its own events
 						if card_script_instance != null and card_script_instance.has_method("apply_effect"):
 							# *** PASS the spell_card_res ***
-							card_script_instance.apply_effect(spell_card_res, active_duelist, opponent_duelist, self)
+							card_script_instance.apply_effect(spell_card_res, played_card_in_zone_obj.instance_id, active_duelist, opponent_duelist, self)
 
 						else:
 							print("Warning: Spell %s has no apply_effect method." % spell_card_res.card_name)

@@ -84,20 +84,38 @@ func heal(amount: int):
 			"instance_id": "None, player heal"
 		})
 
-func gain_mana(amount: int):
+func gain_mana(amount: int, source_card_id_for_event: String, p_source_instance_id_for_event: int):
 	var mana_add = max(0, amount)
 	var old_mana = mana
 	mana = min(mana + mana_add, Constants.MAX_MANA)
-	if mana > old_mana: # Only generate event if mana changed
-		print("%s gains %d mana. Total: %d" % [combatant_name, mana - old_mana, mana])
-		# Generate mana_change event
-		battle_instance.add_event({
+	if mana > old_mana:
+		print("%s gains %d mana. Total: %d. Source: %s, SourceInstance: %s" % [combatant_name, mana - old_mana, mana, source_card_id_for_event, str(p_source_instance_id_for_event)])
+		var event_data = {
 			"event_type": "mana_change",
 			"player": combatant_name,
-			"amount": mana - old_mana, # Positive for gain
+			"amount": mana - old_mana,
 			"new_total": mana,
-			"instance_id": combatant_name
-		})
+			"source": source_card_id_for_event # Card ID of the effect, or "turn_start"
+			# instance_id here refers to the combatant (player) whose mana changed, which is implicitly "player" field.
+			# No, for mana_change, the "instance_id" field as per spec was unclear.
+			# Let's assume "instance_id" is NOT for the player, but for a card instance if relevant.
+			# For a direct player mana change not tied to a card instance acting, it can be omitted or null.
+		}
+		if p_source_instance_id_for_event != -1:
+			event_data["source_instance_id"] = p_source_instance_id_for_event
+			# If mana gain is from a card effect, the primary "instance_id" of this mana_change
+			# event could also be this source_instance_id, as it's the card causing the direct effect.
+			# This is a point of convention.
+			# Let's try setting instance_id if a source_instance_id is provided.
+			event_data["instance_id"] = p_source_instance_id_for_event
+		else:
+			# If it's just turn_start mana, no specific card instance is the subject.
+			# Perhaps use a convention like player's name or a special value if needed.
+			# For now, let's assume it might be null if not tied to a specific card instance acting.
+			# Your spec has "instance_id": combatant_name for turn_start mana_change, which works for that case.
+			event_data["instance_id"] = combatant_name # For turn start / non-specific card source
+
+		battle_instance.add_event(event_data)
 
 func pay_mana(amount: int) -> bool:
 	if mana >= amount:
