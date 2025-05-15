@@ -43,7 +43,7 @@ func setup(deck_res: Array[CardResource], start_hp: int, c_name: String, battle_
 	# For now, the existing event is okay.
 
 # --- Methods with Event Generation ---
-func take_damage(amount: int, _source = null) -> bool: # Returns true if defeated
+func take_damage(amount: int, p_source_card_id_for_event: String, p_source_instance_id_for_event: int) -> bool: # Returns true if defeated
 	#if amount <= 0: return false
 	var hp_decrement = max(0, amount)
 	current_hp -= hp_decrement
@@ -59,7 +59,9 @@ func take_damage(amount: int, _source = null) -> bool: # Returns true if defeate
 		"player": combatant_name,
 		"amount": -hp_decrement, # Negative for damage
 		"new_total": current_hp,
-		"instance_id": combatant_name
+		"source_card_id": p_source_card_id_for_event,
+		"source_instance_id": p_source_instance_id_for_event,
+		"instance_id": -1
 		# TODO: Add source info?
 	})
 
@@ -90,31 +92,31 @@ func gain_mana(amount: int, source_card_id_for_event: String, p_source_instance_
 	mana = min(mana + mana_add, Constants.MAX_MANA)
 	if mana > old_mana:
 		print("%s gains %d mana. Total: %d. Source: %s, SourceInstance: %s" % [combatant_name, mana - old_mana, mana, source_card_id_for_event, str(p_source_instance_id_for_event)])
+		
 		var event_data = {
 			"event_type": "mana_change",
-			"player": combatant_name,
+			"player": combatant_name, # Clearly identifies the player affected
 			"amount": mana - old_mana,
 			"new_total": mana,
-			"source": source_card_id_for_event # Card ID of the effect, or "turn_start"
-			# instance_id here refers to the combatant (player) whose mana changed, which is implicitly "player" field.
-			# No, for mana_change, the "instance_id" field as per spec was unclear.
-			# Let's assume "instance_id" is NOT for the player, but for a card instance if relevant.
-			# For a direct player mana change not tied to a card instance acting, it can be omitted or null.
+			"source": source_card_id_for_event # e.g., "Focus" or "turn_start"
 		}
+
+		# If a specific card instance caused this mana gain (e.g., ability of a summon, or a played spell)
 		if p_source_instance_id_for_event != -1:
 			event_data["source_instance_id"] = p_source_instance_id_for_event
-			# If mana gain is from a card effect, the primary "instance_id" of this mana_change
-			# event could also be this source_instance_id, as it's the card causing the direct effect.
-			# This is a point of convention.
-			# Let's try setting instance_id if a source_instance_id is provided.
+			# For "mana_change" caused by a specific card, the "instance_id" of the event
+			# could be this source_instance_id, making that card the primary subject of this specific change.
 			event_data["instance_id"] = p_source_instance_id_for_event
 		else:
-			# If it's just turn_start mana, no specific card instance is the subject.
-			# Perhaps use a convention like player's name or a special value if needed.
-			# For now, let's assume it might be null if not tied to a specific card instance acting.
-			# Your spec has "instance_id": combatant_name for turn_start mana_change, which works for that case.
-			event_data["instance_id"] = combatant_name # For turn start / non-specific card source
-
+			# If mana gain is generic (e.g., turn_start), there's no specific *card instance*
+			# that is the subject of the "instance_id" field.
+			# Using -1 or null is appropriate here for the instance_id field.
+			# Your spec previously had "instance_id": combatant_name for this case.
+			# Let's use -1 to keep instance_id numeric if present, or null if the field can be omitted.
+			# For now, aligning with a numeric -1 if the field must exist:
+			event_data["instance_id"] = -1 # Or event_data["instance_id"] = null if you allow missing keys / null values more freely.
+											# Using -1 is a common "invalid/none" for integer IDs.
+		
 		battle_instance.add_event(event_data)
 
 func pay_mana(amount: int) -> bool:

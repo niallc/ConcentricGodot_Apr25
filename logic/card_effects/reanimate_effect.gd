@@ -1,6 +1,6 @@
 extends SpellCardResource
 
-func apply_effect(source_card_res: SpellCardResource, active_combatant, opponent_combatant, battle_instance):
+func apply_effect(source_card_res: SpellCardResource, _p_played_spell_instance_id: int, active_combatant, opponent_combatant, battle_instance):
 	print("Reanimate effect.")
 	# Find the first (leftmost) Summon card resource in the graveyard
 	var target_card_res: SummonCardResource = null

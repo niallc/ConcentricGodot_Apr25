@@ -69,3 +69,7 @@ func _to_string() -> String:
 	if card_resource:
 		card_id_str = card_resource.id
 	return "CardInZone(instance_id: %s, card_id: %s)" % [instance_id, card_id_str]
+
+## Returns the unique instance ID of this card in the current battle.
+func get_card_instance_id() -> int:
+	return instance_id

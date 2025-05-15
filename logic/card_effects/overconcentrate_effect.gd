@@ -1,8 +1,10 @@
 extends SpellCardResource
 
-func apply_effect(source_card_res: SpellCardResource, source_instance_id: int, _active_combatant, opponent_combatant, battle_instance):
+func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant, opponent_combatant, battle_instance):
 	print("Overconcentrate effect.")
 	# Find opponent's leftmost creature
+	var overconcentrate_spell_instance_id: int = p_overconcentrate_card_in_zone.get_card_instance_id()
+	var overconcentrate_spell_card_id: String = p_overconcentrate_card_in_zone.get_card_id()
 	var target_instance = null # SummonInstance
 	var target_lane_index = -1
 	for i in range(opponent_combatant.lanes.size()):
@@ -22,12 +24,16 @@ func apply_effect(source_card_res: SpellCardResource, source_instance_id: int, _
 				"lane": target_lane_index + 1,
 				"status": "Relentless",
 				"gained": true,
-				"source": source_card_res.id,
+				"source": overconcentrate_spell_instance_id,
+				"source_instance_id": overconcentrate_spell_instance_id,
+				"instance_id": target_instance.instance_id,
+				"instance_id_note": "Note that 'instance_id' by default refers to the _affected_ entity, the target, here"
 			})
 			# Optional visual effect
 			battle_instance.add_event({
 				"event_type": "visual_effect",
 				"effect_id": "overconcentrate_debuff",
+				"instance_id": target_instance.instance_id,
 				"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, target_lane_index + 1]],
 				"details": {}
 			})

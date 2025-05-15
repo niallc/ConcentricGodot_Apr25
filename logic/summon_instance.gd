@@ -62,44 +62,59 @@ func setup(card_res: SummonCardResource, owner, opp, lane_idx: int, battle, new_
 	print("Setup SummonInstance for %s in lane %d" % [card_res.card_name, lane_index])
 
 
-# --- Damage & Death (with Event Generation) ---
-func take_damage(amount: int, _source = null):
-	var hp_decrement = max(0, amount) # Use max(0,...) based on our previous discussion
+# --- Damage & Death (with Event Generation) for SUMMONS ---
+func take_damage(amount: int, p_source_card_id: String, p_source_instance_id: int):
+	var hp_decrement = max(0, amount) 
+	var old_hp = current_hp # Store old_hp for accurate change amount if clamped
 	current_hp -= hp_decrement
-	print("%s takes %d damage. Now %d/%d HP" % [card_resource.card_name, hp_decrement, current_hp, get_current_max_hp()])
+	# current_hp = max(0, current_hp) # Ensure HP doesn't go below 0 before die() is called
 
-	# Generate creature_hp_change event
-	battle_instance.add_event({
+	print("%s (Instance: %s) takes %d damage from %s (Instance: %s). Now %d/%d HP" % [card_resource.card_name, instance_id, hp_decrement, p_source_card_id, str(p_source_instance_id), current_hp, get_current_max_hp()])
+
+	var event_data = {
 		"event_type": "creature_hp_change",
 		"player": owner_combatant.combatant_name,
 		"lane": lane_index + 1,
-		"instance_id": instance_id,
-		"amount": -hp_decrement, 
-		"new_hp": current_hp,
-		"new_max_hp": get_current_max_hp()
-	})
-	if current_hp <= 0:
+		"instance_id": instance_id, # The SummonInstance whose HP is changing
+		"card_id": card_resource.id, # The card type of the instance being damaged
+		"amount": -hp_decrement, # The actual damage dealt
+		"new_hp": current_hp, # HP after damage (can be <=0)
+		"new_max_hp": get_current_max_hp(),
+		"source": p_source_card_id # Card ID of the source of damage
+	}
+	if p_source_instance_id != -1:
+		event_data["source_instance_id"] = p_source_instance_id
+	
+	battle_instance.add_event(event_data)
+
+	if current_hp <= 0 and old_hp > 0: # Only call die if it wasn't already "dead"
 		die()
+	elif old_hp < 0:
+		printerr("Unexpected Case where creature's HP was already <= 0, intended?")
 
-func heal(amount: int):
-	var heal_increment = max(0, amount) # Use max(0,...)
-
+func heal(amount: int, p_source_card_id: String = "unknown_heal", p_source_instance_id: int = -1):
+	var heal_increment = max(0, amount)
 	var max_hp = get_current_max_hp()
 	var hp_before = current_hp
 	current_hp = min(current_hp + heal_increment, max_hp)
 
 	if current_hp > hp_before:
-		print("... Actual heal: %d HP. Now %d/%d HP" % [current_hp - hp_before, current_hp, get_current_max_hp()])
-		print("%s heals %d HP. Now %d/%d" % [card_resource.card_name, current_hp - hp_before, current_hp, max_hp])
-		battle_instance.add_event({
+		print("%s (Instance: %s) heals %d HP from %s (Instance: %s). Now %d/%d" % [card_resource.card_name, instance_id, current_hp - hp_before, p_source_card_id, str(p_source_instance_id), current_hp, max_hp])
+		var event_data = {
 			"event_type": "creature_hp_change",
 			"player": owner_combatant.combatant_name,
 			"lane": lane_index + 1,
-			"instance_id": instance_id,
+			"instance_id": instance_id, # The creature being healed
+			"card_id": card_resource.id,
 			"amount": current_hp - hp_before,
 			"new_hp": current_hp,
-			"new_max_hp": max_hp
-		})
+			"new_max_hp": max_hp,
+			"source": p_source_card_id
+		}
+		if p_source_instance_id != -1:
+			event_data["source_instance_id"] = p_source_instance_id
+		battle_instance.add_event(event_data)
+
 
 func die():
 	print("%s dies!" % card_resource.card_name)
@@ -180,121 +195,146 @@ func _perform_direct_attack():
 	if card_resource != null and card_resource.has_method("_get_direct_attack_bonus_damage"):
 		bonus_damage = card_resource._get_direct_attack_bonus_damage(self)
 	var damage = max(0, get_current_power() + bonus_damage)
-	print("%s attacks opponent directly for %d damage" % [card_resource.card_name, damage])
+	
+	print("%s (Instance: %s) attacks opponent %s directly for %d damage" % [card_resource.card_name, instance_id, opponent_combatant.combatant_name, damage])
 
-	var _target_player_hp_before = opponent_combatant.current_hp
-	# take_damage generates hp_change event for the combatant
-	var _defeated = opponent_combatant.take_damage(damage, self)
-	# Generate direct_damage event (provides context for the hp_change)
-	battle_instance.add_event({
+	# The source of the damage is this SummonInstance itself.
+	var source_card_id = self.card_resource.id
+	var source_instance_id = self.instance_id
+	var _defeated = opponent_combatant.take_damage(damage, source_card_id, source_instance_id)
+	
+	# Generate direct_damage event
+	var event_data = {
 		"event_type": "direct_damage",
 		"attacking_player": owner_combatant.combatant_name,
 		"attacking_lane": lane_index + 1,
-		"attacking_instance_id": instance_id,
+		"attacking_card_id": self.card_resource.id, # Good to add attacker's card type
+		"attacking_instance_id": self.instance_id, # This is the "instance_id" for this event, the attacker.
 		"target_player": opponent_combatant.combatant_name,
 		"amount": damage,
 		"target_player_remaining_hp": opponent_combatant.current_hp,
-		"instance_id": owner_combatant.combatant_name
-	}) # direct_damage event
+		# "source_instance_id": self.instance_id # Redundant if attacking_instance_id serves this role
+	}
+	# The main "instance_id" of a direct_damage event should be the attacker.
+	# If we add "source_instance_id", it would be the same as "attacking_instance_id".
+	# Let's ensure the spec for direct_damage is clear that `attacking_instance_id` is the key instance here.
+	# Your spec already has "attacking_instance_id", which is good.
+	# We can add "source_card_id" to it if that was missing from the spec.
+	
+	battle_instance.add_event(event_data)
 
 	var sacrificed_by_effect = false
 	if card_resource != null and card_resource.has_method("_on_deal_direct_damage"):
-		# This method might sacrifice the creature (e.g., Sarcophagus)
-		# It should return true if it sacrificed the instance
 		sacrificed_by_effect = card_resource._on_deal_direct_damage(self, opponent_combatant, battle_instance)
 
-	# Call attack resolved hook (if not sacrificed) ---
-	if card_resource != null and card_resource.has_method("_on_attack_resolved"):
+	if not sacrificed_by_effect and card_resource != null and card_resource.has_method("_on_attack_resolved"):
 		card_resource._on_attack_resolved(self, battle_instance)
 
-	# --- Check for Glassgraft sacrifice ---
 	if not sacrificed_by_effect and custom_state.get("glassgrafted", false):
 		print("...Glassgrafted creature dealt damage, sacrificing!")
-		custom_state.erase("glassgrafted") # Remove flag
-		die() # Sacrifice self
-		sacrificed_by_effect = true # Mark as sacrificed
+		custom_state.erase("glassgrafted") 
+		die() 
+		# sacrificed_by_effect = true # Not strictly needed if die() is the last thing
 
 	battle_instance.check_game_over()
 
-func _perform_combat(target_instance):
+func _perform_combat(target_instance: SummonInstance):
 	var bonus_damage = 0
 	if card_resource != null and card_resource.has_method("_get_bonus_combat_damage"):
 		bonus_damage = card_resource._get_bonus_combat_damage(self, target_instance)
 	var damage = max(0, get_current_power() + bonus_damage)
 
-	print("%s attacks %s for %d damage (%d base + %d bonus)" % [card_resource.card_name, target_instance.card_resource.card_name, damage, get_current_power(), bonus_damage])
+	print("%s (Instance: %s) attacks %s (Instance: %s) for %d damage (%d base + %d bonus)" % [card_resource.card_name, instance_id, target_instance.card_resource.card_name, target_instance.instance_id, damage, get_current_power(), bonus_damage])
+	
 	var target_hp_before = target_instance.current_hp
-	target_instance.take_damage(damage, self)
+	
+	# The source of the damage is this SummonInstance (self).
+	var attacking_source_card_id = self.card_resource.id
+	var attacking_source_instance_id = self.instance_id
+	target_instance.take_damage(damage, attacking_source_card_id, attacking_source_instance_id)
+
+	# The combat_damage event already has attacking_instance_id and defending_instance_id
+	# The "source" of the creature_hp_change event (generated within target_instance.take_damage)
+	# will correctly be this attacker.
 	battle_instance.add_event({
 		"event_type": "combat_damage",
 		"attacking_player": owner_combatant.combatant_name,
 		"attacking_lane": lane_index + 1,
-		"attacking_instance_id": instance_id,
+		"attacking_card_id": self.card_resource.id, # Good to add
+		"attacking_instance_id": self.instance_id,
 		"defending_player": target_instance.owner_combatant.combatant_name,
 		"defending_lane": target_instance.lane_index + 1,
+		"defending_card_id": target_instance.card_resource.id, # Good to add
 		"defending_instance_id": target_instance.instance_id,
 		"amount": damage,
-		"defender_remaining_hp": target_instance.current_hp,
-		"instance_id": "None, refer to attacking_instance_id or defending_instance_id"
+		"defender_remaining_hp": target_instance.current_hp
+		# "instance_id" field for combat_damage: This is ambiguous. Having attacking/defending is clearer.
+		# If one must be chosen, perhaps the attacker. But spec doesn't demand it if others present.
 	})
 
-	if target_instance.current_hp <= 0 and target_hp_before > 0: # Check if this attack caused death
+	if target_instance.current_hp <= 0 and target_hp_before > 0: 
 		print("...%s killed %s!" % [self.card_resource.card_name, target_instance.card_resource.card_name])
-		# Call the killer's _on_kill_target method if it exists
 		if self.card_resource != null and self.card_resource.has_method("_on_kill_target"):
 			self.card_resource._on_kill_target(self, target_instance, battle_instance)
 
-	# Call attack resolved hook ---
-	# Call this regardless of whether target died, attack still resolved
 	if self.card_resource != null and self.card_resource.has_method("_on_attack_resolved"):
 		self.card_resource._on_attack_resolved(self, battle_instance)
 
 
-# --- Modifier Methods (Implemented) ---
-func add_power(amount: int, source_id: String = "unknown", duration: int = -1):
-	# Add the modifier to the list
-	var modifier = {"source": source_id, "value": amount, "duration": duration}
+func add_power(amount: int, p_source_card_id: String = "unknown_effect", p_source_instance_id: int = -1, duration: int = -1):
+	var modifier = {"source": p_source_card_id, "value": amount, "duration": duration} # Source here is the Card ID for the modifier dictionary
 	power_modifiers.append(modifier)
-	print("%s gets %d power from %s. Now %d/%d HP, %d Power (Modifier added: %s)" % [card_resource.card_name, amount, source_id, current_hp, get_current_max_hp(), get_current_power(), modifier])
+	print("%s (Instance: %s) gets %d power from %s (Instance: %s). Duration: %s. New Calculated Power: %d" % [card_resource.card_name, instance_id, amount, p_source_card_id, str(p_source_instance_id), str(duration), get_current_power()])
 
-	# Generate stat_change event with the *new* calculated power
-	battle_instance.add_event({
+	var event_data = {
 		"event_type": "stat_change",
 		"player": owner_combatant.combatant_name,
 		"lane": lane_index + 1,
-		"instance_id": instance_id,
+		"instance_id": instance_id, # The creature whose stat is changing
+		"card_id": card_resource.id, # The type of creature
 		"stat": "power",
-		"amount": amount, # The change amount
-		"new_value": get_current_power() # The resulting value after change
-	})
+		"amount": amount, # The modifier value
+		"new_value": get_current_power(), # The resulting total value
+		"source": p_source_card_id # Card ID of what granted the modifier
+	}
+	if p_source_instance_id != -1:
+		event_data["source_instance_id"] = p_source_instance_id
 
-func add_hp(amount: int, source_id: String = "unknown", duration: int = -1):
-	# Add the modifier to the list
-	var modifier = {"source": source_id, "value": amount, "duration": duration}
+	battle_instance.add_event(event_data)
+
+func add_hp(amount: int, p_source_card_id: String = "unknown_effect", p_source_instance_id: int = -1, duration: int = -1):
+	var modifier = {"source": p_source_card_id, "value": amount, "duration": duration}
 	max_hp_modifiers.append(modifier)
-	print("%s gets %d max HP from %s. Now %d/%d HP, %d Power (Modifier added: %s)" % [card_resource.card_name, amount, source_id, current_hp, get_current_max_hp(), get_current_power(), modifier])
+	print("%s (Instance: %s) gets %d max HP from %s (Instance: %s). Duration: %s. New Calculated MaxHP: %d" % [card_resource.card_name, instance_id, amount, p_source_card_id, str(p_source_instance_id), str(duration), get_current_max_hp()])
 
-	# Generate stat_change event for max_hp
 	var new_max_hp = get_current_max_hp()
-	battle_instance.add_event({
+	var event_data = {
 		"event_type": "stat_change",
 		"player": owner_combatant.combatant_name,
 		"lane": lane_index + 1,
-		"instance_id": instance_id,
+		"instance_id": instance_id, # The creature whose stat is changing
+		"card_id": card_resource.id, # The type of creature
 		"stat": "max_hp",
-		"amount": amount, # The change amount
-		"new_value": new_max_hp # The resulting value
-	})
+		"amount": amount,
+		"new_value": new_max_hp,
+		"source": p_source_card_id
+	}
+	if p_source_instance_id != -1:
+		event_data["source_instance_id"] = p_source_instance_id
+
+	battle_instance.add_event(event_data)
+
+	if amount > 0 : # Only heal if max HP increased (or a direct heal effect called add_hp with positive value)
+		heal(amount, p_source_card_id, p_source_instance_id) # Pass source info to heal too
 
 	# Also increase current HP by the same amount (heal effect)
 	# Call heal, which handles clamping and generating the creature_hp_change event
 	heal(amount)
 
 
-func add_counter(amount: int, source_id: String = "unknown", duration: int = -1):
-	# Call add_power and add_hp which now handle adding modifiers and events
-	add_power(amount, source_id, duration)
-	add_hp(amount, source_id, duration)
+func add_counter(amount: int, p_source_card_id: String = "unknown_counter", p_source_instance_id: int = -1, duration: int = -1):
+	add_power(amount, p_source_card_id, p_source_instance_id, duration)
+	add_hp(amount, p_source_card_id, p_source_instance_id, duration)
 
 func _end_of_turn_upkeep():
 	is_newly_arrived = false # Reset flag

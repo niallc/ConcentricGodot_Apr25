@@ -220,8 +220,7 @@ func conduct_turn(active_duelist: Combatant, opponent_duelist: Combatant):
 						# Call apply_effect script (if it exists)
 						# The effect script is responsible for its own events
 						if card_script_instance != null and card_script_instance.has_method("apply_effect"):
-							# *** PASS the spell_card_res ***
-							card_script_instance.apply_effect(spell_card_res, played_card_in_zone_obj.instance_id, active_duelist, opponent_duelist, self)
+							card_script_instance.apply_effect(played_card_in_zone_obj, active_duelist, opponent_duelist, self)
 
 						else:
 							print("Warning: Spell %s has no apply_effect method." % spell_card_res.card_name)

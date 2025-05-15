@@ -1,11 +1,14 @@
 # res://logic/card_effects/focus_effect.gd
 extends "res://logic/cards/spell_card.gd"
 
-func apply_effect(p_source_spell_card_res: SpellCardResource, p_played_spell_instance_id: int, active_combatant: Combatant, _opponent_combatant, battle_instance: Battle):
+func apply_effect(p_focus_card_in_zone: CardInZone, active_combatant: Combatant, _opponent_combatant, battle_instance: Battle):
 	var mana_gain = 8
-	print("Focus (Instance: %s) granting %d mana to %s." % [p_played_spell_instance_id, mana_gain, active_combatant.combatant_name])
+	var focus_spell_instance_id: int = p_focus_card_in_zone.get_card_instance_id()
+	var focus_spell_card_id: String = p_focus_card_in_zone.get_card_id()
+
+	print("Focus (Instance: %s) granting %d mana to %s." % [focus_spell_instance_id, mana_gain, active_combatant.combatant_name])
 	
-	active_combatant.gain_mana(mana_gain, p_source_spell_card_res.id, p_played_spell_instance_id)
+	active_combatant.gain_mana(mana_gain, focus_spell_card_id, focus_spell_instance_id)
 
 	# Visual effect related to the Focus spell itself.
 	# The "target_locations" indicates who is visually affected by the mana gain.
@@ -15,6 +18,7 @@ func apply_effect(p_source_spell_card_res: SpellCardResource, p_played_spell_ins
 		"effect_id": "focus_mana_gain",
 		"target_locations": [active_combatant.combatant_name], # Player is visually affected
 		"details": {"amount": mana_gain},
-		"instance_id": p_played_spell_instance_id, # The Focus spell instance is the origin of this visual
-		"source_instance_id": p_played_spell_instance_id # Also the source
+		"instance_id": focus_spell_instance_id, # The Focus spell instance is the origin of this visual
+		"source_instance_id": focus_spell_instance_id, # Also the source
+		"instance_id_note": "Focus spell is the instance and the source of this visual."
 	})
