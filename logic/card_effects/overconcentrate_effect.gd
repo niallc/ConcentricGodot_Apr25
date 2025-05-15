@@ -4,7 +4,7 @@ func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant,
 	print("Overconcentrate effect.")
 	# Find opponent's leftmost creature
 	var overconcentrate_spell_instance_id: int = p_overconcentrate_card_in_zone.get_card_instance_id()
-	var overconcentrate_spell_card_id: String = p_overconcentrate_card_in_zone.get_card_id()
+	#var overconcentrate_spell_card_id: String = p_overconcentrate_card_in_zone.get_card_id()
 	var target_instance = null # SummonInstance
 	var target_lane_index = -1
 	for i in range(opponent_combatant.lanes.size()):

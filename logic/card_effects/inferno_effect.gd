@@ -1,9 +1,11 @@
 # res://logic/card_effects/inferno_effect.gd
 extends "res://logic/cards/spell_card.gd"
 
-# Updated signature to use parameters
-func apply_effect(p_inferno_card_res: SpellCardResource, p_inferno_spell_instance_id: int, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle):
-	print("Inferno effect (Spell Instance ID: %s)." % p_inferno_spell_instance_id)
+func apply_effect(p_inferno_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle):
+	var inferno_spell_instance_id: int = p_inferno_card_in_zone.get_card_instance_id()
+	var inferno_spell_card_id: String = p_inferno_card_in_zone.get_card_id()
+
+	print("Inferno effect (Spell Instance ID: %s)." % inferno_spell_instance_id)
 	var damage_amount: int = 2
 	var affected_locations: Array[String] = []
 	var targets_to_damage: Array[SummonInstance] = []
@@ -25,20 +27,20 @@ func apply_effect(p_inferno_card_res: SpellCardResource, p_inferno_spell_instanc
 		# Optionally log a "fizzle" type event if desired, or just return
 		battle_instance.add_event({
 			"event_type": "log_message",
-			"message": "Inferno (Instance: %s) cast but found no targets." % p_inferno_spell_instance_id,
-			"source_instance_id": p_inferno_spell_instance_id
+			"message": "Inferno (Instance: %s) cast but found no targets." % inferno_spell_instance_id,
+			"source_instance_id": inferno_spell_instance_id
 		})
 		return
 
 	# Log the visual effect for the Inferno spell itself
 	battle_instance.add_event({
 		"event_type": "visual_effect",
-		"effect_id": "inferno_spell_cast", # A general visual for the spell casting
-		"target_locations": ["all_lanes"], # Or perhaps just the player who cast it
+		"effect_id": "inferno_spell_cast",
+		"target_locations": ["all_lanes"], 
 		"details": {"damage_potential": damage_amount, "num_targets": targets_to_damage.size()},
-		"instance_id": p_inferno_spell_instance_id, # The Inferno spell is the subject of this visual
-		"source_instance_id": p_inferno_spell_instance_id, # And also its source
-		"instance_id_note": "Visual for the Inferno spell being cast."
+		"instance_id": inferno_spell_instance_id,
+		"source_instance_id": inferno_spell_instance_id,
+		"instance_id_note": "Visual for the Inferno spell being cast, affecting all lanes."
 	})
 
 	print("...Inferno dealing %d damage to %d creatures." % [damage_amount, targets_to_damage.size()])
@@ -50,6 +52,7 @@ func apply_effect(p_inferno_card_res: SpellCardResource, p_inferno_spell_instanc
 			# That event will correctly list the target_summon_instance.instance_id as its main "instance_id".
 			# It will also correctly list p_inferno_card_res.id as the "source" (card type)
 			# and p_inferno_spell_instance_id as the "source_instance_id".
-			target_summon_instance.take_damage(damage_amount, p_inferno_card_res.id, p_inferno_spell_instance_id)
+			#func take_damage(amount: int, p_source_card_id: String, p_source_instance_id: int):
+			target_summon_instance.take_damage(damage_amount, inferno_spell_card_id, target_summon_instance.get_card_instance_id())
 		# No separate "effect_damage" event needed here if SummonInstance.take_damage creates creature_hp_change with proper sourcing.
 		# The "effect_damage" event type in the spec is more for direct damage to PLAYERS from spells/effects.

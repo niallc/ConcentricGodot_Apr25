@@ -6,7 +6,7 @@ class_name SpellCardResource
 
 # Virtual method to be overridden by specific spell effect scripts
 # Parameters match the spec: Combatant refs & Battle ref for event generation
-func apply_effect(p_played_spell_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle):
+func apply_effect(p_played_spell_card_in_zone: CardInZone, _active_combatant: Combatant, _opponent_combatant: Combatant, _battle_instance: Battle):
 	# Access static data: p_played_spell_card_in_zone.card_resource (e.g., .id, .cost)
 	# Access instance ID: p_played_spell_card_in_zone.instance_id
 	print("WARNING: Base apply_effect called for %s (Instance ID: %s)" % [p_played_spell_card_in_zone.get_card_id(), p_played_spell_card_in_zone.instance_id])
