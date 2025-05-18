@@ -113,42 +113,68 @@ func place_summon_for_test(combatant, card_res: SummonCardResource, lane_idx: in
 
 # --- Energy Axe Tests ---
 
-# Test Energy Axe applies power correctly
 func test_energy_axe_applies_power():
 	var setup = create_test_battle_setup()
 	var player = setup["player"]
+	var opponent = setup["opponent"] # Get opponent for the apply_effect call
 	var battle = setup["battle"]
+	
 	# Place a target summon
 	var scout_instance = place_summon_for_test(player, goblin_scout_res, 0, battle)
 	var initial_power = scout_instance.get_current_power()
 
-	# Get the effect script instance
-	var effect_script = energy_axe_res.script.new()
+	# Get the effect script instance (this is fine, it's the script we want to test)
+	var effect_script = energy_axe_res.script # We call the method on the script resource directly
+
+	# In a real game, this CardInZone would have been created when Energy Axe was drawn
+	# or put into "play". For the test, we create it manually.
+	var energy_axe_instance_id: int = battle._generate_new_card_instance_id() # Get a unique ID from the battle
+	var energy_axe_card_in_zone = CardInZone.new(energy_axe_res, energy_axe_instance_id)
 
 	# Action: Apply the effect
-	effect_script.apply_effect(energy_axe_res, player, player.opponent, battle)
-
+	# Signature: apply_effect(p_energy_axe_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)
+	if effect_script and effect_script.has_method("apply_effect"):
+		effect_script.apply_effect(energy_axe_card_in_zone, player, opponent, battle) # Pass opponent
+	else:
+		fail_test("Energy Axe effect script or apply_effect method not found.")
+	
 	# Assert: Target's power increased
 	assert_eq(scout_instance.get_current_power(), initial_power + 3, "Energy Axe should increase power by 3.")
+	
 	# Assert: Modifier was added
-	assert_eq(scout_instance.power_modifiers.size(), 1, "Energy Axe should add one power modifier.")
-	assert_eq(scout_instance.power_modifiers[0]["source"], energy_axe_res.id, "Modifier source should be EnergyAxe.")
+	assert_true(scout_instance.power_modifiers.size() >= 1, "Energy Axe should add at least one power modifier.") # Changed to >=1 as other effects might add modifiers
+	var found_energy_axe_modifier = false
+	for modifier in scout_instance.power_modifiers:
+		if modifier["source"] == energy_axe_res.id: # Check against the card_id "EnergyAxe"
+			assert_eq(modifier["value"], 3, "Energy Axe modifier value should be 3.")
+			found_energy_axe_modifier = true
+			break
+	assert_true(found_energy_axe_modifier, "Modifier from Energy Axe not found.")
 
 	# Assert: Events generated (stat_change + visual_effect)
+	# This part needs careful checking based on what add_power and apply_effect now generate
 	var events = battle.battle_events
-	assert_gte(events.size(), 2, "Energy Axe should generate at least 2 events.")
-	# Check last two events (order might vary slightly depending on exact implementation)
-	var stat_event_found = false
+	# We expect a stat_change on the scout (from add_power)
+	# and a visual_effect for the axe (from apply_effect)
+	var stat_change_event_found = false
 	var visual_event_found = false
-	for event in events.slice(events.size()-2, events.size()): # Check last 2
-		if event["event_type"] == "stat_change" and event["stat"] == "power":
-			stat_event_found = true
-			assert_eq(event["new_value"], initial_power + 3, "Stat change event new_value incorrect.")
-		elif event["event_type"] == "visual_effect" and event["effect_id"] == "energy_axe_boost":
+	
+	for event_data in events:
+		if event_data.get("event_type") == "stat_change" and \
+		   event_data.get("instance_id") == scout_instance.instance_id and \
+		   event_data.get("stat") == "power" and \
+		   event_data.get("source") == energy_axe_card_in_zone.get_card_id() and \
+		   event_data.get("source_instance_id") == energy_axe_card_in_zone.get_card_instance_id():
+			stat_change_event_found = true
+			assert_eq(event_data.get("new_value"), initial_power + 3, "Stat change event new_value incorrect.")
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "energy_axe_boost_applied" and \
+			 event_data.get("instance_id") == scout_instance.instance_id and \
+			 event_data.get("source_instance_id") == energy_axe_card_in_zone.get_card_instance_id():
 			visual_event_found = true
-	assert_true(stat_event_found, "Stat change event for power not found.")
-	assert_true(visual_event_found, "Visual effect event for boost not found.")
-
+			
+	assert_true(stat_change_event_found, "Stat change event for Energy Axe target not found or improperly sourced.")
+	assert_true(visual_event_found, "Visual effect event for Energy Axe not found or improperly sourced.")
 
 # Test Energy Axe can_play requirements
 func test_energy_axe_can_play():
@@ -511,7 +537,9 @@ func test_recurring_skeleton_returns_to_deck_on_death():
 	var initial_grave_size = player.graveyard.size()
 
 	# Action: Kill the skeleton
-	skeleton_instance.take_damage(100) # Overkill to ensure death
+	var test_damage_source_card_id: String = "TEST_DAMAGE_EFFECT"
+	var test_damage_source_instance_id: int = -1 # Or some other placeholder if you like
+	skeleton_instance.take_damage(100, test_damage_source_card_id, test_damage_source_instance_id)
 
 	# Assert: Skeleton instance removed from lane
 	assert_null(player.lanes[0], "Lane should be empty after skeleton dies.")
@@ -1595,7 +1623,9 @@ func test_cursed_samurai_summons_returned_on_death():
 	var initial_event_count = battle.battle_events.size()
 
 	# Action: Kill Cursed Samurai
-	cursed_instance.take_damage(100) # Calls die(), which calls _on_death
+	var test_damage_source_card_id: String = "TEST_DAMAGE_EFFECT"
+	var test_damage_source_instance_id: int = -1 # Or some other placeholder if you like
+	cursed_instance.take_damage(100, test_damage_source_card_id, test_damage_source_instance_id)
 
 	# Assert: Returned Samurai is now in lane 2
 	assert_true(player.lanes[1] is SummonInstance and player.lanes[1].card_resource.id == "ReturnedSamurai", "Returned Samurai should be in lane 2.")
@@ -1756,7 +1786,9 @@ func test_reassembling_legion_returns_to_deck_on_death():
 	var initial_event_count = battle.battle_events.size()
 
 	# Action: Kill the legion
-	legion_instance.take_damage(100)
+	var test_damage_source_card_id: String = "TEST_DAMAGE_EFFECT"
+	var test_damage_source_instance_id: int = -1 # Or some other placeholder if you like
+	legion_instance.take_damage(100, test_damage_source_card_id, test_damage_source_instance_id)
 
 	# Assert: Instance removed from lane
 	assert_null(player.lanes[0], "Lane should be empty after legion dies.")
