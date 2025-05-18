@@ -1,3 +1,4 @@
+# Nap
 extends SpellCardResource
 
 func apply_effect(_source_card_res: SpellCardResource, active_combatant, _opponent_combatant, battle_instance):
