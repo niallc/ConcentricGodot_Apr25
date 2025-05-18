@@ -53,6 +53,4 @@ func apply_effect(p_inferno_card_in_zone: CardInZone, active_combatant: Combatan
 			# It will also correctly list p_inferno_card_res.id as the "source" (card type)
 			# and p_inferno_spell_instance_id as the "source_instance_id".
 			#func take_damage(amount: int, p_source_card_id: String, p_source_instance_id: int):
-			target_summon_instance.take_damage(damage_amount, inferno_spell_card_id, target_summon_instance.get_card_instance_id())
-		# No separate "effect_damage" event needed here if SummonInstance.take_damage creates creature_hp_change with proper sourcing.
-		# The "effect_damage" event type in the spec is more for direct damage to PLAYERS from spells/effects.
+			target_summon_instance.take_damage(damage_amount, inferno_spell_card_id, inferno_spell_instance_id)
