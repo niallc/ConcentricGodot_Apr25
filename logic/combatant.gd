@@ -70,21 +70,35 @@ func take_damage(amount: int, p_source_card_id_for_event: String, p_source_insta
 		# Check game over state in Battle after this returns
 	return defeated
 
-func heal(amount: int):
+func heal(amount: int, p_source_card_id: String = "unknown_heal_source", p_source_instance_id: int = -1):
 	var heal_increment = max(0, amount)
-	var hp_before = current_hp
+	if heal_increment == 0:
+		return
+
+	var hp_before_heal = current_hp
 	current_hp = min(current_hp + heal_increment, max_hp)
 
-	if current_hp > hp_before: # Only generate event if HP changed
-		print("%s heals %d HP. Now %d/%d" % [combatant_name, heal_increment, current_hp, max_hp])
-		# Generate hp_change event
-		battle_instance.add_event({
+	if current_hp > hp_before_heal:
+		print("%s heals %d HP from %s (Instance: %s). Now %d/%d" % [combatant_name, current_hp - hp_before_heal, p_source_card_id, str(p_source_instance_id), current_hp, max_hp])
+		
+		var event_data = {
 			"event_type": "hp_change",
-			"player": combatant_name,
-			"amount": current_hp - hp_before, # Positive for heal
+			"player": combatant_name, # Identifies the combatant being healed
+			"amount": current_hp - hp_before_heal,
 			"new_total": current_hp,
-			"instance_id": "None, player heal"
-		})
+			"source": p_source_card_id # Card ID of the source of healing
+		}
+		
+		# If a specific card instance caused this heal
+		if p_source_instance_id != -1:
+			event_data["source_instance_id"] = p_source_instance_id
+			# The "instance_id" of the event could be the Nap spell instance.
+			event_data["instance_id"] = p_source_instance_id 
+		else:
+			# If heal is generic (e.g., a game rule, or not from a specific card instance)
+			event_data["instance_id"] = -1 # No specific card instance is the primary subject.
+		
+		battle_instance.add_event(event_data)
 
 func gain_mana(amount: int, source_card_id_for_event: String, p_source_instance_id_for_event: int):
 	var mana_add = max(0, amount)
@@ -198,20 +212,37 @@ func remove_summon_from_lane(lane_index: int):
 	else:
 		printerr("Failed to remove summon from %s's lane %d" % [combatant_name, lane_index])
 
-func lose_mana(amount: int, source_id: String = "unknown"):
-	if amount <= 0: return
-	var mana_lost = min(amount, mana) # Can't lose more than you have
-	if mana_lost > 0:
-		mana -= mana_lost
-		print("%s loses %d mana from %s. Remaining: %d" % [combatant_name, mana_lost, source_id, mana])
-		# Generate mana_change event
-		battle_instance.add_event({
+# res://logic/combatant.gd
+
+# Assumed current from combined file (around line 181):
+# func lose_mana(amount: int, source_id: String = "unknown"):
+
+# Proposed new signature and implementation:
+func lose_mana(amount: int, p_source_card_id: String = "unknown_loss_source", p_source_instance_id: int = -1):
+	if amount <= 0:
+		return
+	
+	var actual_mana_lost = min(amount, mana) # Can't lose more than you have
+	if actual_mana_lost > 0:
+		mana -= actual_mana_lost
+		print("%s loses %d mana from %s (Instance: %s). Remaining: %d" % [combatant_name, actual_mana_lost, p_source_card_id, str(p_source_instance_id), mana])
+		
+		var event_data = {
 			"event_type": "mana_change",
 			"player": combatant_name,
-			"amount": -mana_lost, # Negative for loss
+			"amount": -actual_mana_lost, # Negative for loss
 			"new_total": mana,
-			"source": source_id # Optional source tracking
-		})
+			"source": p_source_card_id
+		}
+		if p_source_instance_id != -1:
+			event_data["source_instance_id"] = p_source_instance_id
+			# The card instance causing the mana loss is the primary subject.
+			event_data["instance_id"] = p_source_instance_id 
+		else:
+			# If mana loss is generic, no specific card instance is the subject.
+			event_data["instance_id"] = -1 
+		
+		battle_instance.add_event(event_data)
 
 func mill_top_card(reason: String = "unknown"):
 	if not library.is_empty():
