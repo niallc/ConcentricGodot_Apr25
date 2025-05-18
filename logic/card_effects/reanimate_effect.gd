@@ -1,5 +1,7 @@
 extends SpellCardResource
 # I'll assume you meant for this to be the path to your base spell card script.
+# I'll assume you meant for this to be the path to your base spell card script.
+# I'll assume you meant for this to be the path to your base spell card script.
 
 func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle): # Added type hints
 	print("Reanimate effect.")
@@ -17,8 +19,8 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 	var target_lane_index: int = active_combatant.find_first_empty_lane()
 
 	if target_card_in_zone != null and target_lane_index != -1:
-		var reanimated_creature_card_resource: SummonCardResource = target_card_in_zone.card_resource as SummonCardResource # Get the resource for setup
-		var reanimated_creature_original_instance_id: int = target_card_in_zone.get_card_instance_id() # ID it had in graveyard
+		var reanimated_creature_card_resource: SummonCardResource = target_card_in_zone.card_resource as SummonCardResource
+		var reanimated_creature_original_instance_id: int = target_card_in_zone.get_card_instance_id()
 
 		print("...Reanimating %s (Original Instance: %s) into lane %d" % [reanimated_creature_card_resource.card_name, reanimated_creature_original_instance_id, target_lane_index + 1])
 		
@@ -26,9 +28,9 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 		
 		battle_instance.add_event({
 			"event_type": "card_moved",
-			"card_id": reanimated_creature_card_resource.id, # Correct: resource ID
-			"instance_id": reanimated_creature_original_instance_id, # Correct: ID it had in graveyard
-			"source_card_id": reanimate_spell_card_id, # <<< ADDED for clarity
+			"card_id": reanimated_creature_card_resource.id,
+			"instance_id": reanimated_creature_original_instance_id,
+			"source_card_id": reanimate_spell_card_id,
 			"source_instance_id": reanimate_spell_instance_id,
 			"player": active_combatant.combatant_name,
 			"from_zone": "graveyard",
@@ -37,9 +39,7 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 		})
 
 		var new_summon_on_field = SummonInstance.new()
-		# --- CORRECTION 2: Use _generate_new_card_instance_id for the new summon ---
-		var new_summon_on_field_instance_id = battle_instance._generate_new_card_instance_id() # This is correct!
-		# var new_id = battle_instance.get_new_instance_id() # OLD pattern from your snippet
+		var new_summon_on_field_instance_id = battle_instance._generate_new_card_instance_id()
 		
 		new_summon_on_field.setup(reanimated_creature_card_resource, active_combatant, opponent_combatant, target_lane_index, battle_instance, new_summon_on_field_instance_id)
 		
@@ -51,7 +51,7 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 				"player": active_combatant.combatant_name,
 				"lane": target_lane_index + 1,
 				"card_id": new_summon_on_field.card_resource.id,
-				"instance_id": new_summon_on_field.instance_id, # The new summon instance
+				"instance_id": new_summon_on_field.instance_id,
 				"status": Constants.TAG_UNDEAD,
 				"gained": true,
 				"source": reanimate_spell_card_id,
@@ -63,9 +63,9 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 		battle_instance.add_event({
 			"event_type": "summon_arrives",
 			"player": active_combatant.combatant_name,
-			"card_id": reanimated_creature_card_resource.id, # Correct
+			"card_id": reanimated_creature_card_resource.id,
 			"lane": target_lane_index + 1,
-			"instance_id": new_summon_on_field_instance_id, # Correct: new ID for the summon on field
+			"instance_id": new_summon_on_field_instance_id,
 			"power": new_summon_on_field.get_current_power(),
 			"max_hp": new_summon_on_field.get_current_max_hp(),
 			"current_hp": new_summon_on_field.current_hp,
@@ -115,8 +115,8 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 			})
 
 
-# `can_play` needs to be updated too!
-func can_play(active_combatant: Combatant, _opponent_combatant, _turn_count: int, _battle_instance) -> bool: # Added types
+# Check if graveyard has a summon and player has an empty lane
+func can_play(active_combatant: Combatant, _opponent_combatant, _turn_count: int, _battle_instance) -> bool:
 	if active_combatant.mana < self.cost: return false # self.cost refers to the Reanimate spell's cost
 	var summon_in_grave = false
 	for card_in_zone_obj in active_combatant.graveyard: # Iterate through CardInZone objects
