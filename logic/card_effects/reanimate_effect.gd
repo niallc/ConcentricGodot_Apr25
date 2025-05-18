@@ -1,97 +1,127 @@
 extends SpellCardResource
+# I'll assume you meant for this to be the path to your base spell card script.
 
-#func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant, opponent_combatant, battle_instance):
-func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant, opponent_combatant, battle_instance):
+func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle): # Added type hints
 	print("Reanimate effect.")
 	var reanimate_spell_instance_id: int = p_reanimate_card_in_zone.get_card_instance_id()
 	var reanimate_spell_card_id: String = p_reanimate_card_in_zone.get_card_id()
-	# Find the first (leftmost) Summon card resource in the graveyard
-	#var target_card_res: SummonCardResource = null
-	var target_card_in_zone: CardInZone = null
-	var target_index = -1
+	
+	var target_card_in_zone: CardInZone = null # This will be the CardInZone from the graveyard
+	var target_index: int = -1
 	for i in range(active_combatant.graveyard.size()):
-		if active_combatant.graveyard[i] is SummonCardResource:
+		if active_combatant.graveyard[i].card_resource is SummonCardResource:
 			target_card_in_zone = active_combatant.graveyard[i]
 			target_index = i
 			break
 
-	# Find an empty lane
-	var target_lane_index = active_combatant.find_first_empty_lane()
+	var target_lane_index: int = active_combatant.find_first_empty_lane()
 
 	if target_card_in_zone != null and target_lane_index != -1:
-		print("...Reanimating %s into lane %d" % [target_card_in_zone.get_card_name(), target_lane_index + 1])
-		# Remove the card from the graveyard *before* summoning to avoid issues if it reanimates itself?
+		var reanimated_creature_card_resource: SummonCardResource = target_card_in_zone.card_resource as SummonCardResource # Get the resource for setup
+		var reanimated_creature_original_instance_id: int = target_card_in_zone.get_card_instance_id() # ID it had in graveyard
+
+		print("...Reanimating %s (Original Instance: %s) into lane %d" % [reanimated_creature_card_resource.card_name, reanimated_creature_original_instance_id, target_lane_index + 1])
+		
 		active_combatant.graveyard.remove_at(target_index)
-		# Generate event for leaving graveyard
+		
 		battle_instance.add_event({
 			"event_type": "card_moved",
-			"card_id": target_card_in_zone.id,
-			"instance_id": target_card_in_zone.get_card_instance_id(),
+			"card_id": reanimated_creature_card_resource.id, # Correct: resource ID
+			"instance_id": reanimated_creature_original_instance_id, # Correct: ID it had in graveyard
+			"source_card_id": reanimate_spell_card_id, # <<< ADDED for clarity
 			"source_instance_id": reanimate_spell_instance_id,
 			"player": active_combatant.combatant_name,
 			"from_zone": "graveyard",
-			"to_zone": "limbo", # Temporary zone before lane
-			"reason": "reanimate"
+			"to_zone": "limbo", 
+			"reason": "reanimate_effect_" + reanimate_spell_card_id # More specific reason
 		})
 
-		# --- Simulate Summoning ---
-		var new_summon = SummonInstance.new()
-		var new_id = battle_instance.get_new_instance_id()
-		new_summon.setup(target_card_in_zone.card_resource, active_combatant, opponent_combatant, target_lane_index, battle_instance, new_id) # Pass ID
-		# Add the Undead tag dynamically
-		if not new_summon.tags.has(Constants.TAG_UNDEAD):
-			new_summon.tags.append(Constants.TAG_UNDEAD)
-			# Optional: Event for gaining tag?
-			# battle_instance.add_event({event_type:"status_change", status:"Undead", gained:true ...})
+		var new_summon_on_field = SummonInstance.new()
+		# --- CORRECTION 2: Use _generate_new_card_instance_id for the new summon ---
+		var new_summon_on_field_instance_id = battle_instance._generate_new_card_instance_id() # This is correct!
+		# var new_id = battle_instance.get_new_instance_id() # OLD pattern from your snippet
+		
+		new_summon_on_field.setup(reanimated_creature_card_resource, active_combatant, opponent_combatant, target_lane_index, battle_instance, new_summon_on_field_instance_id)
+		
+		if not new_summon_on_field.tags.has(Constants.TAG_UNDEAD):
+			new_summon_on_field.tags.append(Constants.TAG_UNDEAD)
+			# It's good practice to log this status change as well!
+			battle_instance.add_event({
+				"event_type": "status_change",
+				"player": active_combatant.combatant_name,
+				"lane": target_lane_index + 1,
+				"card_id": new_summon_on_field.card_resource.id,
+				"instance_id": new_summon_on_field.instance_id, # The new summon instance
+				"status": Constants.TAG_UNDEAD,
+				"gained": true,
+				"source": reanimate_spell_card_id,
+				"source_instance_id": reanimate_spell_instance_id
+			})
 
-		active_combatant.place_summon_in_lane(new_summon, target_lane_index)
-		# Generate Arrives Event (include tags)
+		active_combatant.place_summon_in_lane(new_summon_on_field, target_lane_index)
+		
 		battle_instance.add_event({
 			"event_type": "summon_arrives",
 			"player": active_combatant.combatant_name,
-			"card_id": target_card_in_zone.get_card_id(),
+			"card_id": reanimated_creature_card_resource.id, # Correct
 			"lane": target_lane_index + 1,
-			"instance_id": new_id,
-			"power": new_summon.get_current_power(),
-			"max_hp": new_summon.get_current_max_hp(),
-			"current_hp": new_summon.current_hp,
-			"is_swift": new_summon.is_swift,
-			"tags": new_summon.tags.duplicate(),
-			"source_isntance_id": reanimate_spell_instance_id,
-			"source_effect": reanimate_spell_card_id
+			"instance_id": new_summon_on_field_instance_id, # Correct: new ID for the summon on field
+			"power": new_summon_on_field.get_current_power(),
+			"max_hp": new_summon_on_field.get_current_max_hp(),
+			"current_hp": new_summon_on_field.current_hp,
+			"is_swift": new_summon_on_field.is_swift,
+			"tags": new_summon_on_field.tags.duplicate(),
+			"source_card_id": reanimate_spell_card_id, # <<< ADDED (was source_effect)
+			"source_instance_id": reanimate_spell_instance_id # <<< RENAMED (was source_isntance_id)
+			# "source_effect": reanimate_spell_card_id # OLD - replacing with source_card_id and source_instance_id
 		})
-		# Generate Moved Event (limbo -> lane)
+		
 		battle_instance.add_event({
 			"event_type": "card_moved",
-			"card_id": target_card_in_zone.get_card_id(),
-			"instance_id": target_card_in_zone.get_card_instance_id(),
-			"source_id": reanimate_spell_card_id,
+			"card_id": reanimated_creature_card_resource.id, # Correct
+			# Main instance_id for this event: the ID of the CardInZone that was in limbo (and originally graveyard)
+			"instance_id": reanimated_creature_original_instance_id, 
+			"source_card_id": reanimate_spell_card_id, # Correct (was source_id)
 			"source_instance_id": reanimate_spell_instance_id,
 			"player": active_combatant.combatant_name,
 			"from_zone": "limbo",
+			# "from_details": { "original_instance_id": reanimated_creature_original_instance_id }, # Could add for super explicitness
 			"to_zone": "lane",
-			"to_details": {"lane": target_lane_index + 1},
-			"reason": "reanimate"
+			"to_details": {
+				"lane": target_lane_index + 1,
+				"instance_id": new_summon_on_field_instance_id # ID of the NEW summon on the field
+			},
+			"reason": "reanimate_effect_" + reanimate_spell_card_id # More specific reason
 		})
-		# Call _on_arrival (though reanimated creature might not have one)
-		if new_summon.card_resource != null and new_summon.card_resource.has_method("_on_arrival"):
-			new_summon.card_resource._on_arrival(new_summon, active_combatant, opponent_combatant, battle_instance)
-		# --- End Simulate Summoning ---
+		
+		if new_summon_on_field.card_resource != null and new_summon_on_field.card_resource.has_method("_on_arrival"):
+			new_summon_on_field.card_resource._on_arrival(new_summon_on_field, active_combatant, opponent_combatant, battle_instance)
 
 	elif target_card_in_zone == null:
 		print("...No summon found in graveyard to reanimate.")
-		battle_instance.add_event({"event_type":"log_message", "message":"Reanimate found no target in graveyard."})
+		battle_instance.add_event({
+			"event_type":"log_message", 
+			"message":"Reanimate (Instance: %s) found no summon target in graveyard." % reanimate_spell_instance_id,
+			"source_card_id": reanimate_spell_card_id,
+			"source_instance_id": reanimate_spell_instance_id
+			})
 	else: # No empty lane
 		print("...No empty lane available to reanimate into.")
-		battle_instance.add_event({"event_type":"log_message", "message":"Reanimate found no empty lane."})
+		battle_instance.add_event({
+			"event_type":"log_message", 
+			"message":"Reanimate (Instance: %s) found no empty lane for target." % reanimate_spell_instance_id,
+			"source_card_id": reanimate_spell_card_id,
+			"source_instance_id": reanimate_spell_instance_id
+			})
 
 
-# Check if graveyard has a summon and player has an empty lane
-func can_play(active_combatant, _opponent_combatant, _turn_count: int, _battle_instance) -> bool:
-	if active_combatant.mana < self.cost: return false
+# `can_play` needs to be updated too!
+func can_play(active_combatant: Combatant, _opponent_combatant, _turn_count: int, _battle_instance) -> bool: # Added types
+	if active_combatant.mana < self.cost: return false # self.cost refers to the Reanimate spell's cost
 	var summon_in_grave = false
-	for card in active_combatant.graveyard:
-		if card is SummonCardResource:
+	for card_in_zone_obj in active_combatant.graveyard: # Iterate through CardInZone objects
+		# --- CORRECTION 3: Check the type of the CardInZone's *resource* ---
+		if card_in_zone_obj.card_resource is SummonCardResource: # Check the wrapped resource
 			summon_in_grave = true
 			break
 	var lane_available = active_combatant.find_first_empty_lane() != -1
