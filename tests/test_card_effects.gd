@@ -349,7 +349,7 @@ func test_goblin_firework_death_deals_damage():
 	assert_false(new_events.is_empty(), "Firework death should generate events.")
 	
 	var creature_hp_change_event_found = false
-	var visual_effect_found = false
+	#var visual_effect_found = false
 
 	for event_data in new_events:
 		if event_data.get("event_type") == "creature_hp_change" and \
@@ -362,14 +362,13 @@ func test_goblin_firework_death_deals_damage():
 		
 		elif event_data.get("event_type") == "visual_effect" and \
 			 event_data.get("effect_id") == "firework_explosion_on_target":
-			visual_effect_found = true
+			#visual_effect_found = true
 			assert_eq(event_data.get("instance_id"), target_knight.instance_id, "Firework visual_effect: target instance_id incorrect.")
 			assert_eq(event_data.get("source_instance_id"), firework_instance.instance_id, "Firework visual_effect: source_instance_id incorrect.")
 
 	assert_true(creature_hp_change_event_found, "Creature HP change event for Firework target not found or improperly sourced.")
 	# Visual effect is optional to assert strictly, but good if it's there.
 	# assert_true(visual_effect_found, "Visual effect for Firework explosion not found or improperly sourced.")
-
 func test_goblin_firework_death_no_target():
 	var setup = create_test_battle_setup()
 	var player = setup["player"]
@@ -629,33 +628,64 @@ func test_recurring_skeleton_returns_to_deck_on_death():
 
 
 # --- Focus Tests ---
+# res://tests/test_card_effects.gd
+
+# --- Focus Tests ---
 func test_focus_grants_mana():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	player.mana = 1
-	var initial_mana = player.mana
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # Get opponent for the apply_effect call consistency
+	var battle: Battle = setup["battle"]
+	
+	player.mana = 1 
+	var initial_player_mana: int = player.mana
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Create a CardInZone for the Focus spell being "played" in this test
+	var focus_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var focus_card_in_zone: CardInZone = CardInZone.new(focus_res, focus_spell_instance_id)
 
 	# Action: Apply Focus effect
-	focus_res.apply_effect(focus_res, player, player.opponent, battle)
+	# Signature: apply_effect(p_focus_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)
+	if focus_res.script and focus_res.script.has_method("apply_effect"):
+		focus_res.script.apply_effect(focus_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Focus resource does not have a script with apply_effect.")
+		return
 
 	# Assert: Mana increased correctly (up to cap)
-	var expected_mana = min(initial_mana + 8, Constants.MAX_MANA)
-	assert_eq(player.mana, expected_mana, "Focus should grant correct mana.")
+	var expected_player_mana: int = min(initial_player_mana + 8, Constants.MAX_MANA)
+	assert_eq(player.mana, expected_player_mana, "Focus should grant correct mana to player.")
 
-	# Assert: Event generated (mana_change)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	assert_false(events_after.is_empty(), "Focus should generate events.")
-	var mana_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "mana_change" and event.get("player") == player.combatant_name:
-			mana_event_found = true
-			assert_eq(event["amount"], expected_mana - initial_mana, "Focus mana change amount incorrect.")
-			assert_eq(event["new_total"], expected_mana, "Focus mana change new_total incorrect.")
-			break
-	assert_true(mana_event_found, "Mana change event for Focus not found.")
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expect 2 events: 
+	# 1. mana_change (from Combatant.gain_mana, called by Focus effect)
+	# 2. visual_effect (from Focus effect itself)
+	assert_eq(new_events.size(), 2, "Focus effect should generate 2 events. Found: %s" % new_events.size())
 
+	var mana_change_event_found: bool = false
+	var visual_effect_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "mana_change" and \
+		   event_data.get("player") == player.combatant_name:
+			mana_change_event_found = true
+			assert_eq(event_data.get("amount"), expected_player_mana - initial_player_mana, "Focus mana_change event: amount incorrect.")
+			assert_eq(event_data.get("new_total"), expected_player_mana, "Focus mana_change event: new_total incorrect.")
+			assert_eq(event_data.get("source"), focus_card_in_zone.get_card_id(), "Focus mana_change event: source card_id incorrect.")
+			assert_eq(event_data.get("instance_id"), focus_card_in_zone.get_card_instance_id(), "Focus mana_change event: instance_id (the spell) incorrect.")
+			assert_eq(event_data.get("source_instance_id"), focus_card_in_zone.get_card_instance_id(), "Focus mana_change event: source_instance_id incorrect.")
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "focus_mana_gain":
+			visual_effect_found = true
+			assert_eq(event_data.get("instance_id"), focus_card_in_zone.get_card_instance_id(), "Focus visual_effect: instance_id incorrect.")
+			assert_eq(event_data.get("source_instance_id"), focus_card_in_zone.get_card_instance_id(), "Focus visual_effect: source_instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("amount"), 8, "Focus visual_effect details: amount incorrect.") # Assuming 'amount' was 'mana_gain' in effect
+
+	assert_true(mana_change_event_found, "Mana change event for Focus not found or improperly sourced.")
+	assert_true(visual_effect_found, "Visual effect event for Focus not found or improperly sourced.")
 
 # --- Avenging Tiger Tests ---
 func test_avenging_tiger_gains_swift_if_hp_lower():
@@ -720,143 +750,343 @@ func test_avenging_tiger_does_not_gain_swift_if_hp_not_lower():
 	assert_false(status_event_found, "No Swift status change event should be generated.")
 
 # --- Superior Intellect Tests ---
+# res://tests/test_card_effects.gd
+
+# --- Superior Intellect Tests ---
 func test_superior_intellect_moves_grave_to_library_and_clears_opponent():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup graveyards by modifying the existing arrays
-	player.graveyard.clear() # Ensure it's empty first
-	player.graveyard.append(goblin_scout_res)
-	player.graveyard.append(knight_res)
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+
+	# Setup graveyards with CardInZone objects
+	player.graveyard.clear()
+	var scout_in_grave_instance_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(goblin_scout_res, scout_in_grave_instance_id))
+	var knight_in_grave_instance_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(knight_res, knight_in_grave_instance_id))
+	
 	opponent.graveyard.clear()
-	opponent.graveyard.append(healer_res)
-	var initial_player_lib_size = player.library.size()
-	var initial_event_count = battle.battle_events.size() # Track events before action
+	var healer_in_opp_grave_instance_id = battle._generate_new_card_instance_id()
+	opponent.graveyard.append(CardInZone.new(healer_res, healer_in_opp_grave_instance_id))
+	
+	var initial_player_lib_size: int = player.library.size()
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Create a CardInZone for the Superior Intellect spell
+	var intellect_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var intellect_card_in_zone: CardInZone = CardInZone.new(superior_intellect_res, intellect_spell_instance_id)
 
 	# Action: Apply effect
-	superior_intellect_res.apply_effect(superior_intellect_res, player, opponent, battle)
+	if superior_intellect_res.script and superior_intellect_res.script.has_method("apply_effect"):
+		superior_intellect_res.script.apply_effect(intellect_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Superior Intellect resource does not have a script with apply_effect.")
+		return
 
 	# Assert: Player graveyard is empty
-	assert_true(player.graveyard.is_empty(), "Player graveyard should be empty.")
+	assert_true(player.graveyard.is_empty(), "Player graveyard should be empty after Superior Intellect.")
+	
 	# Assert: Player library increased and contains moved cards at bottom
-	assert_eq(player.library.size(), initial_player_lib_size + 2, "Player library size incorrect.")
-	# Check last two cards (order depends on how they were added)
-	assert_eq(player.library[-1].id, "Knight", "Knight should be at library bottom.")
-	assert_eq(player.library[-2].id, "GoblinScout", "Scout should be second from bottom.")
+	assert_eq(player.library.size(), initial_player_lib_size + 2, "Player library size incorrect after Superior Intellect.")
+	# Check last two cards (order was GoblinScout then Knight added to grave, so they should appear in that order at library bottom)
+	assert_true(player.library[-1] is CardInZone, "Last card in player library should be CardInZone.")
+	assert_true(player.library[-2] is CardInZone, "Second to last card in player library should be CardInZone.")
+	if player.library.size() >= 2 : # Defensive check before accessing
+		assert_eq(player.library[-1].get_card_id(), "Knight", "Knight should be at library bottom (last card added).")
+		assert_eq(player.library[-1].get_card_instance_id(), knight_in_grave_instance_id, "Knight instance ID mismatch in library.")
+		assert_eq(player.library[-2].get_card_id(), "GoblinScout", "Scout should be second from bottom.")
+		assert_eq(player.library[-2].get_card_instance_id(), scout_in_grave_instance_id, "Scout instance ID mismatch in library.")
+	
 	# Assert: Opponent graveyard is empty
-	assert_true(opponent.graveyard.is_empty(), "Opponent graveyard should be empty.")
+	assert_true(opponent.graveyard.is_empty(), "Opponent graveyard should be empty after Superior Intellect.")
 
-	# Assert: Events generated (card_moved for player, card_removed for opponent)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var player_moved_count = 0
-	var opponent_removed_count = 0
-	for event in events_after:
-		if event.get("event_type") == "card_moved" and event.get("player") == player.combatant_name and event.get("to_zone") == "library":
-			player_moved_count += 1
-		elif event.get("event_type") == "card_removed" and event.get("player") == opponent.combatant_name and event.get("from_zone") == "graveyard":
-			opponent_removed_count += 1
-	assert_eq(player_moved_count, 2, "Incorrect number of player card_moved events.")
-	assert_eq(opponent_removed_count, 1, "Incorrect number of opponent card_removed events.")
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# - 2x card_moved (player's grave to player's library)
+	# - 1x card_removed (for opponent's Healer from their grave)
+	# - 1x visual_effect (for the spell cast itself)
+	# Total = 4 events
+	
+	var player_cards_moved_to_library: int = 0
+	var opponent_cards_removed_from_grave: int = 0
+	var main_visual_effect_found: bool = false
 
+	for event_data in new_events:
+		if event_data.get("event_type") == "card_moved" and \
+		   event_data.get("player") == player.combatant_name and \
+		   event_data.get("from_zone") == "graveyard" and \
+		   event_data.get("to_zone") == "library" and \
+		   event_data.get("source_instance_id") == intellect_spell_instance_id:
+			player_cards_moved_to_library += 1
+			# Check that the instance ID in from_details and to_details matches one of the original grave IDs
+			var original_event_instance_id = event_data.get("instance_id") # This is ID from graveyard
+			var moved_card_id = event_data.get("card_id")
+			assert_true(original_event_instance_id == scout_in_grave_instance_id or original_event_instance_id == knight_in_grave_instance_id, 
+						"Moved card's instance_id (%s - %s) doesn't match expected graveyard instance." % [moved_card_id, original_event_instance_id])
+			assert_eq(event_data.get("to_details", {}).get("instance_id"), original_event_instance_id, 
+						"Instance ID in to_details should match original grave ID for %s." % moved_card_id)
+
+		elif event_data.get("event_type") == "card_removed" and \
+			 event_data.get("player") == opponent.combatant_name and \
+			 event_data.get("from_zone") == "graveyard" and \
+			 event_data.get("instance_id") == healer_in_opp_grave_instance_id and \
+			 event_data.get("source_instance_id") == intellect_spell_instance_id:
+			opponent_cards_removed_from_grave += 1
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "superior_intellect_cast" and \
+			 event_data.get("source_instance_id") == intellect_spell_instance_id:
+			main_visual_effect_found = true
+
+	assert_eq(player_cards_moved_to_library, 2, "Incorrect number of player's cards moved from grave to library by Superior Intellect.")
+	assert_eq(opponent_cards_removed_from_grave, 1, "Incorrect number of opponent's cards removed from grave by Superior Intellect.")
+	assert_true(main_visual_effect_found, "Main visual effect for Superior Intellect cast not found or improperly sourced.")
 
 # --- Goblin Rally Tests ---
 func test_goblin_rally_summons_scouts_in_empty_lanes():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup lanes: Lane 0 empty, Lane 1 occupied, Lane 2 empty
-	place_summon_for_test(player, knight_res, 1, battle)
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] 
+	var battle: Battle = setup["battle"]
+	
+	# Setup lanes: Player's Lane 0 (index 0) empty, Lane 1 (index 1) occupied, Lane 2 (index 2) empty
+	var _knight_blocker = place_summon_for_test(player, knight_res, 1, battle) 
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Apply effect
-	goblin_rally_res.apply_effect(goblin_rally_res, player, opponent, battle)
+	# Create a CardInZone for the Goblin Rally spell being "played"
+	var rally_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var rally_card_in_zone: CardInZone = CardInZone.new(goblin_rally_res, rally_spell_instance_id)
+
+	# Action: Apply Goblin Rally effect
+	# Signature: apply_effect(p_rally_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)
+	if goblin_rally_res.script and goblin_rally_res.script.has_method("apply_effect"):
+		goblin_rally_res.script.apply_effect(rally_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Goblin Rally resource does not have a script with apply_effect.")
+		return
 
 	# Assert: Lanes 0 and 2 now have Goblin Scouts
-	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "GoblinScout", "Lane 1 should have Goblin Scout.")
-	assert_true(player.lanes[1] is SummonInstance and player.lanes[1].card_resource.id == "Knight", "Lane 2 should still have Knight.") # Check original occupant
-	assert_true(player.lanes[2] is SummonInstance and player.lanes[2].card_resource.id == "GoblinScout", "Lane 3 should have Goblin Scout.")
+	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "GoblinScout", "Lane 0 (index 0) should have Goblin Scout.")
+	var scout_in_lane0 = player.lanes[0] as SummonInstance 
 
-	# Assert: Events generated (2x summon_arrives)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var summon_arrive_count = 0
-	for event in events_after:
-		if event.get("event_type") == "summon_arrives" and event.get("card_id") == "GoblinScout":
-			summon_arrive_count += 1
-	assert_eq(summon_arrive_count, 2, "Goblin Rally should generate 2 summon_arrives events.")
+	assert_true(player.lanes[1] is SummonInstance and player.lanes[1].card_resource.id == "Knight", "Lane 1 (index 1) should still have Knight.")
+	
+	assert_true(player.lanes[2] is SummonInstance and player.lanes[2].card_resource.id == "GoblinScout", "Lane 2 (index 2) should have Goblin Scout.")
+	var scout_in_lane2 = player.lanes[2] as SummonInstance
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# - 2x summon_arrives (for the two Goblin Scouts)
+	# - 1x visual_effect (for the Goblin Rally spell cast itself)
+	# Total = 3 events
+	assert_eq(new_events.size(), 3, "Goblin Rally effect should generate 3 events (2 arrives, 1 visual). Found: %s" % new_events.size())
+
+	var scouts_arrived_count: int = 0
+	var main_visual_effect_found: bool = false
+	var scout_lane0_instance_id: int = -1 # Default if scout not found (test would fail earlier)
+	var scout_lane2_instance_id: int = -1 # Default
+
+	if scout_in_lane0: scout_lane0_instance_id = scout_in_lane0.instance_id
+	if scout_in_lane2: scout_lane2_instance_id = scout_in_lane2.instance_id
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "summon_arrives" and \
+		   event_data.get("card_id") == "GoblinScout" and \
+		   event_data.get("player") == player.combatant_name and \
+		   event_data.get("source_card_id") == rally_card_in_zone.get_card_id() and \
+		   event_data.get("source_instance_id") == rally_card_in_zone.get_card_instance_id():
+			scouts_arrived_count += 1
+			var arrived_lane = event_data.get("lane") # 1-based
+			var arrived_instance_id = event_data.get("instance_id")
+			if arrived_lane == 1: # Corresponds to index 0
+				assert_true(scout_in_lane0 != null, "Scout should exist in lane 0 to get its ID.")
+				assert_eq(arrived_instance_id, scout_lane0_instance_id, "Instance ID of scout in lane 0 mismatch.")
+			elif arrived_lane == 3: # Corresponds to index 2
+				assert_true(scout_in_lane2 != null, "Scout should exist in lane 2 to get its ID.")
+				assert_eq(arrived_instance_id, scout_lane2_instance_id, "Instance ID of scout in lane 2 mismatch.")
+			else:
+				fail_test("Goblin Scout arrived in unexpected lane: %s. Expected 1 or 3." % arrived_lane)
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "goblin_rally_cast" and \
+			 event_data.get("source_instance_id") == rally_card_in_zone.get_card_instance_id():
+			main_visual_effect_found = true
+			assert_eq(event_data.get("details", {}).get("summoned_count"), 2, "Goblin Rally visual_effect: summoned_count incorrect.")
+			assert_eq(event_data.get("instance_id"), rally_card_in_zone.get_card_instance_id(), "Goblin Rally visual_effect: instance_id incorrect (should be Rally spell).")
+
+
+	assert_eq(scouts_arrived_count, 2, "Goblin Rally should result in 2 Goblin Scout summon_arrives events.")
+	assert_true(main_visual_effect_found, "Main visual effect for Goblin Rally cast not found or improperly sourced.")
 
 func test_goblin_rally_no_empty_lanes():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Occupy all lanes
-	place_summon_for_test(player, knight_res, 0, battle)
-	place_summon_for_test(player, knight_res, 1, battle)
-	place_summon_for_test(player, knight_res, 2, battle)
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] 
+	var battle: Battle = setup["battle"]
+	
+	# Occupy all of the player's lanes
+	var _blocker1 = place_summon_for_test(player, knight_res, 0, battle)
+	var _blocker2 = place_summon_for_test(player, knight_res, 1, battle)
+	var _blocker3 = place_summon_for_test(player, knight_res, 2, battle)
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Apply effect
-	goblin_rally_res.apply_effect(goblin_rally_res, player, opponent, battle)
+	# Create a CardInZone for the Goblin Rally spell being "played"
+	var rally_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var rally_card_in_zone: CardInZone = CardInZone.new(goblin_rally_res, rally_spell_instance_id)
 
-	# Assert: Lanes unchanged
-	assert_true(player.lanes[0].card_resource.id == "Knight", "Lane 1 unchanged.")
-	assert_true(player.lanes[1].card_resource.id == "Knight", "Lane 2 unchanged.")
-	assert_true(player.lanes[2].card_resource.id == "Knight", "Lane 3 unchanged.")
-	# Assert: No summon_arrives events generated
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var summon_arrive_count = 0
-	for event in events_after:
-		if event.get("event_type") == "summon_arrives":
-			summon_arrive_count += 1
-	assert_eq(summon_arrive_count, 0, "Goblin Rally should generate 0 summon_arrives events if no lanes free.")
+	# Action: Apply Goblin Rally effect
+	if goblin_rally_res.script and goblin_rally_res.script.has_method("apply_effect"):
+		goblin_rally_res.script.apply_effect(rally_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Goblin Rally resource does not have a script with apply_effect.")
+		return
 
+	# Assert: Lanes remain unchanged (still occupied by Knights)
+	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "Knight", "Lane 0 should still be Knight.")
+	assert_true(player.lanes[1] is SummonInstance and player.lanes[1].card_resource.id == "Knight", "Lane 1 should still be Knight.")
+	assert_true(player.lanes[2] is SummonInstance and player.lanes[2].card_resource.id == "Knight", "Lane 2 should still be Knight.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# - 1x visual_effect (for the Goblin Rally spell cast itself, even if no scouts summoned)
+	# - 1x log_message (optional, from the effect script if no lanes are free)
+	# Let's primarily assert the visual_effect and check no summon_arrives.
+	
+	var summon_arrives_event_found: bool = false
+	var main_visual_effect_found: bool = false
+	var log_message_no_lanes_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "summon_arrives" and \
+		   event_data.get("card_id") == "GoblinScout": # Should not happen
+			summon_arrives_event_found = true
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "goblin_rally_cast" and \
+			 event_data.get("source_instance_id") == rally_card_in_zone.get_card_instance_id():
+			main_visual_effect_found = true
+			# When no scouts are summoned, the effect script still logs this visual event.
+			# The "summoned_count" in details should be 0.
+			assert_eq(event_data.get("details", {}).get("summoned_count"), 0, "Goblin Rally visual_effect: summoned_count should be 0 when no lanes are free.")
+			assert_eq(event_data.get("instance_id"), rally_card_in_zone.get_card_instance_id(), "Goblin Rally visual_effect: instance_id incorrect.")
+
+		elif event_data.get("event_type") == "log_message" and \
+			 "no empty lanes" in event_data.get("message", "").to_lower() and \
+			 event_data.get("source_instance_id") == rally_card_in_zone.get_card_instance_id():
+			log_message_no_lanes_found = true
+			
+	assert_false(summon_arrives_event_found, "Goblin Rally should not generate summon_arrives events if no lanes are free.")
+	assert_true(main_visual_effect_found, "Main visual effect for Goblin Rally cast not found or improperly sourced (when no lanes free).")
+	assert_true(log_message_no_lanes_found, "Log message indicating no empty lanes for Goblin Rally was not found.")
 
 # --- Thought Acquirer Tests ---
 func test_thought_acquirer_steals_card():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup opponent library
-	opponent.library.clear() # Use clear and append
-	opponent.library.append(goblin_scout_res)
-	opponent.library.append(knight_res)
-	opponent.library.append(healer_res) # Scout top, Healer bottom
-	var initial_opp_lib_size = opponent.library.size()
-	var initial_player_lib_size = player.library.size()
-	var bottom_card_id = opponent.library[-1].id
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup opponent library with CardInZone objects
+	opponent.library.clear()
+	# Order: Scout (top, index 0), Knight (middle, index 1), Healer (bottom, index 2)
+	var healer_in_opp_lib_instance_id = battle._generate_new_card_instance_id()
+	var knight_in_opp_lib_instance_id = battle._generate_new_card_instance_id()
+	var scout_in_opp_lib_instance_id = battle._generate_new_card_instance_id()
 
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(thought_acquirer_res, player, opponent, 0, battle, new_id)
-	var initial_event_count = battle.battle_events.size()
+	opponent.library.append(CardInZone.new(goblin_scout_res, scout_in_opp_lib_instance_id))  # Top
+	opponent.library.append(CardInZone.new(knight_res, knight_in_opp_lib_instance_id)) # Middle
+	opponent.library.append(CardInZone.new(healer_res, healer_in_opp_lib_instance_id)) # Bottom (this will be stolen)
+	
+	var initial_opp_lib_size: int = opponent.library.size() # Should be 3
+	var initial_player_lib_size: int = player.library.size()
+	
+	# Ensure library has items before accessing -1 (though previous appends should ensure this)
+	assert_gt(opponent.library.size(), 0, "Opponent library should not be empty before getting bottom card.")
+	var bottom_card_to_be_stolen_original_card_id: String = opponent.library[-1].get_card_id()
+	var bottom_card_to_be_stolen_original_instance_id: int = opponent.library[-1].get_card_instance_id()
+	assert_eq(bottom_card_to_be_stolen_original_card_id, "Healer", "Expected Healer to be at the bottom of opponent's library initially.")
 
-	# Action: Call arrival effect
-	thought_acquirer_res._on_arrival(instance, player, opponent, battle)
+	# Simulate Thought Acquirer arrival
+	var acquirer_instance = SummonInstance.new()
+	var acquirer_instance_id: int = battle._generate_new_card_instance_id() # Use new ID system
+	acquirer_instance.setup(thought_acquirer_res, player, opponent, 0, battle, acquirer_instance_id)
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Assert: Opponent library size decreased
-	assert_eq(opponent.library.size(), initial_opp_lib_size - 1, "Opponent library size should decrease.")
-	# Assert: Player library size increased
-	assert_eq(player.library.size(), initial_player_lib_size + 1, "Player library size should increase.")
-	# Assert: Correct card moved to player library bottom
-	assert_eq(player.library[-1].id, bottom_card_id, "Incorrect card moved to player library bottom.")
+	# Action: Call _on_arrival effect
+	if thought_acquirer_res.has_method("_on_arrival"):
+		thought_acquirer_res._on_arrival(acquirer_instance, player, opponent, battle)
+	else:
+		fail_test("Thought Acquirer resource does not have _on_arrival method.")
+		return
 
-	# Assert: Events generated (2x card_moved)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var moved_from_opp = false
-	var moved_to_player = false
-	for event in events_after:
-		if event.get("event_type") == "card_moved" and event.get("player") == opponent.combatant_name and event.get("from_zone") == "library":
-			moved_from_opp = true
-		elif event.get("event_type") == "card_moved" and event.get("player") == player.combatant_name and event.get("to_zone") == "library":
-			moved_to_player = true
-	assert_true(moved_from_opp, "Card moved from opponent library event not found.")
-	assert_true(moved_to_player, "Card moved to player library event not found.")
+	# Assert: Opponent library size decreased by 1
+	assert_eq(opponent.library.size(), initial_opp_lib_size - 1, "Opponent library size should decrease by one.")
+	# Assert: Player library size increased by 1
+	assert_eq(player.library.size(), initial_player_lib_size + 1, "Player library size should increase by one.")
+	
+	# Assert: Correct card (Healer) moved to player's library bottom, maintaining its original instance_id (as per current effect logic)
+	assert_true(player.library[-1] is CardInZone, "Card at bottom of player's library should be CardInZone.")
+	if player.library.size() > 0: # Defensive check
+		var stolen_card_in_player_lib = player.library[-1]
+		assert_eq(stolen_card_in_player_lib.get_card_id(), bottom_card_to_be_stolen_original_card_id, "Incorrect card ID moved to player library bottom.")
+		assert_eq(stolen_card_in_player_lib.get_card_instance_id(), bottom_card_to_be_stolen_original_instance_id, "Instance ID of stolen card should be maintained when moved to player library.")
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. card_moved (opponent's library -> limbo/stolen, for the Healer)
+	# 2. card_moved (limbo/stolen -> player's library, for the Healer)
+	# (Optional: 1x visual_effect for the Thought Acquirer's ability)
+	# Let's assume 2 card_moved events for now, adjust if visual_effect is added by effect script.
+	# Based on thought_acquirer_effect.gd, it does generate a visual_effect. So, 3 events.
+	assert_eq(new_events.size(), 3, "Thought Acquirer effect should generate 3 events. Found: %s" % new_events.size())
+
+	var moved_from_opponent_lib_found: bool = false
+	var moved_to_player_lib_found: bool = false
+	var visual_effect_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "card_moved" and \
+		   event_data.get("player") == opponent.combatant_name and \
+		   event_data.get("from_zone") == "library" and \
+		   event_data.get("to_zone") == "limbo" and \
+		   event_data.get("card_id") == bottom_card_to_be_stolen_original_card_id and \
+		   event_data.get("instance_id") == bottom_card_to_be_stolen_original_instance_id and \
+		   event_data.get("source_instance_id") == acquirer_instance_id:
+			moved_from_opponent_lib_found = true
+		
+		elif event_data.get("event_type") == "card_moved" and \
+			 event_data.get("player") == player.combatant_name and \
+			 event_data.get("from_zone") == "limbo" and \
+			 event_data.get("to_zone") == "library" and \
+			 event_data.get("card_id") == bottom_card_to_be_stolen_original_card_id and \
+			 event_data.get("instance_id") == bottom_card_to_be_stolen_original_instance_id and \
+			 event_data.get("source_instance_id") == acquirer_instance_id:
+			moved_to_player_lib_found = true
+			assert_eq(event_data.get("to_details", {}).get("position"), "bottom", "Stolen card should be added to bottom of player's library.")
+			# The instance_id in to_details should be the same if the CardInZone object itself was moved.
+			assert_eq(event_data.get("to_details", {}).get("instance_id"), bottom_card_to_be_stolen_original_instance_id, "Instance ID in to_details mismatch for stolen card.")
+
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "thought_acquirer_steal" and \
+			 event_data.get("source_instance_id") == acquirer_instance_id:
+			visual_effect_found = true
+			assert_eq(event_data.get("details", {}).get("card_id"), bottom_card_to_be_stolen_original_card_id, "Visual effect details: card_id incorrect.")
+			# The main instance_id of this visual effect could be the Thought Acquirer or the stolen card.
+			# Let's assume the Acquirer for now, or it could be -1 if it's a general "steal" visual.
+			assert_eq(event_data.get("instance_id"), acquirer_instance_id, "Visual effect instance_id (Thought Acquirer) incorrect.")
+
+
+	assert_true(moved_from_opponent_lib_found, "Card moved from opponent library event not found or improperly sourced.")
+	assert_true(moved_to_player_lib_found, "Card moved to player library event not found or improperly sourced.")
+	assert_true(visual_effect_found, "Visual effect for Thought Acquirer steal not found or improperly sourced.")
 
 func test_thought_acquirer_opponent_library_empty():
 	var setup = create_test_battle_setup()
@@ -903,131 +1133,325 @@ func test_inexorable_ooze_is_relentless():
 # --- Reanimate Tests ---
 func test_reanimate_summons_from_graveyard():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup graveyard and ensure lane 0 is free
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup graveyard with CardInZone objects
 	player.graveyard.clear()
-	player.graveyard.append(knight_res) # Knight is leftmost
-	player.graveyard.append(goblin_scout_res)
-	player.lanes[0] = null
-	var initial_grave_size = player.graveyard.size()
-	var initial_event_count = battle.battle_events.size()
+	# Knight is added first, so it's at index 0 (leftmost)
+	var knight_in_grave_instance_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(knight_res, knight_in_grave_instance_id))
+	var scout_in_grave_instance_id = battle._generate_new_card_instance_id() # Unused if only Knight reanimated
+	player.graveyard.append(CardInZone.new(goblin_scout_res, scout_in_grave_instance_id))
+	
+	player.lanes[0] = null # Ensure lane 0 is free for the reanimated summon
+	var initial_grave_size_val: int = player.graveyard.size() # Should be 2
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Apply effect
-	reanimate_res.apply_effect(reanimate_res, player, opponent, battle)
+	# Create a CardInZone for the Reanimate spell
+	var reanimate_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var reanimate_card_in_zone: CardInZone = CardInZone.new(reanimate_res, reanimate_spell_instance_id)
 
-	# Assert: Lane 0 now has Knight
-	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "Knight", "Lane 1 should have reanimated Knight.")
-	# Assert: Knight has Undead tag
-	assert_true(player.lanes[0].tags.has(Constants.TAG_UNDEAD), "Reanimated Knight should have Undead tag.")
-	# Assert: Graveyard size decreased
-	assert_eq(player.graveyard.size(), initial_grave_size - 1, "Graveyard size should decrease.")
-	# Assert: Knight is no longer in graveyard
-	var knight_in_grave = false
-	for card in player.graveyard:
-		if card.id == "Knight": knight_in_grave = true; break
-	assert_false(knight_in_grave, "Knight should be removed from graveyard.")
+	# Action: Apply Reanimate effect
+	if reanimate_res.script and reanimate_res.script.has_method("apply_effect"):
+		reanimate_res.script.apply_effect(reanimate_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Reanimate resource does not have a script with apply_effect.")
+		return
 
-	# Assert: Events generated (card_moved grave->limbo, summon_arrives, card_moved limbo->lane)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	assert_gte(events_after.size(), 3, "Reanimate should generate at least 3 events.")
-	var moved_from_grave = false
-	var arrived = false
-	var moved_to_lane = false
-	for event in events_after:
-		if event.get("event_type") == "card_moved" and event.get("from_zone") == "graveyard": moved_from_grave = true
-		elif event.get("event_type") == "summon_arrives" and event.get("card_id") == "Knight": arrived = true
-		elif event.get("event_type") == "card_moved" and event.get("from_zone") == "limbo" and event.get("to_zone") == "lane": moved_to_lane = true
-	assert_true(moved_from_grave, "Card moved from graveyard event not found.")
-	assert_true(arrived, "Summon arrives event not found.")
-	assert_true(moved_to_lane, "Card moved to lane event not found.")
+	# Assert: Lane 0 now has the Knight (which was leftmost in graveyard)
+	assert_true(player.lanes[0] is SummonInstance, "Lane 0 should have a SummonInstance after Reanimate.")
+	var reanimated_summon_in_lane0 = player.lanes[0] as SummonInstance
+	assert_true(reanimated_summon_in_lane0 != null and reanimated_summon_in_lane0.card_resource.id == "Knight", "Lane 0 should have reanimated Knight.")
+	
+	# Assert: Reanimated Knight has Undead tag (as per Reanimate effect script)
+	assert_true(reanimated_summon_in_lane0.tags.has(Constants.TAG_UNDEAD), "Reanimated Knight should have Undead tag.")
+	
+	# Assert: Graveyard size decreased by 1 (Knight was removed)
+	assert_eq(player.graveyard.size(), initial_grave_size_val - 1, "Player graveyard size should decrease by one.")
+	
+	# Assert: Knight is no longer in graveyard; Scout should still be there.
+	var knight_found_in_grave_after: bool = false
+	var scout_found_in_grave_after: bool = false
+	for card_in_zone_obj in player.graveyard:
+		if card_in_zone_obj.get_card_id() == "Knight":
+			knight_found_in_grave_after = true
+		elif card_in_zone_obj.get_card_id() == "GoblinScout":
+			scout_found_in_grave_after = true
+	assert_false(knight_found_in_grave_after, "Knight should be removed from graveyard after Reanimate.")
+	assert_true(scout_found_in_grave_after, "Goblin Scout should still be in graveyard after Reanimate.")
 
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events for successful reanimation of Knight:
+	# 1. card_moved (Knight from player's grave to limbo, sourced by Reanimate spell)
+	# 2. status_change (Knight gains Undead tag, sourced by Reanimate spell) - if you added this event
+	# 3. summon_arrives (Knight arrives in lane, sourced by Reanimate spell)
+	# 4. card_moved (Knight from limbo to player's lane, sourced by Reanimate spell)
+	# (Potentially a visual_effect for the Reanimate spell itself, if the effect script adds one)
+
+	var moved_from_grave_found: bool = false
+	var status_undead_gained_found: bool = false # Optional based on your effect script
+	var summon_arrives_found: bool = false
+	var moved_to_lane_found: bool = false
+
+	var reanimated_knight_field_instance_id = reanimated_summon_in_lane0.instance_id
+
+	for event_data in new_events:
+		var event_src_card_id = event_data.get("source_card_id")
+		var event_src_instance_id = event_data.get("source_instance_id")
+
+		if event_data.get("event_type") == "card_moved" and \
+		   event_data.get("card_id") == "Knight" and \
+		   event_data.get("instance_id") == knight_in_grave_instance_id and \
+		   event_data.get("from_zone") == "graveyard" and event_data.get("to_zone") == "limbo" and \
+		   event_src_card_id == reanimate_card_in_zone.get_card_id() and \
+		   event_src_instance_id == reanimate_card_in_zone.get_card_instance_id():
+			moved_from_grave_found = true
+		
+		elif event_data.get("event_type") == "status_change" and \
+			 event_data.get("card_id") == "Knight" and \
+			 event_data.get("instance_id") == reanimated_knight_field_instance_id and \
+			 event_data.get("status") == Constants.TAG_UNDEAD and event_data.get("gained") == true and \
+			 event_src_card_id == reanimate_card_in_zone.get_card_id() and \
+			 event_src_instance_id == reanimate_card_in_zone.get_card_instance_id():
+			status_undead_gained_found = true # This event is logged by the revised reanimate_effect.gd
+
+		elif event_data.get("event_type") == "summon_arrives" and \
+			 event_data.get("card_id") == "Knight" and \
+			 event_data.get("instance_id") == reanimated_knight_field_instance_id and \
+			 event_src_card_id == reanimate_card_in_zone.get_card_id() and \
+			 event_src_instance_id == reanimate_card_in_zone.get_card_instance_id():
+			summon_arrives_found = true
+			assert_true(event_data.get("tags", []).has(Constants.TAG_UNDEAD), "Summon_arrives event for reanimated Knight should include Undead tag.")
+
+		elif event_data.get("event_type") == "card_moved" and \
+			 event_data.get("card_id") == "Knight" and \
+			 event_data.get("instance_id") == knight_in_grave_instance_id and \
+			 event_data.get("from_zone") == "limbo" and event_data.get("to_zone") == "lane" and \
+			 event_data.get("to_details", {}).get("instance_id") == reanimated_knight_field_instance_id and \
+			 event_src_card_id == reanimate_card_in_zone.get_card_id() and \
+			 event_src_instance_id == reanimate_card_in_zone.get_card_instance_id():
+			moved_to_lane_found = true
+			
+	assert_true(moved_from_grave_found, "Card_moved (Knight from grave to limbo) event not found or improperly sourced for Reanimate.")
+	assert_true(status_undead_gained_found, "Status_change (Knight gains Undead) event not found or improperly sourced for Reanimate.")
+	assert_true(summon_arrives_found, "Summon_arrives (Knight) event not found or improperly sourced for Reanimate.")
+	assert_true(moved_to_lane_found, "Card_moved (Knight from limbo to lane) event not found or improperly sourced for Reanimate.")
 
 func test_reanimate_no_target_in_graveyard():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	player.graveyard.clear() # Empty graveyard
-	var initial_event_count = battle.battle_events.size()
-	reanimate_res.apply_effect(reanimate_res, player, opponent, battle)
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] 
+	var battle: Battle = setup["battle"]
+	
+	player.graveyard.clear() # Ensure graveyard is empty
+	
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Create a CardInZone for the Reanimate spell
+	var reanimate_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var reanimate_card_in_zone: CardInZone = CardInZone.new(reanimate_res, reanimate_spell_instance_id)
+
+	# Action: Apply Reanimate effect
+	if reanimate_res.script and reanimate_res.script.has_method("apply_effect"):
+		reanimate_res.script.apply_effect(reanimate_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Reanimate resource does not have a script with apply_effect.")
+		return
+
 	# Assert no summon arrived
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var arrived = false
-	for event in events_after:
-		if event.get("event_type") == "summon_arrives": arrived = true; break
-	assert_false(arrived, "No summon should arrive if graveyard empty.")
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	var summon_arrives_event_found: bool = false
+	var log_message_no_target_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "summon_arrives":
+			summon_arrives_event_found = true
+			# Log details if an unexpected summon arrives, for easier debugging
+			print("Unexpected summon_arrives event found: ", event_data) 
+		elif event_data.get("event_type") == "log_message" and \
+			 ("no summon target in graveyard" in event_data.get("message", "").to_lower() or \
+			  "no target in graveyard" in event_data.get("message", "").to_lower()) and \
+			 event_data.get("source_instance_id") == reanimate_spell_instance_id:
+			log_message_no_target_found = true
+			
+	assert_false(summon_arrives_event_found, "No summon should arrive if player's graveyard is empty for Reanimate.")
+	assert_true(log_message_no_target_found, "Log message indicating no target in graveyard for Reanimate was not found or improperly sourced.")
 
 
 func test_reanimate_no_empty_lane():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	#player.graveyard = [knight_res] # Target in graveyard
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup graveyard with a target (Knight)
 	player.graveyard.clear()
+	var knight_in_grave_instance_id = battle._generate_new_card_instance_id() # Though not directly asserted here, good practice for setup
+	player.graveyard.append(CardInZone.new(knight_res, knight_in_grave_instance_id))
 
-	# Fill lanes
-	place_summon_for_test(player, goblin_scout_res, 0, battle)
-	place_summon_for_test(player, goblin_scout_res, 1, battle)
-	place_summon_for_test(player, goblin_scout_res, 2, battle)
-	var initial_event_count = battle.battle_events.size()
-	reanimate_res.apply_effect(reanimate_res, player, opponent, battle)
-	# Assert no summon arrived
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var arrived = false
-	for event in events_after:
-		if event.get("event_type") == "summon_arrives": arrived = true; break
-	assert_false(arrived, "No summon should arrive if lanes full.")
+	# Fill all player lanes
+	var _blocker1 = place_summon_for_test(player, goblin_scout_res, 0, battle)
+	var _blocker2 = place_summon_for_test(player, goblin_scout_res, 1, battle)
+	var _blocker3 = place_summon_for_test(player, goblin_scout_res, 2, battle)
+	
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Create a CardInZone for the Reanimate spell
+	var reanimate_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var reanimate_card_in_zone: CardInZone = CardInZone.new(reanimate_res, reanimate_spell_instance_id)
+
+	# Action: Apply Reanimate effect
+	if reanimate_res.script and reanimate_res.script.has_method("apply_effect"):
+		reanimate_res.script.apply_effect(reanimate_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Reanimate resource does not have a script with apply_effect.")
+		return
+
+	# Assert no summon arrived because lanes are full
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	var summon_arrives_event_found: bool = false
+	var log_message_no_lane_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "summon_arrives":
+			summon_arrives_event_found = true
+			print("Unexpected summon_arrives event found: ", event_data) 
+		elif event_data.get("event_type") == "log_message" and \
+			 "no empty lane" in event_data.get("message", "").to_lower() and \
+			 event_data.get("source_instance_id") == reanimate_spell_instance_id:
+			log_message_no_lane_found = true
+			
+	assert_false(summon_arrives_event_found, "No summon should arrive if player's lanes are full for Reanimate.")
+	assert_true(log_message_no_lane_found, "Log message indicating no empty lane for Reanimate was not found or improperly sourced.")
 
 
 # --- Goblin Chieftain/Warboss Tests ---
 func test_goblin_chieftain_adds_warboss_to_deck():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	var initial_lib_size = player.library.size()
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(goblin_chieftain_res, player, player.opponent, 0, battle, new_id)
-	var initial_event_count = battle.battle_events.size()
-	# Action
-	goblin_chieftain_res._on_arrival(instance, player, player.opponent, battle)
-	# Assert
-	assert_eq(player.library.size(), initial_lib_size + 1, "Library size should increase.")
-	assert_eq(player.library[-1].id, "GoblinWarboss", "Goblin Warboss should be added to bottom.")
-	# Assert event
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var moved_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "card_moved" and event.get("card_id") == "GoblinWarboss": moved_event_found = true; break
-	assert_true(moved_event_found, "Card moved event for Warboss not found.")
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # Get opponent for _on_arrival signature
+	var battle: Battle = setup["battle"]
+	
+	var initial_lib_size: int = player.library.size()
+	
+	# Simulate Goblin Chieftain arrival
+	var chieftain_instance = SummonInstance.new()
+	var chieftain_instance_id: int = battle._generate_new_card_instance_id() # Use new ID system
+	chieftain_instance.setup(goblin_chieftain_res, player, opponent, 0, battle, chieftain_instance_id) 
+	# Note: place_summon_for_test could be used here if Chieftain needs to be in a lane for the test,
+	# but its _on_arrival doesn't depend on its own lane_index, so direct setup is fine.
+	# If it were placed: player.lanes[0] = chieftain_instance
 
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call _on_arrival effect
+	if goblin_chieftain_res.has_method("_on_arrival"):
+		goblin_chieftain_res._on_arrival(chieftain_instance, player, opponent, battle)
+	else:
+		fail_test("Goblin Chieftain resource does not have _on_arrival method.")
+		return
+
+	# Assert: Library size increased by 1
+	assert_eq(player.library.size(), initial_lib_size + 1, "Player library size should increase by one after Chieftain's effect.")
+	
+	# Assert: Goblin Warboss CardInZone is at the bottom of the library
+	assert_true(player.library[-1] is CardInZone, "Card at library bottom should be a CardInZone.")
+	var warboss_in_library = player.library[-1] as CardInZone
+	if warboss_in_library: # Defensive check after cast
+		assert_eq(warboss_in_library.get_card_id(), "GoblinWarboss", "Goblin Warboss card_id should be at the bottom of the library.")
+		# We can also check its instance_id if we want to be super sure it's the one from the event
+	else:
+		fail_test("Bottom card of library was not a CardInZone as expected.")
+
+
+	# Assert: Event generation for the card_moved (Warboss to library)
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expect 1 event: card_moved (limbo -> library for the Goblin Warboss)
+	assert_eq(new_events.size(), 1, "Goblin Chieftain effect should generate 1 card_moved event for Warboss. Found: %s" % new_events.size())
+
+	var card_moved_event_for_warboss_found: bool = false
+	var new_warboss_instance_id_from_event: int = -1
+
+	if not new_events.is_empty(): # Check if there's an event to process
+		var event_data = new_events[0] # Since we expect only one
+		if event_data.get("event_type") == "card_moved" and \
+		   event_data.get("card_id") == "GoblinWarboss" and \
+		   event_data.get("player") == player.combatant_name and \
+		   event_data.get("to_zone") == "library" and \
+		   event_data.get("from_zone") == "limbo" and \
+		   event_data.get("source_card_id") == goblin_chieftain_res.id and \
+		   event_data.get("source_instance_id") == chieftain_instance_id:
+			card_moved_event_for_warboss_found = true
+			assert_eq(event_data.get("to_details", {}).get("position"), "bottom", "Warboss card_moved event: to_details.position incorrect.")
+			new_warboss_instance_id_from_event = event_data.get("instance_id") # This is the ID of the Warboss CIZ
+			assert_eq(event_data.get("to_details", {}).get("instance_id"), new_warboss_instance_id_from_event, "Warboss card_moved event: to_details.instance_id incorrect.")
+
+
+	assert_true(card_moved_event_for_warboss_found, "Card_moved event for Goblin Warboss (limbo to library) not found or improperly sourced.")
+	
+	# Additional check: ensure the instance_id of the Warboss in library matches the event
+	if warboss_in_library and new_warboss_instance_id_from_event != -1:
+		assert_eq(warboss_in_library.get_card_instance_id(), new_warboss_instance_id_from_event, "Instance ID of Warboss in library does not match event instance ID.")
 
 func test_goblin_warboss_adds_expendable_to_deck():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	var initial_lib_size = player.library.size()
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(goblin_warboss_res, player, player.opponent, 0, battle, new_id)
-	var initial_event_count = battle.battle_events.size()
-	# Action
-	goblin_warboss_res._on_arrival(instance, player, player.opponent, battle)
-	# Assert
-	assert_eq(player.library.size(), initial_lib_size + 1, "Library size should increase.")
-	assert_eq(player.library[-1].id, "GoblinExpendable", "Goblin Expendable should be added to bottom.")
-	# Assert event
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var moved_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "card_moved" and event.get("card_id") == "GoblinExpendable": moved_event_found = true; break
-	assert_true(moved_event_found, "Card moved event for Expendable not found.")
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] 
+	var battle: Battle = setup["battle"]
+	
+	var initial_lib_size: int = player.library.size()
+	
+	# Simulate Goblin Warboss arrival
+	var warboss_instance = SummonInstance.new()
+	var warboss_instance_id: int = battle._generate_new_card_instance_id() 
+	warboss_instance.setup(goblin_warboss_res, player, opponent, 0, battle, warboss_instance_id) 
+	
+	var initial_event_count: int = battle.battle_events.size()
 
+	# Action: Call _on_arrival effect
+	if goblin_warboss_res.has_method("_on_arrival"):
+		goblin_warboss_res._on_arrival(warboss_instance, player, opponent, battle)
+	else:
+		fail_test("Goblin Warboss resource does not have _on_arrival method.")
+		return
+
+	assert_eq(player.library.size(), initial_lib_size + 1, "Player library size should increase by one after Warboss's effect.")
+	
+	assert_true(player.library[-1] is CardInZone, "Card at library bottom should be a CardInZone.")
+	var expendable_in_library = player.library[-1] as CardInZone
+	if expendable_in_library: 
+		assert_eq(expendable_in_library.get_card_id(), "GoblinExpendable", "Goblin Expendable card_id should be at the bottom of the library.")
+	else:
+		fail_test("Bottom card of library was not a CardInZone as expected for Warboss effect.")
+
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	assert_eq(new_events.size(), 1, "Goblin Warboss effect should generate 1 card_moved event for Expendable. Found: %s" % new_events.size())
+
+	var card_moved_event_for_expendable_found: bool = false
+	var new_expendable_instance_id_from_event: int = -1
+
+	if not new_events.is_empty():
+		var event_data = new_events[0] 
+		if event_data.get("event_type") == "card_moved" and \
+		   event_data.get("card_id") == "GoblinExpendable" and \
+		   event_data.get("player") == player.combatant_name and \
+		   event_data.get("to_zone") == "library" and \
+		   event_data.get("from_zone") == "limbo" and \
+		   event_data.get("source_card_id") == goblin_warboss_res.id and \
+		   event_data.get("source_instance_id") == warboss_instance_id:
+			card_moved_event_for_expendable_found = true
+			assert_eq(event_data.get("to_details", {}).get("position"), "bottom", "Expendable card_moved event: to_details.position incorrect.")
+			new_expendable_instance_id_from_event = event_data.get("instance_id") 
+			assert_eq(event_data.get("to_details", {}).get("instance_id"), new_expendable_instance_id_from_event, "Expendable card_moved event: to_details.instance_id incorrect.")
+
+	assert_true(card_moved_event_for_expendable_found, "Card_moved event for Goblin Expendable (limbo to library) not found or improperly sourced.")
+	
+	if expendable_in_library and new_expendable_instance_id_from_event != -1:
+		assert_eq(expendable_in_library.get_card_instance_id(), new_expendable_instance_id_from_event, "Instance ID of Expendable in library does not match event instance ID.")
 
 # --- Apprentice Assassin Tests ---
 func test_apprentice_assassin_gains_power_on_kill():
@@ -1122,39 +1546,104 @@ func test_master_of_strategy_buffs_others():
 # --- Slayer Tests ---
 func test_slayer_kills_undead_opponent():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Place Undead target for opponent
-	var _target_skeleton = place_summon_for_test(opponent, recurring_skeleton_res, 0, battle) # Lane 1
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Place Undead target (Recurring Skeleton) for opponent in their lane 0 (index 0)
+	var target_skeleton_instance = place_summon_for_test(opponent, recurring_skeleton_res, 0, battle)
+	var target_skeleton_original_field_instance_id: int = target_skeleton_instance.instance_id
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Simulate Slayer arrival opposite target
+	# Simulate Slayer arrival in player's lane 0 (index 0), opposite the skeleton
 	var slayer_instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	slayer_instance.setup(slayer_res, player, opponent, 0, battle, new_id) # Arrives in Lane 1
+	var slayer_instance_id: int = battle._generate_new_card_instance_id() # Use new ID system
+	slayer_instance.setup(slayer_res, player, opponent, 0, battle, slayer_instance_id)
+	# Manually place Slayer in lane for this test if place_summon_for_test wasn't used for it
+	# player.lanes[0] = slayer_instance # Assuming Slayer's _on_arrival doesn't depend on it being in a lane yet,
+									  # but for consistency, if other arrivals place, this should too.
+									  # Let's assume place_summon_for_test handles this if we used it for slayer.
+									  # For now, direct setup is what the original test did.
 
-	# Action: Call arrival effect
-	slayer_res._on_arrival(slayer_instance, player, opponent, battle)
+	# Action: Call Slayer's _on_arrival effect
+	if slayer_res.has_method("_on_arrival"):
+		slayer_res._on_arrival(slayer_instance, player, opponent, battle)
+	else:
+		fail_test("Slayer resource does not have _on_arrival method.")
+		return
 
-	# Assert: Skeleton lane is now empty (it died)
-	assert_null(opponent.lanes[0], "Opponent lane 1 should be empty after Slayer kills Skeleton.")
-	# Assert: Skeleton went to library (due to its own death effect)
-	assert_eq(opponent.library.size(), 1, "Opponent library should contain Skeleton.")
-	assert_eq(opponent.library[0].id, "RecurringSkeleton", "Skeleton should be in library.")
+	# Assert: Opponent's lane 0 is now empty (Skeleton died and was removed by its own _on_death or by Slayer's effect)
+	assert_null(opponent.lanes[0], "Opponent's lane 0 should be empty after Slayer kills Skeleton.")
+	
+	# Assert: Skeleton (CardInZone) went to opponent's library (due to Recurring Skeleton's own _on_death effect)
+	assert_eq(opponent.library.size(), 1, "Opponent's library should contain 1 card (the returned Skeleton).")
+	assert_true(opponent.library[0] is CardInZone, "Card in opponent's library should be a CardInZone.")
+	var returned_skeleton_in_lib = opponent.library[0] as CardInZone
+	if returned_skeleton_in_lib:
+		assert_eq(returned_skeleton_in_lib.get_card_id(), "RecurringSkeleton", "Returned Skeleton's card_id in library is incorrect.")
+		# The instance ID of the card in library will be NEW, as per recurring_skeleton_effect.gd logic
+		assert_ne(returned_skeleton_in_lib.get_card_instance_id(), target_skeleton_original_field_instance_id, "Returned Skeleton in library should have a new instance_id, different from its field ID.")
+	else:
+		fail_test("Card in opponent library was not a CardInZone as expected.")
 
-	# Assert: Events generated (creature_defeated for skeleton, card_moved for skeleton)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var defeated_event_found = false
-	var moved_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "creature_defeated" and event.get("lane") == 1 and event.get("player") == opponent.combatant_name:
-			defeated_event_found = true
-		elif event.get("event_type") == "card_moved" and event.get("card_id") == "RecurringSkeleton" and event.get("to_zone") == "library":
-			moved_event_found = true
-	assert_true(defeated_event_found, "Creature defeated event for Skeleton not found.")
-	assert_true(moved_event_found, "Card moved event for Skeleton not found.")
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. (Optional) visual_effect for Slayer's ability targeting Skeleton
+	# 2. creature_defeated for Skeleton (instance_id: target_skeleton_original_field_instance_id, sourced by Slayer)
+	# 3. card_moved (Skeleton from lane to library, due to Skeleton's own death effect, sourced by Skeleton itself)
+	#    (Note: recurring_skeleton_effect.gd sets prevent_graveyard = true)
+
+	var visual_effect_slayer_found: bool = false # Slayer's targeting visual
+	var skeleton_defeated_event_found: bool = false
+	var skeleton_moved_to_library_event_found: bool = false
+	var new_skeleton_library_instance_id_from_event: int = -1
+
+	for event_data in new_events:
+		var event_type = event_data.get("event_type")
+		var event_instance_id = event_data.get("instance_id")
+		var event_card_id = event_data.get("card_id")
+		var event_source_instance_id = event_data.get("source_instance_id")
+		var event_source_card_id = event_data.get("source_card_id")
+
+		if event_type == "visual_effect" and event_data.get("effect_id") == "slayer_destroy" and \
+		   event_instance_id == target_skeleton_original_field_instance_id and \
+		   event_source_instance_id == slayer_instance_id:
+			visual_effect_slayer_found = true
+		
+		elif event_type == "creature_defeated" and \
+			 event_instance_id == target_skeleton_original_field_instance_id and \
+			 event_card_id == "RecurringSkeleton":
+			skeleton_defeated_event_found = true
+			# To fully verify, creature_defeated should ideally also have source_card_id and source_instance_id
+			# For now, we assume Slayer's action immediately precedes this.
+			# If Slayer's _on_arrival called target_skeleton_instance.die(slayer_instance_id, slayer_card_id), 
+			# then die() could pass these to the event.
+			# assert_eq(event_source_card_id, slayer_res.id, "Skeleton defeated event: source_card_id (Slayer) incorrect.")
+			# assert_eq(event_source_instance_id, slayer_instance_id, "Skeleton defeated event: source_instance_id (Slayer) incorrect.")
+
+		elif event_type == "card_moved" and \
+			 event_card_id == "RecurringSkeleton" and \
+			 event_data.get("from_zone") == "lane" and \
+			 event_data.get("from_details", {}).get("instance_id") == target_skeleton_original_field_instance_id and \
+			 event_data.get("to_zone") == "library":
+			skeleton_moved_to_library_event_found = true
+			# This move is caused by Skeleton's own death effect
+			assert_eq(event_source_card_id, "RecurringSkeleton", "Skeleton moved_to_library: source_card_id incorrect.")
+			assert_eq(event_source_instance_id, target_skeleton_original_field_instance_id, "Skeleton moved_to_library: source_instance_id incorrect.")
+			new_skeleton_library_instance_id_from_event = event_data.get("to_details", {}).get("instance_id")
+			assert_ne(new_skeleton_library_instance_id_from_event, target_skeleton_original_field_instance_id, "Skeleton in library should have a new instance ID in to_details.")
+
+
+	# assert_true(visual_effect_slayer_found, "Visual effect for Slayer destroying Skeleton not found or improperly sourced.") # This is optional
+	assert_true(skeleton_defeated_event_found, "Creature_defeated event for Skeleton not found.")
+	assert_true(skeleton_moved_to_library_event_found, "Card_moved event for Skeleton returning to library not found or improperly sourced.")
+
+	# Final check on library card's instance ID
+	if returned_skeleton_in_lib and new_skeleton_library_instance_id_from_event != -1:
+		assert_eq(returned_skeleton_in_lib.get_card_instance_id(), new_skeleton_library_instance_id_from_event, "Instance ID of Skeleton in library does not match its card_moved to_details.instance_id.")
 
 func test_slayer_does_not_kill_non_undead_opponent():
 	var setup = create_test_battle_setup()
@@ -1303,61 +1792,137 @@ func test_spiteful_fang_is_relentless():
 # --- Nap Tests ---
 func test_nap_heals_player():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # Get opponent for apply_effect signature
+	var battle: Battle = setup["battle"]
+	
 	player.current_hp = 15
-	var initial_hp = player.current_hp
-	var initial_event_count = battle.battle_events.size()
+	var initial_player_hp: int = player.current_hp
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Apply effect
-	nap_res.apply_effect(nap_res, player, player.opponent, battle)
+	# Create a CardInZone for the Nap spell being "played"
+	var nap_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var nap_card_in_zone: CardInZone = CardInZone.new(nap_res, nap_spell_instance_id)
 
-	# Assert: HP increased
-	var expected_hp = min(initial_hp + 2, player.max_hp)
-	assert_eq(player.current_hp, expected_hp, "Nap should heal player.")
+	# Action: Apply Nap effect
+	# Signature: apply_effect(p_nap_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)
+	if nap_res.script and nap_res.script.has_method("apply_effect"):
+		nap_res.script.apply_effect(nap_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Nap resource does not have a script with apply_effect.")
+		return
 
-	# Assert: Event generated
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var hp_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "hp_change" and event.get("player") == player.combatant_name:
-			hp_event_found = true
-			assert_eq(event["amount"], expected_hp - initial_hp, "Nap heal amount incorrect.")
-			break
-	assert_true(hp_event_found, "HP change event for Nap not found.")
+	# Assert: Player HP increased correctly (up to cap)
+	var expected_player_hp: int = min(initial_player_hp + 2, player.max_hp)
+	assert_eq(player.current_hp, expected_player_hp, "Nap should heal player correctly.")
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. hp_change (from Combatant.heal, called by Nap effect)
+	# 2. visual_effect (from Nap effect itself)
+	assert_eq(new_events.size(), 2, "Nap effect should generate 2 events. Found: %s" % new_events.size())
+
+	var hp_change_event_found: bool = false
+	var visual_effect_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "hp_change" and \
+		   event_data.get("player") == player.combatant_name:
+			hp_change_event_found = true
+			assert_eq(event_data.get("amount"), expected_player_hp - initial_player_hp, "Nap hp_change event: amount incorrect.")
+			assert_eq(event_data.get("new_total"), expected_player_hp, "Nap hp_change event: new_total incorrect.")
+			assert_eq(event_data.get("source"), nap_card_in_zone.get_card_id(), "Nap hp_change event: source card_id incorrect.")
+			assert_eq(event_data.get("instance_id"), nap_card_in_zone.get_card_instance_id(), "Nap hp_change event: instance_id (the spell) incorrect.")
+			assert_eq(event_data.get("source_instance_id"), nap_card_in_zone.get_card_instance_id(), "Nap hp_change event: source_instance_id incorrect.")
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "nap_heal_player":
+			visual_effect_found = true
+			assert_eq(event_data.get("instance_id"), nap_card_in_zone.get_card_instance_id(), "Nap visual_effect: instance_id incorrect.")
+			assert_eq(event_data.get("source_instance_id"), nap_card_in_zone.get_card_instance_id(), "Nap visual_effect: source_instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("amount_healed"), 2, "Nap visual_effect details: amount_healed incorrect.")
+
+	assert_true(hp_change_event_found, "Player hp_change event for Nap not found or improperly sourced.")
+	assert_true(visual_effect_found, "Visual effect event for Nap not found or improperly sourced.")
 
 # --- Totem of Champions Tests ---
 func test_totem_of_champions_buffs_debuffs():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
 	# Place creatures
-	var player_scout = place_summon_for_test(player, goblin_scout_res, 0, battle) # P:1
-	var player_knight = place_summon_for_test(player, knight_res, 1, battle)     # P:3
-	var opp_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # P:1
-	var opp_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # P:3
-	var initial_event_count = battle.battle_events.size()
+	var player_scout = place_summon_for_test(player, goblin_scout_res, 0, battle)
+	var player_knight = place_summon_for_test(player, knight_res, 1, battle)
+	var opp_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle)
+	var opp_knight = place_summon_for_test(opponent, knight_res, 1, battle)
+	
+	var initial_pscout_power = player_scout.get_current_power()
+	var initial_pknight_power = player_knight.get_current_power()
+	var initial_oscout_power = opp_scout.get_current_power()
+	var initial_oknight_power = opp_knight.get_current_power()
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Apply effect
-	totem_of_champions_res.apply_effect(totem_of_champions_res, player, opponent, battle)
+	# Create a CardInZone for the Totem of Champions spell
+	var totem_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var totem_card_in_zone: CardInZone = CardInZone.new(totem_of_champions_res, totem_spell_instance_id)
 
-	# Assert: Player creatures buffed
-	assert_eq(player_scout.get_current_power(), 1 + 1, "Player Scout power incorrect.")
-	assert_eq(player_knight.get_current_power(), 3 + 1, "Player Knight power incorrect.")
-	# Assert: Opponent creatures debuffed
-	assert_eq(opp_scout.get_current_power(), 1 - 1, "Opponent Scout power incorrect.") # Becomes 0
-	assert_eq(opp_knight.get_current_power(), 3 - 1, "Opponent Knight power incorrect.") # Becomes 2
+	# Action: Apply Totem of Champions effect
+	if totem_of_champions_res.script and totem_of_champions_res.script.has_method("apply_effect"):
+		totem_of_champions_res.script.apply_effect(totem_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Totem of Champions resource does not have a script with apply_effect.")
+		return
 
-	# Assert: Events generated (4x stat_change for power)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var stat_changes = 0
-	for event in events_after:
-		if event.get("event_type") == "stat_change" and event.get("stat") == "power":
-			stat_changes += 1
-	assert_eq(stat_changes, 4, "Incorrect number of power stat_change events for Totem.")
+	# Assert: Player creatures buffed (+1 power)
+	assert_eq(player_scout.get_current_power(), initial_pscout_power + 1, "Totem: Player Scout power incorrect.")
+	assert_eq(player_knight.get_current_power(), initial_pknight_power + 1, "Totem: Player Knight power incorrect.")
+	# Assert: Opponent creatures debuffed (-1 power)
+	assert_eq(opp_scout.get_current_power(), max(0, initial_oscout_power - 1), "Totem: Opponent Scout power incorrect.") # Power cannot go below 0
+	assert_eq(opp_knight.get_current_power(), max(0, initial_oknight_power - 1), "Totem: Opponent Knight power incorrect.")
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# - 4x stat_change (one for each of the 4 creatures affected)
+	# - 1x visual_effect (for the Totem spell cast itself)
+	# Total = 5 events
+	assert_eq(new_events.size(), 5, "Totem of Champions effect should generate 5 events. Found: %s" % new_events.size())
+
+	var stat_change_events_count: int = 0
+	var main_visual_effect_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "stat_change" and \
+		   event_data.get("stat") == "power" and \
+		   event_data.get("source_card_id") == totem_card_in_zone.get_card_id() and \
+		   event_data.get("source_instance_id") == totem_card_in_zone.get_card_instance_id():
+			stat_change_events_count += 1
+			# Further checks for each specific creature if desired:
+			var affected_instance_id = event_data.get("instance_id")
+			var power_change_amount = event_data.get("amount")
+			if affected_instance_id == player_scout.instance_id:
+				assert_eq(power_change_amount, 1, "Player Scout buff amount incorrect in event.")
+			elif affected_instance_id == player_knight.instance_id:
+				assert_eq(power_change_amount, 1, "Player Knight buff amount incorrect in event.")
+			elif affected_instance_id == opp_scout.instance_id:
+				assert_eq(power_change_amount, -1, "Opponent Scout debuff amount incorrect in event.")
+			elif affected_instance_id == opp_knight.instance_id:
+				assert_eq(power_change_amount, -1, "Opponent Knight debuff amount incorrect in event.")
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "totem_of_champions_wave" and \
+			 event_data.get("source_instance_id") == totem_card_in_zone.get_card_instance_id():
+			main_visual_effect_found = true
+			assert_eq(event_data.get("instance_id"), totem_card_in_zone.get_card_instance_id(), "Totem visual_effect: instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("buff_amount"), 1, "Totem visual_effect details: buff_amount incorrect.")
+			assert_eq(event_data.get("details", {}).get("debuff_amount"), -1, "Totem visual_effect details: debuff_amount incorrect.")
+
+	assert_eq(stat_change_events_count, 4, "Incorrect number of power stat_change events for Totem of Champions.")
+	assert_true(main_visual_effect_found, "Main visual effect for Totem of Champions cast not found or improperly sourced.")
 
 # --- Amnesia Mage Tests ---
 func test_amnesia_mage_drains_mana():
@@ -1429,47 +1994,105 @@ func test_amnesia_mage_drain_limited_by_opponent_mana():
 # --- Overconcentrate Tests ---
 func test_overconcentrate_makes_relentless():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Place target creature
-	var target_knight = place_summon_for_test(opponent, knight_res, 0, battle) # Lane 1
-	assert_false(target_knight.is_relentless, "Knight should not start relentless.")
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Place target creature for opponent in their lane 0 (index 0)
+	var target_knight_instance = place_summon_for_test(opponent, knight_res, 0, battle)
+	assert_false(target_knight_instance.is_relentless, "Test setup: Knight should not start as relentless.")
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Apply effect
-	overconcentrate_res.apply_effect(overconcentrate_res, player, opponent, battle)
+	# Create a CardInZone for the Overconcentrate spell
+	var overconcentrate_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var overconcentrate_card_in_zone: CardInZone = CardInZone.new(overconcentrate_res, overconcentrate_spell_instance_id)
 
-	# Assert: Target is now relentless
-	assert_true(target_knight.is_relentless, "Overconcentrate should make target relentless.")
+	# Action: Apply Overconcentrate effect
+	if overconcentrate_res.script and overconcentrate_res.script.has_method("apply_effect"):
+		overconcentrate_res.script.apply_effect(overconcentrate_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Overconcentrate resource does not have a script with apply_effect.")
+		return
 
-	# Assert: Event generated (status_change)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var status_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "status_change" and \
-		   event.get("status") == "Relentless" and \
-		   event.get("gained") == true and \
-		   event.get("lane") == 1: # Knight in lane 1
-			status_event_found = true
-			break
-	assert_true(status_event_found, "Relentless status gain event for Overconcentrate not found.")
+	# Assert: Target Knight is now relentless
+	assert_true(target_knight_instance.is_relentless, "Overconcentrate should make the target Knight relentless.")
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. status_change (for the Knight gaining Relentless)
+	# 2. visual_effect (for the Overconcentrate spell's debuff visual)
+	# Total = 2 events
+	assert_eq(new_events.size(), 2, "Overconcentrate effect should generate 2 events. Found: %s" % new_events.size())
+
+	var status_change_event_found: bool = false
+	var visual_effect_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "status_change" and \
+		   event_data.get("instance_id") == target_knight_instance.instance_id and \
+		   event_data.get("status") == "Relentless" and \
+		   event_data.get("gained") == true:
+			status_change_event_found = true
+			assert_eq(event_data.get("player"), opponent.combatant_name, "Status_change event: player (owner of Knight) incorrect.")
+			assert_eq(event_data.get("lane"), 1, "Status_change event: lane (1-based for Knight) incorrect.") # Knight is in opponent's lane 0 (index 0) -> event lane 1
+			assert_eq(event_data.get("card_id"), knight_res.id, "Status_change event: card_id (Knight) incorrect.")
+			assert_eq(event_data.get("source"), overconcentrate_card_in_zone.get_card_id(), "Status_change event: source card_id (Overconcentrate) incorrect.")
+			assert_eq(event_data.get("source_instance_id"), overconcentrate_card_in_zone.get_card_instance_id(), "Status_change event: source_instance_id (Overconcentrate spell) incorrect.")
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "overconcentrate_status_gain": # Matching the revised effect_id from overconcentrate_effect.gd
+			visual_effect_found = true
+			assert_eq(event_data.get("instance_id"), target_knight_instance.instance_id, "Overconcentrate visual_effect: instance_id (target Knight) incorrect.")
+			assert_eq(event_data.get("source_instance_id"), overconcentrate_card_in_zone.get_card_instance_id(), "Overconcentrate visual_effect: source_instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("status_gained"), "Relentless", "Overconcentrate visual_effect details: status_gained incorrect.")
+
+	assert_true(status_change_event_found, "Status change event for Knight gaining Relentless not found or improperly sourced.")
+	assert_true(visual_effect_found, "Visual effect for Overconcentrate not found or improperly sourced.")
 
 func test_overconcentrate_no_target():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Opponent has no creatures
-	var initial_event_count = battle.battle_events.size()
-	overconcentrate_res.apply_effect(overconcentrate_res, player, opponent, battle)
-	# Assert: No status change event generated
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var status_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "status_change": status_event_found = true; break
-	assert_false(status_event_found, "No status change event should be generated if no target.")
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Ensure opponent has no creatures by clearing lanes
+	for i in range(opponent.lanes.size()):
+		opponent.lanes[i] = null
+	
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Create a CardInZone for the Overconcentrate spell
+	var overconcentrate_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var overconcentrate_card_in_zone: CardInZone = CardInZone.new(overconcentrate_res, overconcentrate_spell_instance_id)
+
+	# Action: Apply Overconcentrate effect
+	if overconcentrate_res.script and overconcentrate_res.script.has_method("apply_effect"):
+		overconcentrate_res.script.apply_effect(overconcentrate_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Overconcentrate resource does not have a script with apply_effect.")
+		return
+
+	# Assert: No status change event generated, but a log message should be.
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected event: 1x log_message (from overconcentrate_effect.gd when no target)
+	assert_eq(new_events.size(), 1, "Overconcentrate (no target) should generate 1 log event. Found: %s" % new_events.size())
+
+	var status_change_event_found: bool = false
+	var log_message_no_target_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "status_change":
+			status_change_event_found = true
+			print("Unexpected status_change event found: ", event_data) 
+		elif event_data.get("event_type") == "log_message" and \
+			 "no target" in event_data.get("message", "").to_lower() and \
+			 event_data.get("source_instance_id") == overconcentrate_spell_instance_id:
+			log_message_no_target_found = true
+			
+	assert_false(status_change_event_found, "No status_change event should be generated by Overconcentrate if there's no target.")
+	assert_true(log_message_no_target_found, "Log message indicating no target for Overconcentrate was not found or improperly sourced.")
 
 # --- Goblin Recruiter Tests ---
 func test_goblin_recruiter_summons_if_hp_lower():
@@ -1584,32 +2207,80 @@ func test_corpsecraft_titan_can_play():
 	assert_false(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan needs an empty lane.")
 
 
+# res://tests/test_card_effects.gd
+
 func test_corpsecraft_titan_consumes_grave():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	player.graveyard.append(energy_axe_res)
-	player.graveyard.append(healer_res)
-	player.graveyard.append(knight_res)
-	player.graveyard.append(goblin_scout_res)
-	var initial_grave_size = player.graveyard.size()
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(corpsecraft_titan_res, player, player.opponent, 0, battle, new_id)
-	var initial_event_count = battle.battle_events.size()
-	# Action
-	corpsecraft_titan_res._on_arrival(instance, player, player.opponent, battle)
-	# Assert: Grave size reduced by 3
-	assert_eq(player.graveyard.size(), initial_grave_size - 3, "Graveyard size incorrect.")
-	# Assert: Only spell remains
-	assert_eq(player.graveyard[0].id, "EnergyAxe", "Only spell should remain in grave.")
-	# Assert: Events generated (3x card_removed)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var removed_count = 0
-	for event in events_after:
-		if event.get("event_type") == "card_removed" and event.get("from_zone") == "graveyard": removed_count += 1
-	assert_eq(removed_count, 3, "Incorrect number of card_removed events.")
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # Get for _on_arrival signature
+	var battle: Battle = setup["battle"]
 
+	player.graveyard.clear()
+	# Add cards to graveyard (order matters if effect consumes from one end)
+	# Titan's effect iterates backwards, so it will consume the last 3 summons added.
+	# Let's add EnergyAxe first (so it remains), then the summons.
+	var energy_axe_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(energy_axe_res, energy_axe_gy_id)) # Spell, should remain
+
+	var scout_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(goblin_scout_res, scout_gy_id)) # Will be consumed
+	var knight_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(knight_res, knight_gy_id))       # Will be consumed
+	var healer_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(healer_res, healer_gy_id))     # Will be consumed (last one added, first consumed by reverse iteration)
+	
+	var initial_grave_size_val: int = player.graveyard.size() # Should be 4
+	
+	# Simulate Corpsecraft Titan arrival
+	var titan_instance = SummonInstance.new()
+	var titan_instance_id: int = battle._generate_new_card_instance_id()
+	titan_instance.setup(corpsecraft_titan_res, player, opponent, 0, battle, titan_instance_id)
+	# titan_instance should be placed in a lane if its _on_arrival depends on its lane_index (it doesn't here)
+	# player.lanes[0] = titan_instance 
+
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call _on_arrival effect
+	if corpsecraft_titan_res.has_method("_on_arrival"):
+		corpsecraft_titan_res._on_arrival(titan_instance, player, opponent, battle)
+	else:
+		fail_test("Corpsecraft Titan resource does not have _on_arrival method.")
+		return
+
+	# Assert: Grave size reduced by 3 (3 summons consumed)
+	assert_eq(player.graveyard.size(), initial_grave_size_val - 3, "Graveyard size incorrect after Titan consumes.")
+	
+	# Assert: Only the spell (EnergyAxe) remains in the graveyard
+	assert_eq(player.graveyard.size(), 1, "Only one card should remain in graveyard.")
+	if player.graveyard.size() == 1:
+		assert_true(player.graveyard[0] is CardInZone, "Remaining card in grave should be CardInZone.")
+		assert_eq(player.graveyard[0].get_card_id(), "EnergyAxe", "The spell EnergyAxe should be the only card remaining in graveyard.")
+		assert_eq(player.graveyard[0].get_card_instance_id(), energy_axe_gy_id, "EnergyAxe instance ID mismatch.")
+
+	# Assert: Events generated (3x card_removed, sourced by Titan)
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expect 3 card_removed events.
+	assert_eq(new_events.size(), 3, "Corpsecraft Titan consume should generate 3 card_removed events. Found: %s" % new_events.size())
+
+	var card_removed_count: int = 0
+	var consumed_instance_ids_from_events: Array[int] = []
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "card_removed" and \
+		   event_data.get("from_zone") == "graveyard" and \
+		   event_data.get("player") == player.combatant_name and \
+		   event_data.get("source_card_id") == corpsecraft_titan_res.id and \
+		   event_data.get("source_instance_id") == titan_instance_id:
+			card_removed_count += 1
+			consumed_instance_ids_from_events.append(event_data.get("instance_id"))
+			
+	assert_eq(card_removed_count, 3, "Incorrect number of card_removed events for Corpsecraft Titan.")
+	
+	# Verify the correct instances were removed (Healer, Knight, GoblinScout)
+	assert_true(healer_gy_id in consumed_instance_ids_from_events, "Healer was not logged as removed by Titan.")
+	assert_true(knight_gy_id in consumed_instance_ids_from_events, "Knight was not logged as removed by Titan.")
+	assert_true(scout_gy_id in consumed_instance_ids_from_events, "Goblin Scout was not logged as removed by Titan.")
+	assert_false(energy_axe_gy_id in consumed_instance_ids_from_events, "Energy Axe should not have been removed by Titan.")
 
 # --- Insatiable Devourer Tests ---
 func test_insatiable_devourer_sacrifices_and_grows():
@@ -1650,28 +2321,108 @@ func test_insatiable_devourer_sacrifices_and_grows():
 # --- Repentant Samurai Tests ---
 func test_repentant_samurai_sacrifices_on_second_hit():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Place Samurai
-	var samurai_instance = place_summon_for_test(player, repentant_samurai_res, 0, battle)
-	# Ensure opponent lane is empty
-	opponent.lanes[0] = null
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	var samurai_instance = place_summon_for_test(player, repentant_samurai_res, 0, battle) # Player's lane 0
+	var samurai_original_instance_id = samurai_instance.instance_id # Store for event checks after it dies
 
-	# Action 1: First direct attack (using override)
-	var handled1 = repentant_samurai_res.perform_turn_activity_override(samurai_instance, player, opponent, battle)
-	assert_true(handled1, "Samurai override should handle direct attack.")
+	# Ensure opponent's corresponding lane (lane 0) is empty for direct attack
+	opponent.lanes[0] = null 
+	var initial_opponent_hp = opponent.current_hp
+
+	# --- Action 1: First direct attack ---
+	var initial_event_count_hit1 = battle.battle_events.size()
+	var handled1: bool = false
+	if repentant_samurai_res.has_method("perform_turn_activity_override"):
+		handled1 = repentant_samurai_res.perform_turn_activity_override(samurai_instance, player, opponent, battle)
+	else:
+		fail_test("Repentant Samurai res missing perform_turn_activity_override.")
+		return
+		
+	assert_true(handled1, "Samurai override should handle first direct attack.")
 	assert_true(player.lanes[0] == samurai_instance, "Samurai should still be in lane after first hit.")
-	assert_eq(samurai_instance.custom_state.get("hits_dealt"), 1, "Hits dealt should be 1.")
+	assert_eq(samurai_instance.custom_state.get("hits_dealt"), 1, "Hits dealt should be 1 after first attack.")
+	var expected_opponent_hp_after_hit1 = initial_opponent_hp - samurai_instance.get_current_power()
+	assert_eq(opponent.current_hp, expected_opponent_hp_after_hit1, "Opponent HP incorrect after first Samurai hit.")
 
-	# Action 2: Second direct attack
-	var handled2 = repentant_samurai_res.perform_turn_activity_override(samurai_instance, player, opponent, battle)
+	# Event Check for First Hit
+	var new_events_hit1 = battle.battle_events.slice(initial_event_count_hit1)
+	var activity_event_hit1_found = false
+	var direct_damage_event_hit1_found = false
+	var hp_change_event_hit1_found = false
+
+	for event_data in new_events_hit1:
+		if event_data.get("event_type") == "summon_turn_activity" and event_data.get("instance_id") == samurai_instance.instance_id:
+			activity_event_hit1_found = true
+		elif event_data.get("event_type") == "direct_damage" and event_data.get("attacking_instance_id") == samurai_instance.instance_id:
+			direct_damage_event_hit1_found = true
+		elif event_data.get("event_type") == "hp_change" and event_data.get("player") == opponent.combatant_name and event_data.get("source_instance_id") == samurai_instance.instance_id:
+			hp_change_event_hit1_found = true
+	assert_true(activity_event_hit1_found, "Activity event for Samurai's first hit not found.")
+	assert_true(direct_damage_event_hit1_found, "Direct damage event for Samurai's first hit not found.")
+	assert_true(hp_change_event_hit1_found, "Opponent HP change event from Samurai's first hit not found.")
+
+
+	# --- Action 2: Second direct attack ---
+	var initial_event_count_hit2 = battle.battle_events.size()
+	var handled2: bool = false
+	if repentant_samurai_res.has_method("perform_turn_activity_override"):
+		handled2 = repentant_samurai_res.perform_turn_activity_override(samurai_instance, player, opponent, battle)
+	else:
+		fail_test("Repentant Samurai res missing perform_turn_activity_override (2nd call).")
+		return # Should not happen if first call worked
+
 	assert_true(handled2, "Samurai override should handle second direct attack.")
-	# Assert: Samurai is now gone (sacrificed)
-	assert_null(player.lanes[0], "Samurai should be gone after second hit.")
-	# Assert: State cleared (optional check)
-	# assert_false(samurai_instance.custom_state.has("hits_dealt"), "Hits dealt state should be cleared if instance reused (it shouldn't be).")
+	# Assert: Samurai is now gone (sacrificed because it died)
+	assert_null(player.lanes[0], "Samurai should be gone from lane after second hit and sacrifice.")
+	var expected_opponent_hp_after_hit2 = expected_opponent_hp_after_hit1 - samurai_instance.get_current_power() # Use original power for calc
+	assert_eq(opponent.current_hp, expected_opponent_hp_after_hit2, "Opponent HP incorrect after second Samurai hit.")
 
+
+	# Event Check for Second Hit & Sacrifice
+	var new_events_hit2 = battle.battle_events.slice(initial_event_count_hit2)
+	var activity_event_hit2_found = false
+	var direct_damage_event_hit2_found = false
+	var hp_change_event_hit2_found = false
+	var sacrifice_visual_found = false
+	var samurai_defeated_event_found = false
+	var samurai_moved_to_grave_event_found = false
+	
+	for event_data in new_events_hit2:
+		if event_data.get("event_type") == "summon_turn_activity" and event_data.get("instance_id") == samurai_original_instance_id: # Use original ID as instance is gone
+			activity_event_hit2_found = true
+		elif event_data.get("event_type") == "direct_damage" and event_data.get("attacking_instance_id") == samurai_original_instance_id:
+			direct_damage_event_hit2_found = true
+		elif event_data.get("event_type") == "hp_change" and event_data.get("player") == opponent.combatant_name and event_data.get("source_instance_id") == samurai_original_instance_id:
+			hp_change_event_hit2_found = true
+		elif event_data.get("event_type") == "visual_effect" and event_data.get("effect_id") == "repentant_samurai_sacrifice" and event_data.get("instance_id") == samurai_original_instance_id:
+			sacrifice_visual_found = true
+		elif event_data.get("event_type") == "creature_defeated" and event_data.get("instance_id") == samurai_original_instance_id:
+			samurai_defeated_event_found = true
+		elif event_data.get("event_type") == "card_moved" and \
+			 event_data.get("card_id") == repentant_samurai_res.id and \
+			 event_data.get("instance_id") == samurai_original_instance_id and \
+			 event_data.get("from_zone") == "lane" and event_data.get("to_zone") == "graveyard":
+			samurai_moved_to_grave_event_found = true
+
+	assert_true(activity_event_hit2_found, "Activity event for Samurai's second hit not found.")
+	assert_true(direct_damage_event_hit2_found, "Direct damage event for Samurai's second hit not found.")
+	assert_true(hp_change_event_hit2_found, "Opponent HP change event from Samurai's second hit not found.")
+	assert_true(sacrifice_visual_found, "Sacrifice visual effect for Samurai not found.")
+	assert_true(samurai_defeated_event_found, "Creature defeated event for Samurai not found.")
+	assert_true(samurai_moved_to_grave_event_found, "Card moved to graveyard event for Samurai not found.")
+	
+	# Assert: Samurai is now in player's graveyard
+	var samurai_found_in_grave = false
+	for card_in_zone in player.graveyard:
+		if card_in_zone.get_card_id() == repentant_samurai_res.id: # Check card type
+			# If you want to be super precise, you'd check if its instance_id matches
+			# the one from the card_moved event's to_details.instance_id.
+			samurai_found_in_grave = true
+			break
+	assert_true(samurai_found_in_grave, "Repentant Samurai should be in graveyard after sacrifice.")
 
 # --- Cursed Samurai Tests ---
 func test_cursed_samurai_summons_returned_on_death():
@@ -1707,44 +2458,132 @@ func test_cursed_samurai_summons_returned_on_death():
 
 
 # --- Glassgraft Tests ---
-# Note: Glassgraft requires modifying SummonInstance._perform_direct_attack
-# Ensure that modification is present before running this test.
 func test_glassgraft_reanimates_and_sacrifices():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup graveyard: Scout leftmost, Knight rightmost
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+
+	# Setup graveyard with CardInZone objects: Scout (index 0), Knight (index 1, rightmost)
 	player.graveyard.clear()
-	player.graveyard.append(goblin_scout_res)
-	player.graveyard.append(knight_res)
-	# Empty opponent lane for direct attack
-	opponent.lanes[0] = null
-	# var initial_event_count = battle.battle_events.size()
+	var scout_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(goblin_scout_res, scout_gy_id))
+	var knight_gy_id = battle._generate_new_card_instance_id() # Knight is the one we expect to be reanimated
+	player.graveyard.append(CardInZone.new(knight_res, knight_gy_id))
+	
+	# Empty opponent's lane 0 for direct attack by the reanimated creature later
+	opponent.lanes[0] = null 
+	# Ensure player's lane 0 is also empty for reanimation target
+	player.lanes[0] = null
 
-	# Action 1: Cast Glassgraft
-	glassgraft_res.apply_effect(glassgraft_res, player, opponent, battle)
+	var initial_event_count_action1: int = battle.battle_events.size()
 
-	# Assert: Knight (rightmost) was reanimated into lane 0 (first empty)
-	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "Knight", "Knight should be reanimated by Glassgraft.")
-	var reanimated_knight = player.lanes[0]
-	# Assert: It has the glassgrafted flag
-	assert_true(reanimated_knight.custom_state.get("glassgrafted", false), "Reanimated Knight should have glassgrafted flag.")
-	# Assert: Graveyard only contains Scout now
-	assert_eq(player.graveyard.size(), 1, "Graveyard size incorrect.")
-	var graveyard_lane1 = player.graveyard[0].id
-	assert_eq(graveyard_lane1, "GoblinScout", "Scout should remain in graveyard.")
+	# Create CardInZone for Glassgraft spell
+	var glassgraft_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var glassgraft_card_in_zone: CardInZone = CardInZone.new(glassgraft_res, glassgraft_spell_instance_id)
 
-	# Action 2: Let the reanimated Knight attack directly
-	# Need to simulate a turn or manually call perform_turn_activity -> _perform_direct_attack
-	reanimated_knight.is_newly_arrived = false # Allow it to act
-	reanimated_knight.perform_turn_activity() # Should call _perform_direct_attack
+	# --- Action 1: Cast Glassgraft ---
+	if glassgraft_res.script and glassgraft_res.script.has_method("apply_effect"):
+		glassgraft_res.script.apply_effect(glassgraft_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Glassgraft resource does not have a script with apply_effect.")
+		return
 
-	# Assert: Knight is now gone (sacrificed after dealing damage)
-	assert_null(player.lanes[0], "Reanimated Knight should be gone after attacking.")
-	# Assert: Knight is now in graveyard
-	assert_eq(player.graveyard[-1].id, "Knight", "Knight should be in graveyard after sacrifice.")
+	# Assertions after Glassgraft cast:
+	# Knight (rightmost) should be reanimated into player's lane 0 (first empty).
+	assert_true(player.lanes[0] is SummonInstance, "Player's lane 0 should have a SummonInstance after Glassgraft.")
+	var reanimated_knight_instance = player.lanes[0] as SummonInstance
+	assert_true(reanimated_knight_instance != null and reanimated_knight_instance.card_resource.id == "Knight", "Knight should be reanimated by Glassgraft into lane 0.")
+	
+	# Assert: Reanimated Knight has the "glassgrafted" custom state
+	assert_true(reanimated_knight_instance.custom_state.get("glassgrafted", false), "Reanimated Knight should have 'glassgrafted' flag set.")
+	
+	# Assert: Player's graveyard now only contains Scout
+	assert_eq(player.graveyard.size(), 1, "Player's graveyard size incorrect after Glassgraft (should only have Scout).")
+	if player.graveyard.size() == 1:
+		assert_eq(player.graveyard[0].get_card_id(), "GoblinScout", "Goblin Scout should be the only card remaining in player's graveyard.")
+		assert_eq(player.graveyard[0].get_card_instance_id(), scout_gy_id, "Goblin Scout instance ID mismatch in graveyard.")
 
+	# Event checks for Action 1 (Glassgraft casting and reanimation)
+	var new_events_action1: Array[Dictionary] = battle.battle_events.slice(initial_event_count_action1)
+	var knight_moved_from_grave_found = false
+	var knight_arrived_found = false
+	var knight_moved_to_lane_found = false
+	for event_data in new_events_action1:
+		if event_data.get("event_type") == "card_moved" and event_data.get("card_id") == "Knight" and event_data.get("instance_id") == knight_gy_id and event_data.get("from_zone") == "graveyard":
+			knight_moved_from_grave_found = true
+		elif event_data.get("event_type") == "summon_arrives" and event_data.get("card_id") == "Knight" and event_data.get("instance_id") == reanimated_knight_instance.instance_id:
+			knight_arrived_found = true
+			assert_true(event_data.get("custom_state_keys",[]).has("glassgrafted"), "Summon_arrives event should indicate glassgrafted state.")
+		elif event_data.get("event_type") == "card_moved" and event_data.get("card_id") == "Knight" and event_data.get("instance_id") == knight_gy_id and event_data.get("from_zone") == "limbo" and event_data.get("to_details",{}).get("instance_id") == reanimated_knight_instance.instance_id:
+			knight_moved_to_lane_found = true
+	assert_true(knight_moved_from_grave_found, "Glassgraft: Knight 'card_moved' from grave event missing.")
+	assert_true(knight_arrived_found, "Glassgraft: Knight 'summon_arrives' event missing.")
+	assert_true(knight_moved_to_lane_found, "Glassgraft: Knight 'card_moved' to lane event missing.")
+
+
+	# --- Action 2: Let the reanimated Knight attack directly ---
+	assert_true(reanimated_knight_instance != null, "Reanimated Knight instance is null before attack action.")
+	reanimated_knight_instance.is_newly_arrived = false # Allow it to act
+	
+	var initial_event_count_action2: int = battle.battle_events.size()
+	var reanimated_knight_original_field_id = reanimated_knight_instance.instance_id # Store before it dies
+	
+	reanimated_knight_instance.perform_turn_activity() # This should call _perform_modified_direct_attack which checks "glassgrafted"
+
+	# Assertions after Knight attacks and sacrifices:
+	# Assert: Knight is now gone from lane (sacrificed)
+	assert_null(player.lanes[0], "Reanimated Knight should be gone from lane after attacking and sacrificing.")
+	
+	# Assert: Knight is now back in player's graveyard (this is its second graveyard entry if we track precisely)
+	var knight_returned_to_grave = false
+	var new_knight_gy_instance_id = -1
+	for card_in_zone in player.graveyard:
+		if card_in_zone.get_card_id() == "Knight" and card_in_zone.get_card_instance_id() != knight_gy_id: # Must be a new instance in grave
+			knight_returned_to_grave = true
+			new_knight_gy_instance_id = card_in_zone.get_card_instance_id()
+			break
+	assert_true(knight_returned_to_grave, "Knight should be in graveyard after glassgraft sacrifice.")
+
+	# Event checks for Action 2 (Knight attacks, glassgraft triggers, Knight dies)
+	var new_events_action2: Array[Dictionary] = battle.battle_events.slice(initial_event_count_action2)
+	var knight_activity_found = false
+	var knight_direct_damage_found = false
+	var knight_sacrifice_visual_found = false
+	var knight_defeated_found = false
+	var knight_moved_to_grave_after_sacrifice_found = false
+
+	for event_data in new_events_action2:
+		var event_type = event_data.get("event_type")
+		var event_instance_id = event_data.get("instance_id")
+
+		if event_type == "summon_turn_activity" and event_instance_id == reanimated_knight_original_field_id:
+			knight_activity_found = true
+		elif event_type == "direct_damage" and event_data.get("attacking_instance_id") == reanimated_knight_original_field_id:
+			knight_direct_damage_found = true
+		# The visual effect for "glassgrafted" sacrifice might not have a standard ID yet,
+		# but SummonInstance._perform_direct_attack prints "...Glassgrafted creature dealt damage, sacrificing!"
+		# and then calls die(). The die() call generates creature_defeated.
+		# If SummonInstance added a specific visual event for this sacrifice, we'd check it.
+		# For now, we rely on the sequence. The "samurai_sacrifice" was for Repentant Samurai.
+		# Let's assume SummonInstance._perform_direct_attack might add a visual effect with id "glassgraft_sacrifice"
+		elif event_type == "visual_effect" and event_data.get("effect_id") == "glassgraft_sacrifice" and event_instance_id == reanimated_knight_original_field_id:
+			knight_sacrifice_visual_found = true # This is speculative
+		elif event_type == "creature_defeated" and event_instance_id == reanimated_knight_original_field_id:
+			knight_defeated_found = true
+		elif event_type == "card_moved" and \
+			 event_data.get("card_id") == "Knight" and \
+			 event_instance_id == reanimated_knight_original_field_id and \
+			 event_data.get("from_zone") == "lane" and event_data.get("to_zone") == "graveyard":
+			knight_moved_to_grave_after_sacrifice_found = true
+			assert_eq(event_data.get("to_details", {}).get("instance_id"), new_knight_gy_instance_id, "Knight to_details.instance_id after sacrifice mismatch.")
+
+
+	assert_true(knight_activity_found, "Glassgrafted Knight: summon_turn_activity event missing.")
+	assert_true(knight_direct_damage_found, "Glassgrafted Knight: direct_damage event missing.")
+	# assert_true(knight_sacrifice_visual_found, "Glassgrafted Knight: sacrifice visual event missing.") # This is optional
+	assert_true(knight_defeated_found, "Glassgrafted Knight: creature_defeated event missing.")
+	assert_true(knight_moved_to_grave_after_sacrifice_found, "Glassgrafted Knight: card_moved to graveyard event missing after sacrifice.")
 # --- Unmake Tests ---
 func test_unmake_destroys_non_undead():
 	var setup = create_test_battle_setup()
