@@ -112,55 +112,57 @@ func place_summon_for_test(combatant, card_res: SummonCardResource, lane_idx: in
 	return instance
 
 # --- Energy Axe Tests ---
-
 func test_energy_axe_applies_power():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"] # Get opponent for the apply_effect call
-	var battle = setup["battle"]
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
 	
-	# Place a target summon
 	var scout_instance = place_summon_for_test(player, goblin_scout_res, 0, battle)
 	var initial_power = scout_instance.get_current_power()
+	var initial_event_count: int = battle.battle_events.size() # Moved before creating CIZ for Energy Axe
 
-	# Get the effect script instance (this is fine, it's the script we want to test)
-	var effect_script = energy_axe_res.script # We call the method on the script resource directly
-
-	# In a real game, this CardInZone would have been created when Energy Axe was drawn
-	# or put into "play". For the test, we create it manually.
-	var energy_axe_instance_id: int = battle._generate_new_card_instance_id() # Get a unique ID from the battle
-	var energy_axe_card_in_zone = CardInZone.new(energy_axe_res, energy_axe_instance_id)
+	# Create a CardInZone for the Energy Axe spell
+	var energy_axe_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var energy_axe_card_in_zone: CardInZone = CardInZone.new(energy_axe_res, energy_axe_spell_instance_id)
 
 	# Action: Apply the effect
-	# Signature: apply_effect(p_energy_axe_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)
-	if effect_script and effect_script.has_method("apply_effect"):
-		effect_script.apply_effect(energy_axe_card_in_zone, player, opponent, battle) # Pass opponent
+	# The energy_axe_res is the SpellCardResource. Its script (energy_axe_effect.gd) overrides apply_effect.
+	# We call the method on the resource itself.
+	if energy_axe_res.has_method("apply_effect"): # Check if the method exists on the resource
+		energy_axe_res.apply_effect(energy_axe_card_in_zone, player, opponent, battle)
 	else:
-		fail_test("Energy Axe effect script or apply_effect method not found.")
-		assert(false)
-	
+		# This else branch suggests the method might not be found directly on energy_axe_res
+		# which would be unusual if energy_axe_effect.gd extends SpellCardResource and overrides it.
+		# A more direct way if methods aren't virtual/overridden correctly on the resource directly:
+		# var effect_script = energy_axe_res.script
+		# if effect_script and effect_script.has_method("apply_effect"):
+		#     effect_script.apply_effect(energy_axe_card_in_zone, player, opponent, battle)
+		# else:
+		fail_test("Energy Axe resource/script does not have apply_effect method or it's not callable as expected.")
+		return
+
 	# Assert: Target's power increased
 	assert_eq(scout_instance.get_current_power(), initial_power + 3, "Energy Axe should increase power by 3.")
 	
 	# Assert: Modifier was added
-	assert_true(scout_instance.power_modifiers.size() >= 1, "Energy Axe should add at least one power modifier.") # Changed to >=1 as other effects might add modifiers
 	var found_energy_axe_modifier = false
 	for modifier in scout_instance.power_modifiers:
-		if modifier["source"] == energy_axe_res.id: # Check against the card_id "EnergyAxe"
+		if modifier["source"] == energy_axe_card_in_zone.get_card_id(): # Check against the card_id
 			assert_eq(modifier["value"], 3, "Energy Axe modifier value should be 3.")
 			found_energy_axe_modifier = true
 			break
 	assert_true(found_energy_axe_modifier, "Modifier from Energy Axe not found.")
 
-	# Assert: Events generated (stat_change + visual_effect)
-	# This part needs careful checking based on what add_power and apply_effect now generate
-	var events = battle.battle_events
-	# We expect a stat_change on the scout (from add_power)
-	# and a visual_effect for the axe (from apply_effect)
+	# Assert: Events generated
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected: 1 stat_change (on scout from add_power), 1 visual_effect (from energy_axe_effect)
+	# Total = 2 events
+
 	var stat_change_event_found = false
 	var visual_event_found = false
 	
-	for event_data in events:
+	for event_data in new_events:
 		if event_data.get("event_type") == "stat_change" and \
 		   event_data.get("instance_id") == scout_instance.instance_id and \
 		   event_data.get("stat") == "power" and \
@@ -169,14 +171,14 @@ func test_energy_axe_applies_power():
 			stat_change_event_found = true
 			assert_eq(event_data.get("new_value"), initial_power + 3, "Stat change event new_value incorrect.")
 		elif event_data.get("event_type") == "visual_effect" and \
-			 event_data.get("effect_id") == "energy_axe_boost_applied" and \
+			 event_data.get("effect_id") == "energy_axe_boost" and \
 			 event_data.get("instance_id") == scout_instance.instance_id and \
 			 event_data.get("source_instance_id") == energy_axe_card_in_zone.get_card_instance_id():
 			visual_event_found = true
 			
 	assert_true(stat_change_event_found, "Stat change event for Energy Axe target not found or improperly sourced.")
 	assert_true(visual_event_found, "Visual effect event for Energy Axe not found or improperly sourced.")
-
+	
 # Test Energy Axe can_play requirements
 func test_energy_axe_can_play():
 	var setup = create_test_battle_setup()
@@ -648,10 +650,11 @@ func test_focus_grants_mana():
 
 	# Action: Apply Focus effect
 	# Signature: apply_effect(p_focus_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)
-	if focus_res.script and focus_res.script.has_method("apply_effect"):
-		focus_res.script.apply_effect(focus_card_in_zone, player, opponent, battle)
+	if focus_res.has_method("apply_effect"): # Check if the method (potentially overridden) exists
+		focus_res.apply_effect(focus_card_in_zone, player, opponent, battle)
 	else:
-		fail_test("Focus resource does not have a script with apply_effect.")
+		fail_test("Focus resource instance does not have apply_effect method. Check script assignment and method definition.")
+		assert(false)
 		return
 
 	# Assert: Mana increased correctly (up to cap)
@@ -779,10 +782,11 @@ func test_superior_intellect_moves_grave_to_library_and_clears_opponent():
 	var intellect_card_in_zone: CardInZone = CardInZone.new(superior_intellect_res, intellect_spell_instance_id)
 
 	# Action: Apply effect
-	if superior_intellect_res.script and superior_intellect_res.script.has_method("apply_effect"):
-		superior_intellect_res.script.apply_effect(intellect_card_in_zone, player, opponent, battle)
+	if superior_intellect_res.has_method("apply_effect"): # Check directly on the resource instance
+		print("Applying Superior Intellect effect:")
+		superior_intellect_res.apply_effect(intellect_card_in_zone, player, opponent, battle)
 	else:
-		fail_test("Superior Intellect resource does not have a script with apply_effect.")
+		fail_test("Superior Intellect resource instance (superior_intellect_res) does not have apply_effect method. Check script assignment in .tres and method definition.")
 		return
 
 	# Assert: Player graveyard is empty
@@ -863,8 +867,8 @@ func test_goblin_rally_summons_scouts_in_empty_lanes():
 
 	# Action: Apply Goblin Rally effect
 	# Signature: apply_effect(p_rally_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)
-	if goblin_rally_res.script and goblin_rally_res.script.has_method("apply_effect"):
-		goblin_rally_res.script.apply_effect(rally_card_in_zone, player, opponent, battle)
+	if goblin_rally_res.has_method("apply_effect"):
+		goblin_rally_res.apply_effect(rally_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Goblin Rally resource does not have a script with apply_effect.")
 		return
@@ -941,8 +945,8 @@ func test_goblin_rally_no_empty_lanes():
 	var rally_card_in_zone: CardInZone = CardInZone.new(goblin_rally_res, rally_spell_instance_id)
 
 	# Action: Apply Goblin Rally effect
-	if goblin_rally_res.script and goblin_rally_res.script.has_method("apply_effect"):
-		goblin_rally_res.script.apply_effect(rally_card_in_zone, player, opponent, battle)
+	if goblin_rally_res.has_method("apply_effect"):
+		goblin_rally_res.apply_effect(rally_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Goblin Rally resource does not have a script with apply_effect.")
 		return
@@ -1155,8 +1159,8 @@ func test_reanimate_summons_from_graveyard():
 	var reanimate_card_in_zone: CardInZone = CardInZone.new(reanimate_res, reanimate_spell_instance_id)
 
 	# Action: Apply Reanimate effect
-	if reanimate_res.script and reanimate_res.script.has_method("apply_effect"):
-		reanimate_res.script.apply_effect(reanimate_card_in_zone, player, opponent, battle)
+	if reanimate_res.has_method("apply_effect"):
+		reanimate_res.apply_effect(reanimate_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Reanimate resource does not have a script with apply_effect.")
 		return
@@ -1257,8 +1261,8 @@ func test_reanimate_no_target_in_graveyard():
 	var reanimate_card_in_zone: CardInZone = CardInZone.new(reanimate_res, reanimate_spell_instance_id)
 
 	# Action: Apply Reanimate effect
-	if reanimate_res.script and reanimate_res.script.has_method("apply_effect"):
-		reanimate_res.script.apply_effect(reanimate_card_in_zone, player, opponent, battle)
+	if reanimate_res.has_method("apply_effect"):
+		reanimate_res.apply_effect(reanimate_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Reanimate resource does not have a script with apply_effect.")
 		return
@@ -1306,8 +1310,8 @@ func test_reanimate_no_empty_lane():
 	var reanimate_card_in_zone: CardInZone = CardInZone.new(reanimate_res, reanimate_spell_instance_id)
 
 	# Action: Apply Reanimate effect
-	if reanimate_res.script and reanimate_res.script.has_method("apply_effect"):
-		reanimate_res.script.apply_effect(reanimate_card_in_zone, player, opponent, battle)
+	if reanimate_res.has_method("apply_effect"):
+		reanimate_res.apply_effect(reanimate_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Reanimate resource does not have a script with apply_effect.")
 		return
@@ -1807,8 +1811,8 @@ func test_nap_heals_player():
 
 	# Action: Apply Nap effect
 	# Signature: apply_effect(p_nap_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)
-	if nap_res.script and nap_res.script.has_method("apply_effect"):
-		nap_res.script.apply_effect(nap_card_in_zone, player, opponent, battle)
+	if nap_res.has_method("apply_effect"):
+		nap_res.apply_effect(nap_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Nap resource does not have a script with apply_effect.")
 		return
@@ -1872,8 +1876,8 @@ func test_totem_of_champions_buffs_debuffs():
 	var totem_card_in_zone: CardInZone = CardInZone.new(totem_of_champions_res, totem_spell_instance_id)
 
 	# Action: Apply Totem of Champions effect
-	if totem_of_champions_res.script and totem_of_champions_res.script.has_method("apply_effect"):
-		totem_of_champions_res.script.apply_effect(totem_card_in_zone, player, opponent, battle)
+	if totem_of_champions_res.has_method("apply_effect"):
+		totem_of_champions_res.apply_effect(totem_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Totem of Champions resource does not have a script with apply_effect.")
 		return
@@ -2010,8 +2014,8 @@ func test_overconcentrate_makes_relentless():
 	var overconcentrate_card_in_zone: CardInZone = CardInZone.new(overconcentrate_res, overconcentrate_spell_instance_id)
 
 	# Action: Apply Overconcentrate effect
-	if overconcentrate_res.script and overconcentrate_res.script.has_method("apply_effect"):
-		overconcentrate_res.script.apply_effect(overconcentrate_card_in_zone, player, opponent, battle)
+	if overconcentrate_res.has_method("apply_effect"):
+		overconcentrate_res.apply_effect(overconcentrate_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Overconcentrate resource does not have a script with apply_effect.")
 		return
@@ -2069,8 +2073,8 @@ func test_overconcentrate_no_target():
 	var overconcentrate_card_in_zone: CardInZone = CardInZone.new(overconcentrate_res, overconcentrate_spell_instance_id)
 
 	# Action: Apply Overconcentrate effect
-	if overconcentrate_res.script and overconcentrate_res.script.has_method("apply_effect"):
-		overconcentrate_res.script.apply_effect(overconcentrate_card_in_zone, player, opponent, battle)
+	if overconcentrate_res.has_method("apply_effect"):
+		overconcentrate_res.apply_effect(overconcentrate_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Overconcentrate resource does not have a script with apply_effect.")
 		return
@@ -2484,8 +2488,8 @@ func test_glassgraft_reanimates_and_sacrifices():
 	var glassgraft_card_in_zone: CardInZone = CardInZone.new(glassgraft_res, glassgraft_spell_instance_id)
 
 	# --- Action 1: Cast Glassgraft ---
-	if glassgraft_res.script and glassgraft_res.script.has_method("apply_effect"):
-		glassgraft_res.script.apply_effect(glassgraft_card_in_zone, player, opponent, battle)
+	if glassgraft_res.has_method("apply_effect"):
+		glassgraft_res.apply_effect(glassgraft_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Glassgraft resource does not have a script with apply_effect.")
 		return
@@ -2607,8 +2611,8 @@ func test_unmake_destroys_non_undead():
 	var unmake_card_in_zone: CardInZone = CardInZone.new(unmake_res, unmake_spell_instance_id)
 
 	# Action: Apply Unmake effect
-	if unmake_res.script and unmake_res.script.has_method("apply_effect"):
-		unmake_res.script.apply_effect(unmake_card_in_zone, player, opponent, battle)
+	if unmake_res.has_method("apply_effect"):
+		unmake_res.apply_effect(unmake_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Unmake resource does not have a script with apply_effect.")
 		return
@@ -3327,8 +3331,8 @@ func test_elsewhere_bounces_leftmost():
 	var elsewhere_card_in_zone: CardInZone = CardInZone.new(elsewhere_res, elsewhere_spell_instance_id)
 
 	# Action: Apply Elsewhere effect
-	if elsewhere_res.script and elsewhere_res.script.has_method("apply_effect"):
-		elsewhere_res.script.apply_effect(elsewhere_card_in_zone, player, opponent, battle)
+	if elsewhere_res.has_method("apply_effect"):
+		elsewhere_res.apply_effect(elsewhere_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Elsewhere resource does not have a script with apply_effect.")
 		return
@@ -3659,8 +3663,8 @@ func test_inferno_damages_all():
 	var inferno_card_in_zone: CardInZone = CardInZone.new(inferno_res, inferno_spell_instance_id)
 
 	# Action: Apply Inferno effect
-	if inferno_res.script and inferno_res.script.has_method("apply_effect"):
-		inferno_res.script.apply_effect(inferno_card_in_zone, player, opponent, battle)
+	if inferno_res.has_method("apply_effect"):
+		inferno_res.apply_effect(inferno_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Inferno resource does not have a script with apply_effect.")
 		return
@@ -3922,8 +3926,8 @@ func test_hexplate_buffs_leftmost():
 	var hexplate_card_in_zone: CardInZone = CardInZone.new(hexplate_res, hexplate_spell_instance_id)
 
 	# Action: Apply Hexplate effect
-	if hexplate_res.script and hexplate_res.script.has_method("apply_effect"):
-		hexplate_res.script.apply_effect(hexplate_card_in_zone, player, opponent, battle)
+	if hexplate_res.has_method("apply_effect"):
+		hexplate_res.apply_effect(hexplate_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Hexplate resource does not have a script with apply_effect.")
 		return
@@ -4026,8 +4030,8 @@ func test_songs_of_the_lost_mana_swing():
 	var songs_card_in_zone: CardInZone = CardInZone.new(songs_of_the_lost_res, songs_spell_instance_id)
 
 	# Action: Apply Songs of the Lost effect
-	if songs_of_the_lost_res.script and songs_of_the_lost_res.script.has_method("apply_effect"):
-		songs_of_the_lost_res.script.apply_effect(songs_card_in_zone, player, opponent, battle)
+	if songs_of_the_lost_res.has_method("apply_effect"):
+		songs_of_the_lost_res.apply_effect(songs_card_in_zone, player, opponent, battle)
 	else:
 		fail_test("Songs of the Lost resource does not have a script with apply_effect.")
 		return

@@ -4,7 +4,12 @@ extends "res://logic/cards/spell_card.gd"
 func apply_effect(p_energy_axe_card_in_zone: CardInZone, active_combatant: Combatant, _opponent_combatant, battle_instance: Battle):
 	var target_instance: SummonInstance = null 
 	var target_lane_index = -1
-	# ... (find target_instance) ...
+	# Find the leftmost summon instance for the active combatant
+	for i in range(active_combatant.lanes.size()):
+		if active_combatant.lanes[i] != null:
+			target_instance = active_combatant.lanes[i]
+			target_lane_index = i
+			break # Found the leftmost
 
 	if target_instance != null:
 		var power_boost = 3
@@ -24,7 +29,8 @@ func apply_effect(p_energy_axe_card_in_zone: CardInZone, active_combatant: Comba
 		var no_target_event = {
 			"event_type": "log_message",
 			"message": "%s's %s (Instance: %s) found no target." % [active_combatant.combatant_name, p_energy_axe_card_in_zone.get_card_name(), str(p_energy_axe_card_in_zone.instance_id)],
-			"source_instance_id": p_energy_axe_card_in_zone.instance_id 
+			"source_instance_id": p_energy_axe_card_in_zone.instance_id,
+			"instance_id": target_instance.instance_id
 		} 
 		battle_instance.add_event(no_target_event)
 # Override can_play to check for a valid target *before* casting
