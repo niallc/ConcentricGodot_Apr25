@@ -248,6 +248,8 @@ func test_disarm_reduces_highest_power():
 	var player = setup["player"]
 	var opponent = setup["opponent"]
 	var battle = setup["battle"]
+	var initial_event_count = battle.battle_events.size() # Track events before Disarm
+
 	# Setup opponent creatures
 	var weak_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # Power 1, Lane 1
 	var strong_knight = place_summon_for_test(opponent, knight_res, 1, battle) # Power 3, Lane 2
@@ -255,7 +257,9 @@ func test_disarm_reduces_highest_power():
 
 	# Action: Apply Disarm effect
 	# Call directly on the loaded resource
-	disarm_res.apply_effect(disarm_res, player, opponent, battle)
+	var disarm_instance_id: int = battle._generate_new_card_instance_id()
+	var disarm_card_in_zone = CardInZone.new(disarm_res, disarm_instance_id)
+	disarm_res.apply_effect(disarm_card_in_zone, player, opponent, battle)
 
 	# Assert: Knight's power reduced, Scout's unchanged
 	assert_eq(strong_knight.get_current_power(), initial_knight_power - 2, "Disarm should reduce Knight's power by 2.")
@@ -265,17 +269,36 @@ func test_disarm_reduces_highest_power():
 	assert_eq(strong_knight.power_modifiers[0]["value"], -2, "Disarm modifier value should be -2.")
 	assert_eq(strong_knight.power_modifiers[0]["source"], "Disarm", "Disarm modifier source incorrect.")
 
-	# Assert: Event generated
-	var events = battle.battle_events
-	assert_false(events.is_empty(), "Disarm should generate events.")
-	var stat_event_found = false
-	for event in events: # Check all events as order might vary
-		if event.get("event_type") == "stat_change" and event.get("stat") == "power" and event.get("lane") == 2: # Knight is in lane 1 (index 1 -> lane 2)
-			stat_event_found = true
-			assert_eq(event["new_value"], initial_knight_power - 2, "Disarm stat_change event new_value incorrect.")
-			assert_eq(event["amount"], -2, "Disarm stat_change event amount incorrect.")
-			break
-	assert_true(stat_event_found, "Stat change event for Disarm target not found.")
+	var events_after_disarm = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
+
+
+	var stat_change_event_for_knight_found = false
+	var visual_effect_for_disarm_found = false
+
+	for event_data in events_after_disarm:
+		# 1. Check for stat_change on the strong_knight
+		if event_data.get("event_type") == "stat_change" and \
+		   event_data.get("instance_id") == strong_knight.instance_id and \
+		   event_data.get("stat") == "power":
+			stat_change_event_for_knight_found = true
+			assert_eq(event_data.get("amount"), -2, "Disarm stat_change event 'amount' (modifier value) incorrect.")
+			assert_eq(event_data.get("new_value"), initial_knight_power - 2, "Disarm stat_change event 'new_value' incorrect.")
+			assert_eq(event_data.get("source"), disarm_card_in_zone.get_card_id(), "Disarm stat_change 'source' (card_id) incorrect.")
+			assert_eq(event_data.get("source_instance_id"), disarm_card_in_zone.get_card_instance_id(), "Disarm stat_change 'source_instance_id' incorrect.")
+		
+		# 2. Check for the visual_effect of Disarm
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "disarm_debuff_applied": # Or whatever effect_id you chose in disarm_effect.gd
+			visual_effect_for_disarm_found = true
+			# The instance_id of this visual should be the knight being debuffed
+			assert_eq(event_data.get("instance_id"), strong_knight.instance_id, "Disarm visual_effect 'instance_id' (target of visual) incorrect.")
+			# The source_instance_id should be the Disarm spell
+			assert_eq(event_data.get("source_instance_id"), disarm_card_in_zone.get_card_instance_id(), "Disarm visual_effect 'source_instance_id' incorrect.")
+			assert_eq(event_data.get("source_card_id"), disarm_card_in_zone.get_card_id(), "Disarm visual_effect 'source_card_id' incorrect.")
+			assert_eq(event_data.get("details", {}).get("power_change"), -2, "Disarm visual_effect details 'power_change' incorrect.")
+			
+	assert_true(stat_change_event_for_knight_found, "Stat change event for Disarm target (Knight) not found or improperly sourced.")
+	assert_true(visual_effect_for_disarm_found, "Visual effect event for Disarm spell not found or improperly sourced.")
 
 
 func test_disarm_can_play():
@@ -303,31 +326,49 @@ func test_goblin_firework_death_deals_damage():
 	var player = setup["player"]
 	var opponent = setup["opponent"]
 	var battle = setup["battle"]
-	# Place Firework and an opposing target
-	var firework_instance = place_summon_for_test(player, goblin_firework_res, 1, battle) # Lane 2
-	var target_knight = place_summon_for_test(opponent, knight_res, 1, battle) # Lane 2
+	
+	var firework_instance = place_summon_for_test(player, goblin_firework_res, 1, battle) # Firework in player's lane 2 (index 1)
+	var target_knight = place_summon_for_test(opponent, knight_res, 1, battle)      # Knight in opponent's lane 2 (index 1)
+	
 	var initial_knight_hp = target_knight.current_hp
-	var initial_event_count = battle.battle_events.size() # Count events before action
+	var initial_event_count = battle.battle_events.size() 
 
-	# Action: Trigger the death effect manually (normally called by die())
-	# Call directly on the loaded resource
-	goblin_firework_res._on_death(firework_instance, player, opponent, battle)
+	# Action: Trigger the death effect manually.
+	# The _on_death method is part of the SummonCardResource script.
+	# In a real game, SummonInstance.die() calls this.
+	# For the test, we call it directly on the Firework's script using its resource.
+	if goblin_firework_res.has_method("_on_death"):
+		goblin_firework_res._on_death(firework_instance, player, opponent, battle)
+	else:
+		fail_test("Goblin Firework resource is missing _on_death method.")
+		return
 
-	# Assert: Knight took damage
-	assert_eq(target_knight.current_hp, initial_knight_hp - 1, "Goblin Firework death should damage opposing Knight.")
+	assert_eq(target_knight.current_hp, initial_knight_hp - 1, "Goblin Firework death should damage opposing Knight by 1.")
 
-	# Assert: Event generated (creature_hp_change for Knight)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	assert_false(events_after.is_empty(), "Firework death should generate events.")
-	var hp_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "creature_hp_change" and event.get("lane") == 2 and event.get("player") == opponent.combatant_name:
-			hp_event_found = true
-			assert_eq(event["amount"], -1, "Firework damage event amount incorrect.")
-			assert_eq(event["new_hp"], initial_knight_hp - 1, "Firework damage event new_hp incorrect.")
-			break # Found the relevant event
-	assert_true(hp_event_found, "Creature HP change event for Firework target not found.")
+	var new_events = battle.battle_events.slice(initial_event_count)
+	assert_false(new_events.is_empty(), "Firework death should generate events.")
+	
+	var creature_hp_change_event_found = false
+	var visual_effect_found = false
 
+	for event_data in new_events:
+		if event_data.get("event_type") == "creature_hp_change" and \
+		   event_data.get("instance_id") == target_knight.instance_id: # Knight was damaged
+			creature_hp_change_event_found = true
+			assert_eq(event_data.get("amount"), -1, "Firework damage event: amount incorrect.")
+			assert_eq(event_data.get("new_hp"), initial_knight_hp - 1, "Firework damage event: new_hp incorrect.")
+			assert_eq(event_data.get("source"), goblin_firework_res.id, "Firework damage event: source card_id incorrect.")
+			assert_eq(event_data.get("source_instance_id"), firework_instance.instance_id, "Firework damage event: source_instance_id incorrect.")
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "firework_explosion_on_target":
+			visual_effect_found = true
+			assert_eq(event_data.get("instance_id"), target_knight.instance_id, "Firework visual_effect: target instance_id incorrect.")
+			assert_eq(event_data.get("source_instance_id"), firework_instance.instance_id, "Firework visual_effect: source_instance_id incorrect.")
+
+	assert_true(creature_hp_change_event_found, "Creature HP change event for Firework target not found or improperly sourced.")
+	# Visual effect is optional to assert strictly, but good if it's there.
+	# assert_true(visual_effect_found, "Visual effect for Firework explosion not found or improperly sourced.")
 
 func test_goblin_firework_death_no_target():
 	var setup = create_test_battle_setup()
@@ -354,36 +395,56 @@ func test_goblin_firework_death_no_target():
 func test_wall_of_vines_generates_mana():
 	var setup = create_test_battle_setup()
 	var player = setup["player"]
+	var opponent = setup["opponent"] # Get opponent, though not strictly used by WoV ability
 	var battle = setup["battle"]
-	player.mana = 2 # Start with some mana
+	
+	player.mana = 2 
 	var initial_mana = player.mana
-	# Place Wall of Vines
+	
 	var wall_instance = place_summon_for_test(player, wall_of_vines_res, 0, battle)
 	var initial_event_count = battle.battle_events.size()
 
-	# Action: Simulate its turn activity (normally called by Battle)
-	# We call the override directly on the resource
-	var handled = wall_of_vines_res.perform_turn_activity_override(wall_instance, player, player.opponent, battle)
+	# Action: Simulate its turn activity.
+	# The perform_turn_activity_override method is part of the SummonCardResource script.
+	var handled: bool = false
+	if wall_of_vines_res.has_method("perform_turn_activity_override"):
+		handled = wall_of_vines_res.perform_turn_activity_override(wall_instance, player, opponent, battle)
+	else:
+		fail_test("Wall of Vines resource is missing perform_turn_activity_override method.")
+		return
 
-	# Assert: Handled should be true
-	assert_true(handled, "Wall of Vines override should return true.")
-	# Assert: Player mana increased
+	assert_true(handled, "Wall of Vines perform_turn_activity_override should return true.")
 	assert_eq(player.mana, initial_mana + 1, "Wall of Vines should increase player mana by 1.")
 
-	# Assert: Events generated (mana_change + ability activation)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	assert_gte(events_after.size(), 2, "Wall of Vines activity should generate at least 2 events.")
-	var mana_event_found = false
-	var ability_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "mana_change" and event.get("player") == player.combatant_name:
-			mana_event_found = true
-			assert_eq(event["amount"], 1, "Mana change event amount incorrect.")
-		elif event.get("event_type") == "summon_turn_activity" and event.get("activity_type") == "ability_mana_gen":
-			ability_event_found = true
-	assert_true(mana_event_found, "Mana change event not found for Wall of Vines.")
-	assert_true(ability_event_found, "Ability activation event not found for Wall of Vines.")
+	var new_events = battle.battle_events.slice(initial_event_count)
+	# Expect two events:
+	# 1. mana_change (from Combatant.gain_mana)
+	# 2. summon_turn_activity (from WallOfVinesEffect.perform_turn_activity_override)
+	assert_eq(new_events.size(), 2, "Wall of Vines activity should generate 2 events. Found: %s" % new_events.size()) 
 
+	var mana_change_event_found = false
+	var summon_activity_event_found = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "mana_change" and \
+		   event_data.get("player") == player.combatant_name:
+			mana_change_event_found = true
+			assert_eq(event_data.get("amount"), 1, "Mana change event: amount incorrect.")
+			assert_eq(event_data.get("new_total"), initial_mana + 1, "Mana change event: new_total incorrect.")
+			assert_eq(event_data.get("source"), wall_of_vines_res.id, "Mana change event: source card_id incorrect.")
+			assert_eq(event_data.get("source_instance_id"), wall_instance.instance_id, "Mana change event: source_instance_id incorrect.")
+			# Also check the main instance_id of the mana_change event itself
+			assert_eq(event_data.get("instance_id"), wall_instance.instance_id, "Mana change event: main instance_id incorrect (should be WoV).")
+
+		elif event_data.get("event_type") == "summon_turn_activity" and \
+			 event_data.get("instance_id") == wall_instance.instance_id:
+			summon_activity_event_found = true
+			assert_eq(event_data.get("activity_type"), "ability_mana_gen", "Summon activity event: activity_type incorrect.")
+			assert_eq(event_data.get("details", {}).get("mana_generated_by_ability"), 1, "Summon activity event: details incorrect.")
+			assert_eq(event_data.get("card_id"), wall_of_vines_res.id, "Summon activity event: card_id incorrect.")
+
+	assert_true(mana_change_event_found, "Mana change event not found for Wall of Vines or improperly sourced.")
+	assert_true(summon_activity_event_found, "Summon turn activity event not found for Wall of Vines.")
 
 # --- Charging Bull Tests ---
 # Note: Swiftness is tested implicitly by checking if it attacks on turn 2 in simulation
@@ -400,7 +461,6 @@ func test_charging_bull_is_swift():
 	# The actual check for is_newly_arrived vs is_swift happens in Battle.conduct_turn
 
 
-# --- Portal Mage Tests ---
 # --- Portal Mage Tests ---
 func test_portal_mage_bounces_opponent():
 	var setup = create_test_battle_setup()

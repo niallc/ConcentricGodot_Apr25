@@ -1,69 +1,73 @@
+# res://logic/card_effects/portal_mage_effect.gd
 extends SummonCardResource
 
-# Override _on_arrival to handle the bounce effect
-func _on_arrival(summon_instance: SummonInstance, _active_combatant, opponent_combatant, battle_instance):
-	print("Portal Mage arrival trigger!")
-	var portal_mage_instance_id = summon_instance.instance_id
-	var portal_mage_card_id = summon_instance.card_resource.id
-	var target_lane_index = summon_instance.lane_index
-	var target_instance_to_bounce = opponent_combatant.lanes[summon_instance.lane_index] # Opposing creature
+func _on_arrival(summon_instance: SummonInstance, _active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle):
+	var portal_mage_instance_id: int = summon_instance.instance_id
+	var portal_mage_card_id: String = summon_instance.card_resource.id
+	
+	# target_lane_index is not actually used later, summon_instance.lane_index is, so it can be removed if not needed elsewhere
+	# var target_lane_index: int = summon_instance.lane_index 
+	var target_instance_to_bounce: SummonInstance = opponent_combatant.lanes[summon_instance.lane_index] 
 
 	if target_instance_to_bounce != null:
-		#var target_card_res = target_instance.card_resource
-		var bounced_card_resource = target_instance_to_bounce.card_resource
-		var original_bounced_summon_instance_id = target_instance_to_bounce.instance_id
-		var bounced_from_lane_index_1_based = target_instance_to_bounce.lane_index + 1
-		print("...bouncing opposing %s" % bounced_card_resource.card_name)
+		var bounced_card_resource: CardResource = target_instance_to_bounce.card_resource
+		var original_bounced_summon_instance_id: int = target_instance_to_bounce.instance_id
+		var bounced_from_lane_index_1_based: int = target_instance_to_bounce.lane_index + 1
+		
+		print("...Portal Mage (Instance: %s) bouncing %s (Instance: %s) from lane %d" % [portal_mage_instance_id, bounced_card_resource.card_name, original_bounced_summon_instance_id, bounced_from_lane_index_1_based])
 
-		# 1. Remove the target instance from the opponent's lane
 		opponent_combatant.remove_summon_from_lane(target_instance_to_bounce.lane_index)
-		# Note: remove_summon_from_lane doesn't generate an event itself
 
-		# 2. Add the target's card *resource* to the top of the opponent's library
-		# When adding to library, wrap it in a new CardInZone with a new instance_id
-		var new_instance_id_for_library = battle_instance._generate_new_card_instance_id()
-		var card_in_zone_for_library = CardInZone.new(bounced_card_resource, new_instance_id_for_library)
-		opponent_combatant.library.push_front(card_in_zone_for_library) # Portal mage bounces to top
-		#opponent_combatant.library.push_front(target_card_res)
+		var new_instance_id_for_library: int = battle_instance._generate_new_card_instance_id()
+		var card_in_zone_for_library: CardInZone = CardInZone.new(bounced_card_resource, new_instance_id_for_library)
+		opponent_combatant.library.push_front(card_in_zone_for_library) 
 
-		# 3. Generate events for replay
-		# Event for the creature leaving the lane
 		battle_instance.add_event({
 			"event_type": "summon_leaves_lane",
 			"player": opponent_combatant.combatant_name,
 			"lane": bounced_from_lane_index_1_based,
 			"card_id": bounced_card_resource.id,
 			"instance_id": original_bounced_summon_instance_id,
-			"reason": "bounce_" + portal_mage_card_id,
+			"reason": "bounce_effect_" + portal_mage_card_id, # Using card_id is often better for machine readability
+			"source_card_id": portal_mage_card_id,
 			"source_instance_id": portal_mage_instance_id
 		})
+		
 		battle_instance.add_event({
 			"event_type": "card_moved",
 			"card_id": bounced_card_resource.id,
 			"player": opponent_combatant.combatant_name,
 			"from_zone": "lane",
-			"from_details": { # More explicit from_details
-			"lane": bounced_from_lane_index_1_based,
-			"original_instance_id": original_bounced_summon_instance_id 
+			"from_details": { 
+				"lane": bounced_from_lane_index_1_based,
+				"instance_id": original_bounced_summon_instance_id 
 			},
 			"to_zone": "library",
 			"to_details": {
-				"position": "top",
-				"new_instance_id": new_instance_id_for_library # ID of the card in its new zone
+				"position": "top", # Portal Mage bounces to top
+				"instance_id": new_instance_id_for_library 
 			},
-			"instance_id": original_bounced_summon_instance_id, # Primary instance_id for this event is the one that initiated the move
-			"reason": "bounce_" + portal_mage_instance_id,
+			"instance_id": original_bounced_summon_instance_id, 
+			"reason": "bounce_effect_" + portal_mage_card_id, # Using card_id
+			"source_card_id": portal_mage_card_id,
 			"source_instance_id": portal_mage_instance_id
 		})
-		## Event for card moving to library
-		# Optional: Visual effect event
+		
 		battle_instance.add_event({
 			"event_type": "visual_effect",
 			"effect_id": "portal_mage_bounce",
-			"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, target_lane_index + 1]],
+			"instance_id": original_bounced_summon_instance_id, # Creature being bounced
+			"card_id": bounced_card_resource.id,
+			"target_locations": ["%s lane %d (ID: %s)" % [opponent_combatant.combatant_name, bounced_from_lane_index_1_based, original_bounced_summon_instance_id]],
 			"details": {},
-			"instance_id": "Not implemented yet. Portal mage visual effect."
+			"source_card_id": portal_mage_card_id,
+			"source_instance_id": portal_mage_instance_id 
 		})
-
 	else:
-		print("...no target found in opposing lane.")
+		print("...Portal Mage (Instance: %s) found no target in opposing lane." % portal_mage_instance_id)
+		battle_instance.add_event({
+			"event_type":"log_message", 
+			"message":"Portal Mage (Instance: %s) found no target in opposing lane." % portal_mage_instance_id,
+			"source_card_id": portal_mage_card_id,
+			"source_instance_id": portal_mage_instance_id
+		})

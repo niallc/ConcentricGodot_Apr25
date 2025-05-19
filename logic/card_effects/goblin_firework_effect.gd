@@ -1,31 +1,37 @@
 # res://logic/card_effects/goblin_firework_effect.gd
 extends SummonCardResource
 
-# Override the _on_death virtual method
-# Note: Added underscore to unused parameters based on previous discussion
-func _on_death(summon_instance: SummonInstance, _active_combatant, opponent_combatant, battle_instance):
-	print("Goblin Firework death trigger!")
-	var opposing_lane_index = summon_instance.lane_index
-	# Check opponent has lanes and index is valid (defensive check)
-	if opponent_combatant.lanes.size() > opposing_lane_index:
-		var target_instance = opponent_combatant.lanes[opposing_lane_index]
+# summon_instance here is the Goblin Firework that just died.
+func _on_death(summon_instance: SummonInstance, _active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle):
+	var firework_instance_id: int = summon_instance.instance_id
+	var firework_card_id: String = summon_instance.card_resource.id # Should be "GoblinFirework"
 
-		if target_instance != null:
-			print("...damaging opposing %s" % target_instance.card_resource.card_name)
-			var damage = 1
-			# Target takes damage (generates creature_hp_change event)
-			# Pass the dying firework instance as the source
-			target_instance.take_damage(damage, summon_instance)
+	print("Goblin Firework (Instance: %s) death trigger!" % firework_instance_id)
+	
+	var opposing_lane_index: int = summon_instance.lane_index 
+	# Check opponent has lanes and index is valid (defensive check) - good.
+	if opponent_combatant.lanes.size() > opposing_lane_index and opposing_lane_index != -1:
+		var target_creature_instance = opponent_combatant.lanes[opposing_lane_index]
 
-			# Generate specific visual effect event for explosion
+		if target_creature_instance != null:
+			var damage_amount: int = 1
+			print("...%s (Instance: %s) damaging opposing %s (Instance: %s) for %d" % [firework_card_id, firework_instance_id, target_creature_instance.card_resource.card_name, target_creature_instance.instance_id, damage_amount])
+			
+			# The Goblin Firework (summon_instance) is the source of this damage.
+			target_creature_instance.take_damage(damage_amount, firework_card_id, firework_instance_id)
+
+			# Visual effect for the explosion targeting the creature hit
 			battle_instance.add_event({
 				"event_type": "visual_effect",
-				"effect_id": "firework_explode",
-				"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, opposing_lane_index + 1]],
-				"details": {"damage": damage},
-				"instance_id": "None, visual effect on" + str(target_instance.instance_id)
+				"effect_id": "firework_explosion_on_target",
+				"instance_id": target_creature_instance.instance_id, # The creature hit is the main subject of this visual
+				"card_id": target_creature_instance.card_resource.id, # Type of creature hit
+				"target_locations": ["%s lane %d (ID: %s)" % [opponent_combatant.combatant_name, opposing_lane_index + 1, target_creature_instance.instance_id]],
+				"details": {"damage_dealt": damage_amount, "explosion_source_card_id": firework_card_id},
+				"source_card_id": firework_card_id,          # Caused by Goblin Firework card type
+				"source_instance_id": firework_instance_id  # Caused by this specific Firework instance
 			})
 		else:
-			print("...no target found in opposing lane.")
+			print("...%s (Instance: %s) found no target in opposing lane %d." % [firework_card_id, firework_instance_id, opposing_lane_index + 1])
 	else:
-		printerr("Goblin Firework _on_death: Invalid opposing lane index %d" % opposing_lane_index)
+		printerr("Goblin Firework (Instance: %s) _on_death: Invalid opposing lane index %d or opponent has no lanes." % [firework_instance_id, opposing_lane_index])
