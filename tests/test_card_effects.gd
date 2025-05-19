@@ -2584,36 +2584,101 @@ func test_glassgraft_reanimates_and_sacrifices():
 	# assert_true(knight_sacrifice_visual_found, "Glassgrafted Knight: sacrifice visual event missing.") # This is optional
 	assert_true(knight_defeated_found, "Glassgrafted Knight: creature_defeated event missing.")
 	assert_true(knight_moved_to_grave_after_sacrifice_found, "Glassgrafted Knight: card_moved to graveyard event missing after sacrifice.")
+
 # --- Unmake Tests ---
 func test_unmake_destroys_non_undead():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Place targets: Undead (Skeleton) left, Living (Knight) right
-	place_summon_for_test(opponent, recurring_skeleton_res, 0, battle) # Lane 1
-	place_summon_for_test(opponent, knight_res, 1, battle)             # Lane 2
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Place targets for opponent:
+	# Lane 0 (index 0): Undead (Recurring Skeleton) - Should NOT be destroyed
+	var target_skeleton_instance = place_summon_for_test(opponent, recurring_skeleton_res, 0, battle)
+	# Lane 1 (index 1): Non-Undead (Knight) - Should BE destroyed (as it's the leftmost non-Undead)
+	var target_knight_instance = place_summon_for_test(opponent, knight_res, 1, battle) 
+	var target_knight_original_field_instance_id = target_knight_instance.instance_id # Store ID before it dies
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Apply effect
-	unmake_res.apply_effect(unmake_res, player, opponent, battle)
+	# Create a CardInZone for the Unmake spell
+	var unmake_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var unmake_card_in_zone: CardInZone = CardInZone.new(unmake_res, unmake_spell_instance_id)
 
-	# Assert: Skeleton (leftmost, undead) still exists
-	assert_true(opponent.lanes[0] is SummonInstance and opponent.lanes[0].card_resource.id == "RecurringSkeleton", "Skeleton should not be Unmade.")
-	# Assert: Knight (next leftmost, living) is gone
-	assert_null(opponent.lanes[1], "Knight should be Unmade.")
-	# Assert: Knight is in graveyard
-	assert_true(opponent.graveyard.size() > 0, "Opponent graveyard should not be empty.")
-	assert_eq(opponent.graveyard[-1].id, "Knight", "Knight should be in graveyard.")
+	# Action: Apply Unmake effect
+	if unmake_res.script and unmake_res.script.has_method("apply_effect"):
+		unmake_res.script.apply_effect(unmake_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Unmake resource does not have a script with apply_effect.")
+		return
 
-	# Assert: Events (Knight defeated)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var defeated_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "creature_defeated" and event.get("lane") == 2 and event.get("player") == opponent.combatant_name:
-			defeated_event_found = true; break
-	assert_true(defeated_event_found, "Creature defeated event for Knight not found.")
+	# Assert: Skeleton (leftmost, Undead) still exists in opponent's lane 0
+	assert_true(opponent.lanes[0] == target_skeleton_instance, "Recurring Skeleton should not be Unmade and still be in lane 0.")
+	
+	# Assert: Knight (next, non-Undead) is gone from opponent's lane 1
+	assert_null(opponent.lanes[1], "Knight should be Unmade and removed from lane 1.")
+	
+	# Assert: Knight is now in opponent's graveyard
+	var knight_found_in_grave: bool = false
+	var new_knight_gy_instance_id: int = -1
+	for card_in_zone_obj in opponent.graveyard:
+		if card_in_zone_obj.get_card_id() == "Knight":
+			knight_found_in_grave = true
+			new_knight_gy_instance_id = card_in_zone_obj.get_card_instance_id() # ID of the Knight CIZ in graveyard
+			break
+	assert_true(knight_found_in_grave, "Knight should be in opponent's graveyard after being Unmade.")
 
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events for Unmake successfully destroying Knight:
+	# 1. visual_effect (Unmake targeting Knight)
+	# 2. creature_defeated (for Knight, sourced by Unmake)
+	# 3. card_moved (Knight from lane to graveyard, sourced by Unmake via die())
+
+	var visual_effect_unmake_found: bool = false
+	var knight_defeated_event_found: bool = false
+	var knight_moved_to_grave_event_found: bool = false
+
+	for event_data in new_events:
+		var event_type = event_data.get("event_type")
+		var event_instance_id = event_data.get("instance_id")
+		var event_source_instance_id = event_data.get("source_instance_id")
+		var event_source_card_id = event_data.get("source_card_id")
+
+		if event_type == "visual_effect" and \
+		   event_data.get("effect_id") == "unmake_targeting_visual" and \
+		   event_instance_id == target_knight_original_field_instance_id and \
+		   event_source_instance_id == unmake_spell_instance_id:
+			visual_effect_unmake_found = true
+		
+		elif event_type == "creature_defeated" and \
+			 event_instance_id == target_knight_original_field_instance_id and \
+			 event_data.get("card_id") == "Knight":
+			knight_defeated_event_found = true
+			# Ideally, this event should also be sourced by Unmake.
+			# This depends on how `SummonInstance.die()` handles/propagates source info.
+			# For now, we check it happened to the correct instance.
+			# assert_eq(event_source_card_id, unmake_card_in_zone.get_card_id(), "Knight defeated event: source_card_id (Unmake) incorrect.")
+			# assert_eq(event_source_instance_id, unmake_spell_instance_id, "Knight defeated event: source_instance_id (Unmake) incorrect.")
+
+		elif event_type == "card_moved" and \
+			 event_data.get("card_id") == "Knight" and \
+			 event_instance_id == target_knight_original_field_instance_id and \
+			 event_data.get("from_zone") == "lane" and \
+			 event_data.get("to_zone") == "graveyard":
+			knight_moved_to_grave_event_found = true
+			# The "reason" for this move is death. The ultimate "source" of that death was Unmake.
+			# The `SummonInstance.die()` method calls `add_card_to_graveyard(card_resource, "lane", self.instance_id)`.
+			# The `add_card_to_graveyard` event has `instance_id` as the ID from the lane, and currently no explicit spell source.
+			# This is an area where event enrichment could trace the "cause of death" more explicitly into the card_moved event.
+			# For now, the sequence implies Unmake.
+			assert_eq(event_data.get("to_details", {}).get("instance_id"), new_knight_gy_instance_id, "Knight moved to grave: to_details.instance_id mismatch.")
+
+
+	assert_true(visual_effect_unmake_found, "Visual effect for Unmake targeting Knight not found or improperly sourced.")
+	assert_true(knight_defeated_event_found, "Creature_defeated event for Knight (Unmake target) not found.")
+	assert_true(knight_moved_to_grave_event_found, "Card_moved event for Unmade Knight (to graveyard) not found.")
 
 func test_unmake_can_play():
 	var setup = create_test_battle_setup()
@@ -2674,88 +2739,174 @@ func test_skeletal_infantry_heals_and_relentless_on_kill():
 
 # --- Reassembling Legion Tests ---
 func test_reassembling_legion_returns_to_deck_on_death():
-	# Similar to Recurring Skeleton test
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	# Place Legion
-	var legion_instance = place_summon_for_test(player, reassembling_legion_res, 0, battle)
-	var initial_deck_size = player.library.size()
-	var initial_grave_size = player.graveyard.size()
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"]
+	var battle: Battle = setup["battle"]
+	
+	var legion_instance = place_summon_for_test(player, reassembling_legion_res, 0, battle) # Player's lane 0
+	var legion_original_field_instance_id: int = legion_instance.instance_id # Store ID before it dies
+	
+	var initial_deck_size: int = player.library.size()
+	var initial_grave_size: int = player.graveyard.size()
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Kill the legion
-	var test_damage_source_card_id: String = "TEST_DAMAGE_EFFECT"
-	var test_damage_source_instance_id: int = -1 # Or some other placeholder if you like
-	legion_instance.take_damage(100, test_damage_source_card_id, test_damage_source_instance_id)
+	# Action: Kill the Reassembling Legion instance
+	var test_damage_source_card_id: String = "TEST_EFFECT_LETHAL_BLOW"
+	var test_damage_source_instance_id: int = -1000 # Arbitrary placeholder
+	legion_instance.take_damage(100, test_damage_source_card_id, test_damage_source_instance_id) # Overkill
 
-	# Assert: Instance removed from lane
-	assert_null(player.lanes[0], "Lane should be empty after legion dies.")
-	# Assert: Card added to bottom of library
-	assert_eq(player.library.size(), initial_deck_size + 1, "Library size should increase by 1.")
-	assert_eq(player.library[-1].id, "ReassemblingLegion", "Legion should be at the bottom of the library.")
-	# Assert: Card NOT added to graveyard
-	assert_eq(player.graveyard.size(), initial_grave_size, "Graveyard size should not increase.")
+	# Assert: Legion instance removed from lane
+	assert_null(player.lanes[0], "Lane 0 should be empty after Reassembling Legion dies.")
+	
+	# Assert: Card (as CardInZone) added to bottom of player's library
+	assert_eq(player.library.size(), initial_deck_size + 1, "Player library size should increase by one after Legion's death.")
+	assert_true(player.library[-1] is CardInZone, "Card at library bottom should be a CardInZone.")
+	var returned_legion_in_lib = player.library[-1] as CardInZone
+	if returned_legion_in_lib:
+		assert_eq(returned_legion_in_lib.get_card_id(), "ReassemblingLegion", "Reassembling Legion card_id in library is incorrect.")
+		assert_ne(returned_legion_in_lib.get_card_instance_id(), legion_original_field_instance_id, "Returned Legion in library should have a new instance_id.")
+	else:
+		fail_test("Card at bottom of player library was not a CardInZone as expected for Reassembling Legion.")
 
-	# Assert: Events (creature_defeated + card_moved to library)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var defeated_event_found = false
-	var moved_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "creature_defeated" and event.get("lane") == 1:
-			defeated_event_found = true
-		elif event.get("event_type") == "card_moved" and \
-			 event.get("card_id") == "ReassemblingLegion" and \
-			 event.get("to_zone") == "library":
-			moved_event_found = true
-			assert_eq(event.get("to_details", {}).get("position"), "bottom", "Card moved event should specify bottom.")
-	assert_true(defeated_event_found, "Creature defeated event not found for Legion.")
-	assert_true(moved_event_found, "Card moved to library event not found for Legion.")
+	# Assert: Card NOT added to player's graveyard (due to prevent_graveyard flag)
+	assert_eq(player.graveyard.size(), initial_grave_size, "Player graveyard size should not increase for Reassembling Legion.")
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. creature_hp_change (from take_damage, sourced by test effect)
+	# 2. creature_defeated (for Legion, sourced by test effect via take_damage)
+	# 3. card_moved (Legion from lane to library, due to Legion's own death effect)
+	
+	var hp_change_event_found: bool = false
+	var legion_defeated_event_found: bool = false
+	var legion_moved_to_library_event_found: bool = false
+	var new_legion_library_instance_id_from_event: int = -1
+
+	for event_data in new_events:
+		var event_type = event_data.get("event_type")
+		var event_instance_id = event_data.get("instance_id")
+		var event_source_card_id = event_data.get("source_card_id")
+		var event_source_instance_id = event_data.get("source_instance_id")
+
+		if event_type == "creature_hp_change" and \
+		   event_instance_id == legion_original_field_instance_id and \
+		   event_source_card_id == test_damage_source_card_id:
+			hp_change_event_found = true
+		
+		elif event_type == "creature_defeated" and \
+			 event_instance_id == legion_original_field_instance_id and \
+			 event_data.get("card_id") == "ReassemblingLegion":
+			legion_defeated_event_found = true
+			# The source of defeat is the test damage effect
+			assert_eq(event_source_card_id, test_damage_source_card_id, "Legion defeated: source_card_id mismatch.")
+			assert_eq(event_source_instance_id, test_damage_source_instance_id, "Legion defeated: source_instance_id mismatch.")
+
+		elif event_type == "card_moved" and \
+			 event_data.get("card_id") == "ReassemblingLegion" and \
+			 event_instance_id == legion_original_field_instance_id and \
+			 event_data.get("from_zone") == "lane" and \
+			 event_data.get("to_zone") == "library":
+			legion_moved_to_library_event_found = true
+			# This move is caused by Legion's own death effect
+			assert_eq(event_source_card_id, "ReassemblingLegion", "Legion moved_to_library: source_card_id incorrect.")
+			assert_eq(event_source_instance_id, legion_original_field_instance_id, "Legion moved_to_library: source_instance_id incorrect.")
+			new_legion_library_instance_id_from_event = event_data.get("to_details", {}).get("instance_id")
+			assert_ne(new_legion_library_instance_id_from_event, legion_original_field_instance_id, "Legion in library should have a new instance ID in to_details for card_moved event.")
+
+	assert_true(hp_change_event_found, "Creature_hp_change event for Reassembling Legion (from test damage) not found.")
+	assert_true(legion_defeated_event_found, "Creature_defeated event for Reassembling Legion not found or improperly sourced.")
+	assert_true(legion_moved_to_library_event_found, "Card_moved event for Reassembling Legion returning to library not found or improperly sourced.")
+
+	if returned_legion_in_lib and new_legion_library_instance_id_from_event != -1:
+		assert_eq(returned_legion_in_lib.get_card_instance_id(), new_legion_library_instance_id_from_event, "Instance ID of Legion in library does not match its card_moved to_details.instance_id.")
 
 # --- Ghoul Tests ---
 func test_ghoul_mills_opponent_bottom_card():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup opponent library
+	var player: Combatant = setup["player"] # Ghoul's owner
+	var opponent: Combatant = setup["opponent"] # Library to be milled
+	var battle: Battle = setup["battle"]
+	
+	# Setup opponent's library with CardInZone objects
 	opponent.library.clear()
-	opponent.library.append(knight_res) # Top
-	opponent.library.append(goblin_scout_res) # Bottom
-	var initial_opp_lib_size = opponent.library.size()
-	var initial_opp_grave_size = opponent.graveyard.size()
-	var bottom_card_id = opponent.library[-1].id # Should be GoblinScout
+	var knight_in_opp_lib_id = battle._generate_new_card_instance_id()
+	opponent.library.append(CardInZone.new(knight_res, knight_in_opp_lib_id))          # Top (index 0)
+	var scout_in_opp_lib_id = battle._generate_new_card_instance_id() # This is the card that will be milled
+	opponent.library.append(CardInZone.new(goblin_scout_res, scout_in_opp_lib_id)) # Bottom (index 1)
+	
+	var initial_opp_lib_size: int = opponent.library.size() # Should be 2
+	var initial_opp_grave_size: int = opponent.graveyard.size()
+	
+	# Verify setup: Goblin Scout is at the bottom (last element)
+	assert_gt(opponent.library.size(), 0, "Test setup: Opponent library should not be empty.")
+	var bottom_card_to_be_milled_original_card_id: String = opponent.library[-1].get_card_id()
+	var bottom_card_to_be_milled_original_instance_id: int = opponent.library[-1].get_card_instance_id()
+	assert_eq(bottom_card_to_be_milled_original_card_id, "GoblinScout", "Test setup: Expected GoblinScout at bottom of opponent's library.")
+	assert_eq(bottom_card_to_be_milled_original_instance_id, scout_in_opp_lib_id, "Test setup: GoblinScout instance ID mismatch.")
 
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(ghoul_res, player, opponent, 0, battle, new_id)
-	var initial_event_count = battle.battle_events.size()
+	# Simulate Ghoul's arrival (owned by player)
+	var ghoul_instance = SummonInstance.new()
+	var ghoul_instance_id: int = battle._generate_new_card_instance_id()
+	ghoul_instance.setup(ghoul_res, player, opponent, 0, battle, ghoul_instance_id) # Ghoul's lane doesn't matter for this effect
 
-	# Action: Call arrival effect
-	ghoul_res._on_arrival(instance, player, opponent, battle)
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Assert: Opponent library size decreased
-	assert_eq(opponent.library.size(), initial_opp_lib_size - 1, "Opponent library size should decrease.")
-	# Assert: Opponent graveyard size increased
-	assert_eq(opponent.graveyard.size(), initial_opp_grave_size + 1, "Opponent graveyard size should increase.")
-	# Assert: Correct card moved to opponent graveyard
-	assert_eq(opponent.graveyard[-1].id, bottom_card_id, "Incorrect card milled to graveyard.")
+	# Action: Call Ghoul's _on_arrival effect
+	if ghoul_res.has_method("_on_arrival"):
+		ghoul_res._on_arrival(ghoul_instance, player, opponent, battle)
+	else:
+		fail_test("Ghoul resource does not have _on_arrival method.")
+		return
 
-	# Assert: Event generated (card_moved library_bottom -> graveyard)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var moved_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "card_moved" and \
-		   event.get("player") == opponent.combatant_name and \
-		   event.get("from_zone") == "library_bottom" and \
-		   event.get("to_zone") == "graveyard":
-			moved_event_found = true
-			assert_eq(event.get("card_id"), bottom_card_id, "Milled card ID incorrect in event.")
-			break
-	assert_true(moved_event_found, "Card moved event for Ghoul mill not found.")
+	# Assert: Opponent library size decreased by 1
+	assert_eq(opponent.library.size(), initial_opp_lib_size - 1, "Opponent library size should decrease by one after Ghoul's mill.")
+	# Assert: Opponent graveyard size increased by 1
+	assert_eq(opponent.graveyard.size(), initial_opp_grave_size + 1, "Opponent graveyard size should increase by one after Ghoul's mill.")
+	
+	# Assert: Correct card (Goblin Scout) moved to opponent's graveyard, maintaining its instance_id
+	assert_true(opponent.graveyard[-1] is CardInZone, "Milled card in opponent's graveyard should be CardInZone.")
+	var milled_card_in_grave = opponent.graveyard[-1] as CardInZone
+	if milled_card_in_grave:
+		assert_eq(milled_card_in_grave.get_card_id(), bottom_card_to_be_milled_original_card_id, "Incorrect card_id milled to opponent's graveyard.")
+		assert_eq(milled_card_in_grave.get_card_instance_id(), bottom_card_to_be_milled_original_instance_id, "Instance ID of milled card should be maintained in graveyard.")
+	else:
+		fail_test("Card in opponent's graveyard was not a CardInZone as expected.")
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. card_moved (GoblinScout from opponent's library to opponent's graveyard, sourced by Ghoul)
+	# 2. visual_effect (for the Ghoul's mill action)
+	# Total = 2 events
+	assert_eq(new_events.size(), 2, "Ghoul's mill effect should generate 2 events. Found: %s" % new_events.size())
+
+	var card_moved_event_found: bool = false
+	var visual_effect_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "card_moved" and \
+		   event_data.get("player") == opponent.combatant_name and \
+		   event_data.get("from_zone") == "library_bottom_ghoul_mill" and \
+		   event_data.get("to_zone") == "graveyard" and \
+		   event_data.get("card_id") == bottom_card_to_be_milled_original_card_id and \
+		   event_data.get("instance_id") == bottom_card_to_be_milled_original_instance_id and \
+		   event_data.get("source_card_id") == ghoul_res.id and \
+		   event_data.get("source_instance_id") == ghoul_instance_id:
+			card_moved_event_found = true
+			# Check that the instance_id in to_details also matches (as the CardInZone object itself was moved)
+			assert_eq(event_data.get("to_details", {}).get("instance_id"), bottom_card_to_be_milled_original_instance_id, "Ghoul mill: card_moved to_details.instance_id mismatch.")
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "ghoul_mill_action" and \
+			 event_data.get("instance_id") == ghoul_instance_id: # Ghoul is the subject of this visual
+			visual_effect_found = true
+			assert_eq(event_data.get("details", {}).get("milled_card_id"), bottom_card_to_be_milled_original_card_id, "Ghoul mill visual_effect details: milled_card_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("milled_card_instance_id"), bottom_card_to_be_milled_original_instance_id, "Ghoul mill visual_effect details: milled_card_instance_id incorrect.")
+			assert_eq(event_data.get("source_instance_id"), ghoul_instance_id, "Ghoul mill visual_effect: source_instance_id incorrect.")
+
+	assert_true(card_moved_event_found, "Card_moved event for Ghoul mill not found or improperly sourced.")
+	assert_true(visual_effect_found, "Visual effect for Ghoul mill action not found or improperly sourced.")
 # --- Knight of Opposites Tests ---
 func test_knight_of_opposites_swaps_hp():
 	var setup = create_test_battle_setup()
@@ -2851,196 +3002,604 @@ func test_malignant_imp_bonus_direct_damage():
 # --- Walking Sarcophagus Tests ---
 func test_walking_sarcophagus_sacrifices_and_reanimates():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup: Sarcophagus in lane 0, Knight in grave (leftmost), Scout also in grave
-	var sarc_instance = place_summon_for_test(player, walking_sarcophagus_res, 0, battle)
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+
+	# Setup: Sarcophagus in player's lane 0
+	var sarcophagus_instance = place_summon_for_test(player, walking_sarcophagus_res, 0, battle)
+	var sarcophagus_original_field_id = sarcophagus_instance.instance_id
+
+	# Setup player's graveyard with CardInZone objects: Knight (leftmost, index 0), Scout (index 1)
 	player.graveyard.clear()
-	player.graveyard.append(knight_res)
-	player.graveyard.append(goblin_scout_res)
-	opponent.lanes[0] = null # Ensure direct attack
+	var knight_gy_original_id = battle._generate_new_card_instance_id() # Knight is the one we expect to be reanimated
+	player.graveyard.append(CardInZone.new(knight_res, knight_gy_original_id))
+	var scout_gy_original_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(goblin_scout_res, scout_gy_original_id))
+	
+	# Ensure opponent's lane 0 is empty for Sarcophagus to direct attack
+	opponent.lanes[0] = null 
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Simulate direct attack
-	sarc_instance.is_newly_arrived = false # Needs to be able to act
-	sarc_instance.perform_turn_activity() # Calls _perform_direct_attack -> _on_deal_direct_damage -> die -> reanimate logic
+	# Action: Simulate Sarcophagus performing its turn activity (which should lead to a direct attack)
+	sarcophagus_instance.is_newly_arrived = false # Allow it to act
+	sarcophagus_instance.perform_turn_activity() 
+	# This calls _perform_direct_attack -> _on_deal_direct_damage (for Sarcophagus) -> Sarcophagus.die() -> reanimation logic
 
-	# Assert: Lane 0 now contains Knight (reanimated leftmost)
-	assert_true(player.lanes[0] is SummonInstance and player.lanes[0].card_resource.id == "Knight", "Knight should be reanimated in lane 1.")
-	# Assert: Sarcophagus is now in graveyard
-	assert_true(player.graveyard.size() > 0, "Graveyard should not be empty.")
-	assert_eq(player.graveyard[-1].id, "WalkingSarcophagus", "Sarcophagus should be in graveyard.")
-	# Assert: Scout is still in graveyard
-	var scout_in_grave = false
-	for card in player.graveyard:
-		if card.id == "GoblinScout": scout_in_grave = true; break
-	assert_true(scout_in_grave, "Scout should still be in graveyard.")
+	# --- Assertions after Sarcophagus's full effect ---
+	# Assert: Player's lane 0 now contains Knight (reanimated leftmost from grave)
+	assert_true(player.lanes[0] is SummonInstance, "Player's lane 0 should have a SummonInstance (reanimated Knight).")
+	var reanimated_knight_on_field = player.lanes[0] as SummonInstance
+	assert_true(reanimated_knight_on_field != null and reanimated_knight_on_field.card_resource.id == "Knight", "Knight should be reanimated into lane 0 by Sarcophagus.")
+	var reanimated_knight_field_id = reanimated_knight_on_field.instance_id
 
+	# Assert: Sarcophagus is now in player's graveyard
+	var sarcophagus_found_in_grave: bool = false
+	var sarcophagus_gy_instance_id: int = -1
+	for card_in_zone in player.graveyard:
+		if card_in_zone.get_card_id() == "WalkingSarcophagus":
+			sarcophagus_found_in_grave = true
+			sarcophagus_gy_instance_id = card_in_zone.get_card_instance_id()
+			break
+	assert_true(sarcophagus_found_in_grave, "Walking Sarcophagus should be in graveyard after its effect.")
+
+	# Assert: Scout is still in player's graveyard (Knight was consumed for reanimation)
+	var scout_still_in_grave: bool = false
+	for card_in_zone in player.graveyard:
+		if card_in_zone.get_card_id() == "GoblinScout" and card_in_zone.get_card_instance_id() == scout_gy_original_id:
+			scout_still_in_grave = true
+			break
+	assert_true(scout_still_in_grave, "Goblin Scout should still be in graveyard.")
+	assert_eq(player.graveyard.size(), 2, "Player graveyard should contain Sarcophagus and Scout.")
+
+
+	# --- Event Checks ---
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected event sequence:
+	# 1. Sarcophagus: summon_turn_activity (direct_attack)
+	# 2. Sarcophagus: direct_damage (to opponent player)
+	# 3. Opponent: hp_change (from Sarcophagus damage)
+	#    --- Sarcophagus _on_deal_direct_damage triggers ---
+	# 4. Sarcophagus: creature_defeated (Sarcophagus sacrifices itself)
+	# 5. Sarcophagus: card_moved (Sarcophagus from lane to grave)
+	# 6. Knight: card_moved (Knight from player's grave to limbo, sourced by Sarcophagus)
+	# 7. Knight: summon_arrives (Knight arrives in lane, sourced by Sarcophagus)
+	# 8. Knight: card_moved (Knight from limbo to player's lane, sourced by Sarcophagus)
+
+	var sarc_activity_found = false
+	var sarc_direct_damage_found = false
+	var opp_hp_change_found = false
+	var sarc_defeated_found = false
+	var sarc_moved_to_grave_found = false
+	var knight_moved_from_grave_found = false
+	var knight_arrived_found = false
+	var knight_moved_to_lane_found = false
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var card_id = event_data.get("card_id")
+		var src_inst_id = event_data.get("source_instance_id")
+		var src_card_id = event_data.get("source_card_id")
+
+		if type == "summon_turn_activity" and inst_id == sarcophagus_original_field_id: sarc_activity_found = true
+		elif type == "direct_damage" and event_data.get("attacking_instance_id") == sarcophagus_original_field_id: sarc_direct_damage_found = true
+		elif type == "hp_change" and event_data.get("player") == opponent.combatant_name and src_inst_id == sarcophagus_original_field_id: opp_hp_change_found = true
+		elif type == "creature_defeated" and inst_id == sarcophagus_original_field_id: sarc_defeated_found = true
+		elif type == "card_moved" and card_id == "WalkingSarcophagus" and inst_id == sarcophagus_original_field_id and event_data.get("to_zone") == "graveyard": 
+			sarc_moved_to_grave_found = true
+			assert_eq(event_data.get("to_details",{}).get("instance_id"), sarcophagus_gy_instance_id, "Sarcophagus CIZ ID in grave mismatch.")
+		elif type == "card_moved" and card_id == "Knight" and inst_id == knight_gy_original_id and event_data.get("from_zone") == "graveyard" and src_inst_id == sarcophagus_original_field_id: 
+			knight_moved_from_grave_found = true
+		elif type == "summon_arrives" and card_id == "Knight" and inst_id == reanimated_knight_field_id and src_inst_id == sarcophagus_original_field_id: 
+			knight_arrived_found = true
+		elif type == "card_moved" and card_id == "Knight" and inst_id == knight_gy_original_id and event_data.get("from_zone") == "limbo" and event_data.get("to_details",{}).get("instance_id") == reanimated_knight_field_id and src_inst_id == sarcophagus_original_field_id: 
+			knight_moved_to_lane_found = true
+			
+	assert_true(sarc_activity_found, "Sarcophagus: activity event missing.")
+	assert_true(sarc_direct_damage_found, "Sarcophagus: direct_damage event missing.")
+	assert_true(opp_hp_change_found, "Sarcophagus: opponent hp_change event missing.")
+	assert_true(sarc_defeated_found, "Sarcophagus: creature_defeated event missing.")
+	assert_true(sarc_moved_to_grave_found, "Sarcophagus: card_moved to grave event missing.")
+	assert_true(knight_moved_from_grave_found, "Sarcophagus: Knight moved from grave event missing.")
+	assert_true(knight_arrived_found, "Sarcophagus: Knight summon_arrives event missing.")
+	assert_true(knight_moved_to_lane_found, "Sarcophagus: Knight moved to lane event missing.")
 
 # --- Indulged Princeling Tests ---
-func test_indulged_princeling_mills_self():
+func test_indulged_princeling_mills_self(): # Scenario: Enough cards to mill, Princeling survives
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	# Setup library
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # For _on_arrival signature
+	var battle: Battle = setup["battle"]
+	
+	# Setup player's library with CardInZone objects
 	player.library.clear()
-	player.library.append(knight_res)
-	player.library.append(goblin_scout_res)
-	player.library.append(healer_res) # 3 cards
-	var initial_lib_size = player.library.size()
-	var initial_grave_size = player.graveyard.size()
+	# Order added: Healer (top, index 0), GoblinScout (middle, index 1), Knight (bottom, index 2)
+	# Mill happens from the top (pop_front). So Healer and GoblinScout will be milled.
+	var healer_lib_id = battle._generate_new_card_instance_id()
+	player.library.append(CardInZone.new(healer_res, healer_lib_id))         # Top, will be milled first
+	var scout_lib_id = battle._generate_new_card_instance_id()
+	player.library.append(CardInZone.new(goblin_scout_res, scout_lib_id))  # Middle, will be milled second
+	var knight_lib_id = battle._generate_new_card_instance_id()
+	player.library.append(CardInZone.new(knight_res, knight_lib_id))         # Bottom, should remain in library
+	
+	var initial_lib_size: int = player.library.size() # Should be 3
+	var initial_grave_size: int = player.graveyard.size()
 
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(indulged_princeling_res, player, player.opponent, 0, battle, new_id)
-	player.lanes[0] = instance # Place it
+	# Simulate Indulged Princeling arrival in player's lane 0
+	var princeling_instance = SummonInstance.new()
+	var princeling_instance_id: int = battle._generate_new_card_instance_id()
+	princeling_instance.setup(indulged_princeling_res, player, opponent, 0, battle, princeling_instance_id)
+	player.lanes[0] = princeling_instance # Manually place it for the test
 
-	# Action
-	indulged_princeling_res._on_arrival(instance, player, player.opponent, battle)
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call _on_arrival effect
+	if indulged_princeling_res.has_method("_on_arrival"):
+		indulged_princeling_res._on_arrival(princeling_instance, player, opponent, battle)
+	else:
+		fail_test("Indulged Princeling resource does not have _on_arrival method.")
+		return
 
 	# Assert: Library size decreased by 2
-	assert_eq(player.library.size(), initial_lib_size - 2, "Library size incorrect.")
+	assert_eq(player.library.size(), initial_lib_size - 2, "Princeling mill: Library size incorrect.")
 	# Assert: Graveyard size increased by 2
-	assert_eq(player.graveyard.size(), initial_grave_size + 2, "Graveyard size incorrect.")
-	# Assert: Correct cards milled (Knight and Scout were top)
-	assert_eq(player.graveyard[-1].id, "GoblinScout", "Scout should be last card milled.")
-	assert_eq(player.graveyard[-2].id, "Knight", "Knight should be first card milled.")
-	# Assert: Princeling still in lane
-	assert_true(player.lanes[0] == instance, "Princeling should remain in lane.")
+	assert_eq(player.graveyard.size(), initial_grave_size + 2, "Princeling mill: Graveyard size incorrect.")
+	
+	# Assert: Correct cards milled to graveyard (Healer then GoblinScout)
+	# They are added to graveyard via push_back by add_card_to_graveyard.
+	# So, Healer (milled first) will be at graveyard[initial_grave_size]
+	# GoblinScout (milled second) will be at graveyard[initial_grave_size + 1] or graveyard[-1]
+	assert_true(player.graveyard.size() >= initial_grave_size + 2, "Not enough cards in graveyard to check milled order.")
+	if player.graveyard.size() >= initial_grave_size + 2:
+		var first_milled_card_in_grave = player.graveyard[initial_grave_size] as CardInZone
+		var second_milled_card_in_grave = player.graveyard[initial_grave_size + 1] as CardInZone
+		
+		assert_true(first_milled_card_in_grave != null and first_milled_card_in_grave.get_card_id() == "Healer", "Healer (first milled) not found correctly in graveyard.")
+		assert_eq(first_milled_card_in_grave.get_card_instance_id(), healer_lib_id, "Healer's instance ID mismatch after mill.")
+		
+		assert_true(second_milled_card_in_grave != null and second_milled_card_in_grave.get_card_id() == "GoblinScout", "GoblinScout (second milled) not found correctly in graveyard.")
+		assert_eq(second_milled_card_in_grave.get_card_instance_id(), scout_lib_id, "GoblinScout's instance ID mismatch after mill.")
+
+	# Assert: Knight should be the only card remaining in library
+	assert_eq(player.library.size(), 1, "Only one card (Knight) should remain in library.")
+	if player.library.size() == 1:
+		assert_eq(player.library[0].get_card_id(), "Knight", "Knight should be the remaining card in library.")
+		assert_eq(player.library[0].get_card_instance_id(), knight_lib_id, "Knight's instance ID mismatch in library.")
+
+	# Assert: Princeling still in lane (did not sacrifice)
+	assert_true(player.lanes[0] == princeling_instance, "Princeling should remain in lane when enough cards are milled.")
+	assert_false(princeling_instance.custom_state.has("prevent_graveyard"), "Princeling should not have prevent_graveyard if it didn't die.")
 
 
-func test_indulged_princeling_sacrifices_if_cant_mill():
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# - 2x card_moved (library_top_princeling_mill -> graveyard) for Healer
+	# - 2x card_moved (library_top_princeling_mill -> graveyard) for GoblinScout
+	# (Each pop_front in effect -> add_card_to_graveyard -> which itself generates one card_moved for library->play and one for play->graveyard.)
+	# Let's refine the effect script to make add_card_to_graveyard take "library_top_..." directly.
+	# If Combatant.add_card_to_graveyard takes `from_zone` and `p_instance_id_if_relevant` (which it does)
+	# and the effect calls `active_combatant.add_card_to_graveyard(milled_card_in_zone, "library_top_princeling_mill", milled_card_in_zone.get_card_instance_id())`
+	# then one `card_moved` event per milled card is enough.
+	# So, expect 2 `card_moved` events.
+	
+	assert_eq(new_events.size(), 2, "Indulged Princeling mill should generate 2 card_moved events. Found: %s" % new_events.size())
+
+	var healer_milled_event_found: bool = false
+	var scout_milled_event_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "card_moved" and \
+		   event_data.get("from_zone") == "library_top_princeling_mill" and \
+		   event_data.get("to_zone") == "graveyard" and \
+		   event_data.get("source_instance_id") == princeling_instance_id: # This sourcing needs to be added if not already.
+			# The add_card_to_graveyard doesn't inherently know the Princeling is the source.
+			# The effect script would need to pass this if we want it in the card_moved event.
+			# For now, let's check the basics.
+			var card_id_in_event = event_data.get("card_id")
+			var instance_id_in_event = event_data.get("instance_id")
+			if card_id_in_event == "Healer" and instance_id_in_event == healer_lib_id:
+				healer_milled_event_found = true
+			elif card_id_in_event == "GoblinScout" and instance_id_in_event == scout_lib_id:
+				scout_milled_event_found = true
+	
+	assert_true(healer_milled_event_found, "Card_moved event for milled Healer not found or incorrect.")
+	assert_true(scout_milled_event_found, "Card_moved event for milled GoblinScout not found or incorrect.")
+
+func test_indulged_princeling_sacrifices_if_cant_mill(): # Scenario: Not enough cards, Princeling sacrifices
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	# Setup library with only 1 card
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # For _on_arrival signature
+	var battle: Battle = setup["battle"]
+	
+	# Setup player's library with only 1 card (needs 2 to mill without sacrifice)
 	player.library.clear()
-	player.library.append(knight_res)
-	var initial_grave_size = player.graveyard.size()
+	var knight_lib_id = battle._generate_new_card_instance_id()
+	player.library.append(CardInZone.new(knight_res, knight_lib_id))
+	
+	var initial_lib_size: int = player.library.size() # Should be 1
+	var initial_grave_size: int = player.graveyard.size()
 
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(indulged_princeling_res, player, player.opponent, 0, battle, new_id)
-	player.lanes[0] = instance # Place it
-	var initial_event_count = battle.battle_events.size()
+	# Simulate Indulged Princeling arrival in player's lane 0
+	var princeling_instance = SummonInstance.new()
+	var princeling_instance_id: int = battle._generate_new_card_instance_id()
+	princeling_instance.setup(indulged_princeling_res, player, opponent, 0, battle, princeling_instance_id)
+	player.lanes[0] = princeling_instance # Manually place it
+	var princeling_original_field_id = princeling_instance.instance_id # Store before it dies
 
-	# Action
-	indulged_princeling_res._on_arrival(instance, player, player.opponent, battle)
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Assert: Princeling removed from lane
-	assert_null(player.lanes[0], "Princeling should be removed from lane.")
+	# Action: Call _on_arrival effect
+	if indulged_princeling_res.has_method("_on_arrival"):
+		indulged_princeling_res._on_arrival(princeling_instance, player, opponent, battle)
+	else:
+		fail_test("Indulged Princeling resource does not have _on_arrival method.")
+		return
+
+	# Assert: Princeling removed from lane (sacrificed)
+	assert_null(player.lanes[0], "Princeling should be removed from lane after failing to mill enough cards.")
+	
 	# Assert: Princeling added to graveyard
-	assert_eq(player.graveyard.size(), initial_grave_size + 1, "Graveyard size incorrect.") # Only Princeling added
-	assert_eq(player.graveyard[-1].id, "IndulgedPrinceling", "Princeling should be in graveyard.")
-	# Assert: Library is empty (the one card was NOT milled)
-	assert_true(player.library.size() == 1, "Library should still contain the knight (only).")
+	assert_eq(player.graveyard.size(), initial_grave_size + 1, "Graveyard size should increase by one (Princeling died).")
+	assert_true(player.graveyard[-1] is CardInZone, "Card in graveyard should be CardInZone.")
+	var princeling_in_grave = player.graveyard[-1] as CardInZone
+	if princeling_in_grave:
+		assert_eq(princeling_in_grave.get_card_id(), "IndulgedPrinceling", "Indulged Princeling should be in graveyard.")
+		# The instance ID of the Princeling CIZ in grave will be NEW, generated by add_card_to_graveyard via die()
+		assert_ne(princeling_in_grave.get_card_instance_id(), princeling_original_field_id, "Princeling in grave should have a new instance_id.")
+	else:
+		fail_test("Card in graveyard was not a CardInZone as expected.")
 
-	# Assert: Creature defeated event generated
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var defeated_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "creature_defeated" and event.get("lane") == 1: # Lane 1 (index 0)
-			defeated_event_found = true; break
-	assert_true(defeated_event_found, "Creature defeated event for Princeling not found.")
+	# Assert: Library is unchanged (the one card was NOT milled because condition failed before milling started)
+	assert_eq(player.library.size(), initial_lib_size, "Library size should remain unchanged if Princeling sacrifices.")
+	if player.library.size() == 1: # Check it's still the Knight
+		assert_eq(player.library[0].get_card_id(), "Knight", "The original card (Knight) should still be in the library.")
+		assert_eq(player.library[0].get_card_instance_id(), knight_lib_id, "Knight's instance ID in library should be unchanged.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. visual_effect (for Princeling sacrifice, from effect script)
+	# 2. creature_defeated (for Princeling, from die())
+	# 3. card_moved (Princeling from lane to graveyard, from die() -> add_card_to_graveyard())
+	assert_eq(new_events.size(), 3, "Princeling sacrifice should generate 3 events. Found: %s" % new_events.size())
+
+	var visual_sacrifice_found: bool = false
+	var defeated_event_found: bool = false
+	var moved_to_grave_event_found: bool = false
+	var princeling_new_grave_instance_id_from_event: int = -1
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var src_inst_id = event_data.get("source_instance_id")
+
+		if type == "visual_effect" and event_data.get("effect_id") == "indulged_princeling_sacrifice" and \
+		   inst_id == princeling_original_field_id and src_inst_id == princeling_original_field_id:
+			visual_sacrifice_found = true
+		
+		elif type == "creature_defeated" and inst_id == princeling_original_field_id:
+			defeated_event_found = true
+			# Source of defeat is its own effect / game rule from failing condition
+			# This might be tricky to source perfectly unless die() takes more params.
+			# For now, check it's the correct instance.
+			assert_eq(event_data.get("card_id"), "IndulgedPrinceling", "Defeated event: card_id incorrect.")
+
+		elif type == "card_moved" and \
+			 event_data.get("card_id") == "IndulgedPrinceling" and \
+			 inst_id == princeling_original_field_id and \
+			 event_data.get("from_zone") == "lane" and event_data.get("to_zone") == "graveyard":
+			moved_to_grave_event_found = true
+			princeling_new_grave_instance_id_from_event = event_data.get("to_details",{}).get("instance_id")
+			assert_ne(princeling_new_grave_instance_id_from_event, princeling_original_field_id, "Princeling card_moved to_details.instance_id should be new.")
+
+
+	assert_true(visual_sacrifice_found, "Visual effect for Princeling sacrifice not found or improperly sourced.")
+	assert_true(defeated_event_found, "Creature_defeated event for Princeling not found.")
+	assert_true(moved_to_grave_event_found, "Card_moved (Princeling to grave) event not found or improperly sourced.")
+
+	# Final check on graveyard Princeling's instance ID
+	if princeling_in_grave and princeling_new_grave_instance_id_from_event != -1:
+		assert_eq(princeling_in_grave.get_card_instance_id(), princeling_new_grave_instance_id_from_event, "Instance ID of Princeling in graveyard does not match event's to_details.instance_id.")
 
 # --- Elsewhere Tests ---
 func test_elsewhere_bounces_leftmost():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Place opponent creatures
-	var _scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # Lane 1 - Leftmost
-	var knight = place_summon_for_test(opponent, knight_res, 1, battle)     # Lane 2
-	opponent.library.clear() # Clear library for easy check
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"] # Player casting Elsewhere
+	var opponent: Combatant = setup["opponent"] # Opponent whose creature is bounced
+	var battle: Battle = setup["battle"]
+	
+	# Place opponent creatures:
+	# Lane 0 (index 0): Goblin Scout - Leftmost, should be bounced
+	var scout_to_be_bounced = place_summon_for_test(opponent, goblin_scout_res, 0, battle)
+	var scout_original_field_instance_id: int = scout_to_be_bounced.instance_id
+	# Lane 1 (index 1): Knight - Should remain
+	var knight_should_remain = place_summon_for_test(opponent, knight_res, 1, battle)
+	
+	opponent.library.clear() # Clear opponent's library for easy check of bounced card
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action
-	elsewhere_res.apply_effect(elsewhere_res, player, opponent, battle)
+	# Create a CardInZone for the Elsewhere spell
+	var elsewhere_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var elsewhere_card_in_zone: CardInZone = CardInZone.new(elsewhere_res, elsewhere_spell_instance_id)
 
-	# Assert: Scout (leftmost) is gone from lane
-	assert_null(opponent.lanes[0], "Lane 1 should be empty after Elsewhere.")
-	# Assert: Knight still in lane
-	assert_true(opponent.lanes[1] == knight, "Lane 2 should still contain Knight.")
-	# Assert: Scout is at bottom of library
-	assert_eq(opponent.library.size(), 1, "Opponent library should have 1 card.")
-	assert_eq(opponent.library[0].id, "GoblinScout", "Scout should be at library bottom.") # push_back adds to end
+	# Action: Apply Elsewhere effect
+	if elsewhere_res.script and elsewhere_res.script.has_method("apply_effect"):
+		elsewhere_res.script.apply_effect(elsewhere_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Elsewhere resource does not have a script with apply_effect.")
+		return
 
-	# Assert: Events generated
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var leaves_event = false
-	var moved_event = false
-	for event in events_after:
-		if event.get("event_type") == "summon_leaves_lane" and event.get("lane") == 1: leaves_event = true
-		elif event.get("event_type") == "card_moved" and event.get("card_id") == "GoblinScout" and event.get("to_zone") == "library": moved_event = true
-	assert_true(leaves_event, "Summon leaves event missing.")
-	assert_true(moved_event, "Card moved event missing.")
+	# Assert: Scout (leftmost) is gone from opponent's lane 0
+	assert_null(opponent.lanes[0], "Opponent's lane 0 should be empty after Elsewhere bounce.")
+	# Assert: Knight still in opponent's lane 1
+	assert_true(opponent.lanes[1] == knight_should_remain, "Knight in opponent's lane 1 should remain untouched.")
+	
+	# Assert: Scout (as CardInZone) is now at the bottom of opponent's library
+	assert_eq(opponent.library.size(), 1, "Opponent's library should have 1 card (the bounced Scout).")
+	assert_true(opponent.library[-1] is CardInZone, "Bounced card in library should be a CardInZone.") # Elsewhere adds to bottom (push_back)
+	var bounced_scout_in_lib = opponent.library[-1] as CardInZone
+	if bounced_scout_in_lib:
+		assert_eq(bounced_scout_in_lib.get_card_id(), "GoblinScout", "Bounced Scout's card_id in library is incorrect.")
+		# The instance ID of the card in library will be NEW, as per elsewhere_effect.gd logic
+		assert_ne(bounced_scout_in_lib.get_card_instance_id(), scout_original_field_instance_id, "Bounced Scout in library should have a new instance_id.")
+	else:
+		fail_test("Card at bottom of opponent library was not a CardInZone as expected.")
 
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events for successful bounce of Scout:
+	# 1. summon_leaves_lane (for Scout, sourced by Elsewhere)
+	# 2. card_moved (Scout from lane to library, sourced by Elsewhere)
+	# 3. visual_effect (for Elsewhere bounce visual)
+	# Total = 3 events
+
+	var summon_leaves_lane_found: bool = false
+	var card_moved_to_library_found: bool = false
+	var visual_effect_bounce_found: bool = false
+	var new_scout_library_instance_id_from_event: int = -1
+
+	for event_data in new_events:
+		var event_type = event_data.get("event_type")
+		var event_instance_id = event_data.get("instance_id") # Main instance_id of the event
+		var event_card_id = event_data.get("card_id")
+		var event_source_instance_id = event_data.get("source_instance_id")
+		var event_source_card_id = event_data.get("source_card_id")
+
+		if event_type == "summon_leaves_lane" and \
+		   event_instance_id == scout_original_field_instance_id and \
+		   event_card_id == "GoblinScout" and \
+		   event_data.get("lane") == 1 and \
+		   event_source_instance_id == elsewhere_spell_instance_id:
+			summon_leaves_lane_found = true
+		
+		elif event_type == "card_moved" and \
+			 event_card_id == "GoblinScout" and \
+			 event_instance_id == scout_original_field_instance_id and \
+			 event_data.get("from_zone") == "lane" and \
+			 event_data.get("to_zone") == "library" and \
+			 event_source_instance_id == elsewhere_spell_instance_id:
+			card_moved_to_library_found = true
+			assert_eq(event_data.get("to_details", {}).get("position"), "bottom", "Elsewhere: Scout card_moved event should specify to_details.position 'bottom'.")
+			new_scout_library_instance_id_from_event = event_data.get("to_details", {}).get("instance_id")
+			assert_ne(new_scout_library_instance_id_from_event, scout_original_field_instance_id, "Elsewhere: Bounced Scout in library should have a new instance ID in to_details.")
+		
+		elif event_type == "visual_effect" and \
+			 event_data.get("effect_id") == "elsewhere_bounce" and \
+			 event_instance_id == scout_original_field_instance_id and \
+			 event_source_instance_id == elsewhere_spell_instance_id:
+			visual_effect_bounce_found = true
+
+	assert_true(summon_leaves_lane_found, "Elsewhere: summon_leaves_lane event for Scout not found or improperly sourced.")
+	assert_true(card_moved_to_library_found, "Elsewhere: card_moved (Scout to library) event not found or improperly sourced.")
+	assert_true(visual_effect_bounce_found, "Elsewhere: visual_effect for bounce not found or improperly sourced.")
+
+	# Final check on library card's instance ID
+	if bounced_scout_in_lib and new_scout_library_instance_id_from_event != -1:
+		assert_eq(bounced_scout_in_lib.get_card_instance_id(), new_scout_library_instance_id_from_event, "Instance ID of bounced Scout in library does not match its card_moved to_details.instance_id.")
 
 # --- Carnivorous Plant Tests ---
 func test_carnivorous_plant_adds_scout_to_grave():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	player.graveyard.clear()
-	var initial_event_count = battle.battle_events.size()
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(carnivorous_plant_res, player, player.opponent, 0, battle, new_id)
-	# Action
-	carnivorous_plant_res._on_arrival(instance, player, player.opponent, battle)
-	# Assert: Graveyard contains Goblin Scout
-	assert_eq(player.graveyard.size(), 1, "Graveyard should contain 1 card.")
-	assert_eq(player.graveyard[0].id, "GoblinScout", "Graveyard should contain Goblin Scout.")
-	# Assert: Event generated
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var moved_event = false
-	for event in events_after:
-		if event.get("event_type") == "card_moved" and event.get("card_id") == "GoblinScout" and event.get("to_zone") == "graveyard":
-			moved_event = true; break
-	assert_true(moved_event, "Card moved event for Plant adding Scout missing.")
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # For _on_arrival signature
+	var battle: Battle = setup["battle"]
+	
+	player.graveyard.clear() # Start with an empty graveyard
+	var initial_grave_size: int = player.graveyard.size() # Should be 0
+	
+	# Simulate Carnivorous Plant arrival
+	var plant_instance = SummonInstance.new()
+	var plant_instance_id: int = battle._generate_new_card_instance_id() # Use new ID system
+	plant_instance.setup(carnivorous_plant_res, player, opponent, 0, battle, plant_instance_id)
+	# player.lanes[0] = plant_instance # If placement is needed for effect (not for this one)
 
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call _on_arrival effect
+	if carnivorous_plant_res.has_method("_on_arrival"):
+		carnivorous_plant_res._on_arrival(plant_instance, player, opponent, battle)
+	else:
+		fail_test("Carnivorous Plant resource does not have _on_arrival method.")
+		return
+
+	# Assert: Player's graveyard now contains one card (the Goblin Scout)
+	assert_eq(player.graveyard.size(), initial_grave_size + 1, "Player's graveyard should contain 1 card after Plant's effect.")
+	
+	assert_true(player.graveyard[0] is CardInZone, "Card in graveyard should be a CardInZone.")
+	var scout_in_grave = player.graveyard[0] as CardInZone
+	if scout_in_grave:
+		assert_eq(scout_in_grave.get_card_id(), "GoblinScout", "The card in graveyard should be Goblin Scout.")
+		# The scout_in_grave will have its own new instance_id generated by the effect.
+	else:
+		fail_test("Card in graveyard was not a CardInZone as expected.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. card_moved (Goblin Scout from "effect_carnivorous_plant" or "limbo" to graveyard, sourced by Plant)
+	# 2. (Optional) visual_effect for the Plant's action
+	# Let's assume 2 events if visual_effect is added by effect script, 1 if only card_moved.
+	# The current effect script adds a visual_effect.
+	assert_eq(new_events.size(), 2, "Carnivorous Plant effect should generate 2 events (1 card_moved, 1 visual). Found: %s" % new_events.size())
+
+	var card_moved_scout_to_grave_found: bool = false
+	var visual_effect_plant_action_found: bool = false
+	var scout_new_gy_instance_id_from_event: int = -1
+
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var card_id = event_data.get("card_id")
+		var inst_id = event_data.get("instance_id")
+		var src_inst_id = event_data.get("source_instance_id")
+		var src_card_id = event_data.get("source_card_id")
+
+		if type == "card_moved" and \
+		   card_id == "GoblinScout" and \
+		   event_data.get("player") == player.combatant_name and \
+		   event_data.get("to_zone") == "graveyard":
+			# The source of this card_moved event (if generated by add_card_to_graveyard)
+			# depends on whether add_card_to_graveyard itself was passed the Plant as a causer.
+			# Assuming add_card_to_graveyard's event is sourced by the card being moved if no other source is given:
+			# assert_eq(src_card_id, plant_instance.card_resource.id, "Scout to grave: card_moved source_card_id (Plant) incorrect.")
+			# assert_eq(src_inst_id, plant_instance.instance_id, "Scout to grave: card_moved source_instance_id (Plant) incorrect.")
+			# The main instance_id of this card_moved event will be the Scout's new graveyard CIZ ID.
+			card_moved_scout_to_grave_found = true
+			scout_new_gy_instance_id_from_event = inst_id 
+			assert_eq(event_data.get("from_zone"), "created_by_effect_" + plant_instance.card_resource.id, "Scout to grave: card_moved from_zone incorrect.")
+
+
+		elif type == "visual_effect" and \
+			 event_data.get("effect_id") == "carnivorous_plant_summons_scout_to_grave" and \
+			 inst_id == plant_instance_id: # Plant is the subject of this visual
+			visual_effect_plant_action_found = true
+			assert_eq(src_inst_id, plant_instance_id, "Plant visual_effect: source_instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("added_card_id"), "GoblinScout", "Plant visual_effect details: added_card_id incorrect.")
+			if scout_in_grave: # Compare with actual ID if available
+				assert_eq(event_data.get("details", {}).get("added_instance_id"), scout_in_grave.get_card_instance_id(), "Plant visual_effect details: added_instance_id incorrect.")
+
+
+	assert_true(card_moved_scout_to_grave_found, "Card_moved event for Goblin Scout (to graveyard by Plant) not found or improperly sourced.")
+	assert_true(visual_effect_plant_action_found, "Visual effect for Carnivorous Plant action not found or improperly sourced.")
+
+	# Final check on graveyard Scout's instance ID
+	if scout_in_grave and scout_new_gy_instance_id_from_event != -1:
+		assert_eq(scout_in_grave.get_card_instance_id(), scout_new_gy_instance_id_from_event, "Instance ID of Scout in graveyard does not match event's instance_id.")
 
 # --- Chanter of Ashes Tests ---
 func test_chanter_of_ashes_consumes_and_damages():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup graveyard
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup player's graveyard with CardInZone objects
 	player.graveyard.clear()
-	player.graveyard.append(goblin_scout_res)
-	player.graveyard.append(knight_res) # 2 summons
-	player.graveyard.append(energy_axe_res) # 1 spell
-	var initial_opp_hp = opponent.current_hp
-	var initial_event_count = battle.battle_events.size()
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(chanter_of_ashes_res, player, opponent, 0, battle, new_id)
-	# Action
-	chanter_of_ashes_res._on_arrival(instance, player, opponent, battle)
-	# Assert: Graveyard contains only spell
-	assert_eq(player.graveyard.size(), 1, "Graveyard size incorrect.")
-	assert_eq(player.graveyard[0].id, "EnergyAxe", "Only spell should remain.")
-	# Assert: Opponent took damage (2 summons * 2 = 4 damage)
-	assert_eq(opponent.current_hp, initial_opp_hp - 4, "Opponent HP incorrect.")
-	# Assert: Events generated (2x card_removed, 1x hp_change/effect_damage)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var removed_count = 0
-	var damage_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "card_removed" and event.get("from_zone") == "graveyard": 
-			removed_count += 1
-		elif event.get("event_type") == "effect_damage" and event.get("source_card_id") == "ChanterOfAshes":
-			damage_event_found = true
-			assert_eq(event.get("amount"), 4, "Chanter damage amount incorrect.")
-	assert_eq(removed_count, 2, "Incorrect removed count.")
-	assert_true(damage_event_found, "Effect damage event not found.")
+	# Order: EnergyAxe (spell, should remain), then summons (will be consumed from last added backwards)
+	var energy_axe_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(energy_axe_res, energy_axe_gy_id))
+	
+	var knight_gy_id = battle._generate_new_card_instance_id() # Will be consumed
+	player.graveyard.append(CardInZone.new(knight_res, knight_gy_id))
+	var scout_gy_id = battle._generate_new_card_instance_id() # Will be consumed
+	player.graveyard.append(CardInZone.new(goblin_scout_res, scout_gy_id)) 
+	# Graveyard order (top to bottom / index 0 to N): EnergyAxe, Knight, GoblinScout
+	# Effect consumes from end, so Scout then Knight.
+	
+	var initial_grave_size_val: int = player.graveyard.size() # Should be 3
+	var initial_opponent_hp: int = opponent.current_hp
+	var initial_event_count: int = battle.battle_events.size()
 
+	# Simulate Chanter of Ashes arrival
+	var chanter_instance = SummonInstance.new()
+	var chanter_instance_id: int = battle._generate_new_card_instance_id()
+	chanter_instance.setup(chanter_of_ashes_res, player, opponent, 0, battle, chanter_instance_id)
+	# player.lanes[0] = chanter_instance # If placement matters (not for this effect)
+
+	# Action: Call _on_arrival effect
+	if chanter_of_ashes_res.has_method("_on_arrival"):
+		chanter_of_ashes_res._on_arrival(chanter_instance, player, opponent, battle)
+	else:
+		fail_test("Chanter of Ashes resource does not have _on_arrival method.")
+		return
+
+	# Assert: Player's graveyard now contains only the spell (EnergyAxe)
+	assert_eq(player.graveyard.size(), initial_grave_size_val - 2, "Player's graveyard size incorrect after Chanter consumes (should be 1).")
+	if player.graveyard.size() == 1:
+		assert_true(player.graveyard[0] is CardInZone, "Remaining card in grave should be CardInZone.")
+		assert_eq(player.graveyard[0].get_card_id(), "EnergyAxe", "EnergyAxe spell should be the only card remaining in player's graveyard.")
+		assert_eq(player.graveyard[0].get_card_instance_id(), energy_axe_gy_id, "EnergyAxe instance ID mismatch.")
+	
+	# Assert: Opponent took damage (2 summons consumed * 2 damage each = 4 damage)
+	var expected_damage_to_opponent = 2 * 2
+	assert_eq(opponent.current_hp, initial_opponent_hp - expected_damage_to_opponent, "Opponent HP incorrect after Chanter's damage.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# - 2x card_removed (for Scout and Knight from player's grave, sourced by Chanter)
+	# - 1x hp_change (on opponent, from take_damage, sourced by Chanter)
+	# - 1x effect_damage (context for opponent damage, sourced by Chanter)
+	# - 1x visual_effect (for Chanter's ability)
+	# Total = 5 events
+
+	var card_removed_count: int = 0
+	var opponent_hp_change_event_found: bool = false
+	var effect_damage_event_found: bool = false
+	var chanter_visual_effect_found: bool = false
+	var removed_instance_ids_from_events: Array[int] = []
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var src_inst_id = event_data.get("source_instance_id")
+		var src_card_id = event_data.get("source_card_id")
+
+		if type == "card_removed" and \
+		   event_data.get("from_zone") == "graveyard" and \
+		   event_data.get("player") == player.combatant_name and \
+		   src_card_id == chanter_of_ashes_res.id and \
+		   src_inst_id == chanter_instance_id:
+			card_removed_count += 1
+			removed_instance_ids_from_events.append(inst_id)
+		
+		elif type == "hp_change" and \
+			 event_data.get("player") == opponent.combatant_name and \
+			 src_card_id == chanter_of_ashes_res.id and \
+			 src_inst_id == chanter_instance_id:
+			opponent_hp_change_event_found = true
+			assert_eq(event_data.get("amount"), -expected_damage_to_opponent, "Chanter damage: hp_change amount incorrect.")
+			# The main 'instance_id' of hp_change (for player) is -1 or player name, source is Chanter
+			assert_eq(inst_id, -1, "Chanter damage: hp_change main instance_id for player incorrect.")
+
+
+		elif type == "effect_damage" and \
+			 event_data.get("target_player") == opponent.combatant_name and \
+			 src_card_id == chanter_of_ashes_res.id and \
+			 src_inst_id == chanter_instance_id:
+			effect_damage_event_found = true
+			assert_eq(event_data.get("amount"), expected_damage_to_opponent, "Chanter damage: effect_damage amount incorrect.")
+			# The 'instance_id' of this effect_damage event should be the Chanter itself
+			assert_eq(inst_id, chanter_instance_id, "Chanter damage: effect_damage instance_id (Chanter) incorrect.")
+		
+		elif type == "visual_effect" and \
+			 event_data.get("effect_id") == "chanter_of_ashes_damage_pulse" and \
+			 inst_id == chanter_instance_id: # Chanter is the subject/source of this visual
+			chanter_visual_effect_found = true
+			assert_eq(src_inst_id, chanter_instance_id, "Chanter visual_effect: source_instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("summons_consumed"), 2, "Chanter visual_effect details: summons_consumed incorrect.")
+
+	assert_eq(card_removed_count, 2, "Incorrect number of card_removed events for Chanter of Ashes.")
+	assert_true(scout_gy_id in removed_instance_ids_from_events, "Goblin Scout was not logged as removed by Chanter.")
+	assert_true(knight_gy_id in removed_instance_ids_from_events, "Knight was not logged as removed by Chanter.")
+	assert_false(energy_axe_gy_id in removed_instance_ids_from_events, "Energy Axe should not have been removed by Chanter.")
+
+	assert_true(opponent_hp_change_event_found, "Opponent hp_change event from Chanter's damage not found or improperly sourced.")
+	assert_true(effect_damage_event_found, "Effect_damage event for Chanter not found or improperly sourced.")
+	assert_true(chanter_visual_effect_found, "Visual effect for Chanter's action not found or improperly sourced.")
 
 # --- Goblin Gladiator Tests ---
 func test_goblin_gladiator_bonus_damage():
@@ -3071,148 +3630,462 @@ func test_goblin_gladiator_bonus_damage():
 # --- Inferno Tests ---
 func test_inferno_damages_all():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
 	# Place creatures
-	var p_scout = place_summon_for_test(player, goblin_scout_res, 0, battle) # HP 2
-	var p_knight = place_summon_for_test(player, knight_res, 1, battle)     # HP 3
-	var o_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # HP 2
-	var o_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # HP 3
-	var initial_event_count = battle.battle_events.size()
+	var player_scout_instance = place_summon_for_test(player, goblin_scout_res, 0, battle) # HP 2
+	var player_knight_instance = place_summon_for_test(player, knight_res, 1, battle)     # HP 3
+	var opponent_scout_instance = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # HP 2
+	var opponent_knight_instance = place_summon_for_test(opponent, knight_res, 1, battle)     # HP 3
+	
+	# Store initial HPs and instance IDs for verification
+	var initial_pscout_hp = player_scout_instance.current_hp
+	var initial_pknight_hp = player_knight_instance.current_hp
+	var initial_oscout_hp = opponent_scout_instance.current_hp
+	var initial_oknight_hp = opponent_knight_instance.current_hp
 
-	# Action
-	inferno_res.apply_effect(inferno_res, player, opponent, battle)
+	var ps_id = player_scout_instance.instance_id
+	var pk_id = player_knight_instance.instance_id
+	var os_id = opponent_scout_instance.instance_id
+	var ok_id = opponent_knight_instance.instance_id
+	
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Create a CardInZone for the Inferno spell
+	var inferno_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var inferno_card_in_zone: CardInZone = CardInZone.new(inferno_res, inferno_spell_instance_id)
+
+	# Action: Apply Inferno effect
+	if inferno_res.script and inferno_res.script.has_method("apply_effect"):
+		inferno_res.script.apply_effect(inferno_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Inferno resource does not have a script with apply_effect.")
+		return
 
 	# Assert: All creatures took 2 damage
-	assert_eq(p_scout.current_hp, 2 - 2, "Player Scout HP incorrect.") # Dies
-	assert_eq(p_knight.current_hp, 3 - 2, "Player Knight HP incorrect.")
-	assert_eq(o_scout.current_hp, 2 - 2, "Opponent Scout HP incorrect.") # Dies
-	assert_eq(o_knight.current_hp, 3 - 2, "Opponent Knight HP incorrect.")
+	assert_eq(player_scout_instance.current_hp, initial_pscout_hp - 2, "Inferno: Player Scout HP incorrect.") # Dies
+	assert_eq(player_knight_instance.current_hp, initial_pknight_hp - 2, "Inferno: Player Knight HP incorrect.")
+	assert_eq(opponent_scout_instance.current_hp, initial_oscout_hp - 2, "Inferno: Opponent Scout HP incorrect.") # Dies
+	assert_eq(opponent_knight_instance.current_hp, initial_oknight_hp - 2, "Inferno: Opponent Knight HP incorrect.")
 
-	# Assert: Events (4x creature_hp_change, 2x creature_defeated)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var hp_changes = 0
-	var defeats = 0
-	for event in events_after:
-		if event.get("event_type") == "creature_hp_change" and event.get("amount") == -2: hp_changes += 1
-		elif event.get("event_type") == "creature_defeated": defeats += 1
-	assert_eq(hp_changes, 4, "Incorrect hp_change count.")
-	assert_eq(defeats, 2, "Incorrect defeated count.")
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. visual_effect (for Inferno spell cast)
+	# 4x creature_hp_change (one for each creature, sourced by Inferno)
+	# 2x creature_defeated (for the two scouts that die, sourced by Inferno via take_damage)
+	# 2x card_moved (for the two scouts moving to graveyard, sourced by Inferno via die->add_card_to_graveyard)
+	# Total = 1 + 4 + 2 + 2 = 9 events
+	
+	# For simplicity in test, we'll check counts and key properties of hp_change and defeated.
+	# A more exhaustive test would check every event in sequence.
+	
+	var creature_hp_changes_found: int = 0
+	var creatures_defeated_found: int = 0
+	var visual_effect_inferno_cast_found: bool = false
+
+	var expected_affected_instance_ids: Array[int] = [ps_id, pk_id, os_id, ok_id]
+	var actual_hp_changed_instance_ids: Array[int] = []
+	var actual_defeated_instance_ids: Array[int] = []
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var src_inst_id = event_data.get("source_instance_id")
+		var src_card_id = event_data.get("source_card_id")
+
+		if type == "visual_effect" and event_data.get("effect_id") == "inferno_spell_cast" and \
+		   inst_id == inferno_spell_instance_id and src_inst_id == inferno_spell_instance_id:
+			visual_effect_inferno_cast_found = true
+		
+		elif type == "creature_hp_change" and \
+			 src_card_id == inferno_card_in_zone.get_card_id() and \
+			 src_inst_id == inferno_spell_instance_id:
+			creature_hp_changes_found += 1
+			assert_eq(event_data.get("amount"), -2, "Inferno: creature_hp_change amount incorrect for instance %s." % inst_id)
+			actual_hp_changed_instance_ids.append(inst_id)
+			
+		elif type == "creature_defeated":
+			# The source of defeat is the Inferno spell (passed via take_damage).
+			# This assumes SummonInstance.die() correctly sources its creature_defeated event
+			# if take_damage passed that source info to die(), or if die() inherits it.
+			# Currently, SummonInstance.die() does NOT take source params for its own event.
+			# So, we can only check that the correct instances were defeated.
+			actual_defeated_instance_ids.append(inst_id)
+			creatures_defeated_found +=1
+
+
+	assert_true(visual_effect_inferno_cast_found, "Visual effect for Inferno cast not found or improperly sourced.")
+	assert_eq(creature_hp_changes_found, 4, "Incorrect number of creature_hp_change events from Inferno.")
+	assert_eq(creatures_defeated_found, 2, "Incorrect number of creature_defeated events from Inferno.")
+
+	# Check that all targeted creatures had an hp_change event
+	for id_to_check in expected_affected_instance_ids:
+		assert_true(id_to_check in actual_hp_changed_instance_ids, "Instance %s did not have an HP change event from Inferno." % id_to_check)
+	
+	# Check that the correct creatures were defeated
+	assert_true(ps_id in actual_defeated_instance_ids, "Player Scout (instance %s) was not marked as defeated by Inferno." % ps_id)
+	assert_true(os_id in actual_defeated_instance_ids, "Opponent Scout (instance %s) was not marked as defeated by Inferno." % os_id)
+	assert_false(pk_id in actual_defeated_instance_ids, "Player Knight (instance %s) should NOT have been defeated by Inferno." % pk_id)
+	assert_false(ok_id in actual_defeated_instance_ids, "Opponent Knight (instance %s) should NOT have been defeated by Inferno." % ok_id)
 
 
 # --- Flamewielder Tests ---
 func test_flamewielder_damages_opponents():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
+	var player: Combatant = setup["player"]    # Flamewielder's owner
+	var opponent: Combatant = setup["opponent"] # Opponent whose creatures are damaged
+	var battle: Battle = setup["battle"]
+	
 	# Place creatures
-	var p_knight = place_summon_for_test(player, knight_res, 0, battle)     # HP 3 (Should not be damaged)
-	var o_scout = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # HP 2
-	var o_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # HP 3
-	var initial_event_count = battle.battle_events.size()
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(flamewielder_res, player, opponent, 0, battle, new_id)
-	# Action
-	flamewielder_res._on_arrival(instance, player, opponent, battle)
-	# Assert: Opponent creatures took 1 damage
-	assert_eq(o_scout.current_hp, 2 - 1, "Opponent Scout HP incorrect.")
-	assert_eq(o_knight.current_hp, 3 - 1, "Opponent Knight HP incorrect.")
-	# Assert: Player creature unharmed
-	assert_eq(p_knight.current_hp, 3, "Player Knight HP should be unchanged.")
-	# Assert: Events (2x creature_hp_change for opponent)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var hp_changes = 0
-	for event in events_after:
-		if event.get("event_type") == "creature_hp_change" and event.get("player") == opponent.combatant_name and event.get("amount") == -1:
-			hp_changes += 1
-	assert_eq(hp_changes, 2, "Incorrect opponent hp_change count.")
+	var player_knight_instance = place_summon_for_test(player, knight_res, 0, battle) # Should NOT be damaged
+	var opponent_scout_instance = place_summon_for_test(opponent, goblin_scout_res, 0, battle) # Should be damaged
+	var opponent_knight_instance = place_summon_for_test(opponent, knight_res, 1, battle)    # Should be damaged
+	
+	var initial_player_knight_hp = player_knight_instance.current_hp
+	var initial_opponent_scout_hp = opponent_scout_instance.current_hp
+	var initial_opponent_knight_hp = opponent_knight_instance.current_hp
+	
+	# Simulate Flamewielder arrival (owned by player)
+	var flamewielder_instance = SummonInstance.new()
+	var flamewielder_instance_id: int = battle._generate_new_card_instance_id() # Use new ID system
+	# Flamewielder's own lane index during setup usually doesn't affect its AoE _on_arrival.
+	# Placing it in lane 0 for consistency or if some future logic required it.
+	flamewielder_instance.setup(flamewielder_res, player, opponent, 0, battle, flamewielder_instance_id)
+	# if player.lanes[0] == null: player.lanes[0] = flamewielder_instance # Optional: place if needed for other test aspects
 
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call Flamewielder's _on_arrival effect
+	if flamewielder_res.has_method("_on_arrival"):
+		flamewielder_res._on_arrival(flamewielder_instance, player, opponent, battle)
+	else:
+		fail_test("Flamewielder resource does not have _on_arrival method.")
+		return
+
+	# Assert: Opponent's creatures took 1 damage
+	assert_eq(opponent_scout_instance.current_hp, initial_opponent_scout_hp - 1, "Flamewielder: Opponent Scout HP incorrect.")
+	assert_eq(opponent_knight_instance.current_hp, initial_opponent_knight_hp - 1, "Flamewielder: Opponent Knight HP incorrect.")
+	
+	# Assert: Player's creature (Knight) is unharmed
+	assert_eq(player_knight_instance.current_hp, initial_player_knight_hp, "Flamewielder: Player Knight HP should be unchanged.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. visual_effect (for Flamewielder's ability cast)
+	# 2. creature_hp_change (for opponent's Scout, sourced by Flamewielder)
+	# 3. creature_hp_change (for opponent's Knight, sourced by Flamewielder)
+	# (Plus any creature_defeated and card_moved if damage was lethal, but not in this test setup)
+	# Total expected = 3 main events here.
+	
+	var visual_effect_cast_found: bool = false
+	var opponent_scout_hp_change_found: bool = false
+	var opponent_knight_hp_change_found: bool = false
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var src_inst_id = event_data.get("source_instance_id")
+		var src_card_id = event_data.get("source_card_id")
+
+		if type == "visual_effect" and event_data.get("effect_id") == "flamewielder_aoe_damage_cast" and \
+		   inst_id == flamewielder_instance_id and src_inst_id == flamewielder_instance_id:
+			visual_effect_cast_found = true
+		
+		elif type == "creature_hp_change" and \
+			 src_card_id == flamewielder_res.id and \
+			 src_inst_id == flamewielder_instance_id:
+			if inst_id == opponent_scout_instance.instance_id:
+				opponent_scout_hp_change_found = true
+				assert_eq(event_data.get("amount"), -1, "Flamewielder: Opponent Scout hp_change amount incorrect.")
+			elif inst_id == opponent_knight_instance.instance_id:
+				opponent_knight_hp_change_found = true
+				assert_eq(event_data.get("amount"), -1, "Flamewielder: Opponent Knight hp_change amount incorrect.")
+	
+	assert_true(visual_effect_cast_found, "Visual effect for Flamewielder cast not found or improperly sourced.")
+	assert_true(opponent_scout_hp_change_found, "HP change event for opponent's Scout (from Flamewielder) not found or improperly sourced.")
+	assert_true(opponent_knight_hp_change_found, "HP change event for opponent's Knight (from Flamewielder) not found or improperly sourced.")
 
 # --- Rampaging Cyclops Tests ---
-func test_rampaging_cyclops_damages_all_others():
+func test_rampaging_cyclops_damages_all():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Place creatures
-	var p_scout = place_summon_for_test(player, goblin_scout_res, 0, battle) # HP 2
-	var o_knight = place_summon_for_test(opponent, knight_res, 1, battle)     # HP 3
-	# Simulate Cyclops arrival in lane 2
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(rampaging_cyclops_res, player, opponent, 2, battle, new_id)
-	player.lanes[2] = instance # Place it
-	var initial_event_count = battle.battle_events.size()
-	# Action
-	rampaging_cyclops_res._on_arrival(instance, player, opponent, battle)
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Place other creatures
+	var player_scout_instance = place_summon_for_test(player, goblin_scout_res, 0, battle) # Player's lane 0
+	var opponent_knight_instance = place_summon_for_test(opponent, knight_res, 1, battle) # Opponent's lane 1
+	
+	# Simulate Rampaging Cyclops arrival in player's lane 2 (index 2)
+	var cyclops_instance = SummonInstance.new()
+	var cyclops_instance_id: int = battle._generate_new_card_instance_id() # Use new ID system
+	# Base HP of Cyclops is 5 (from card_data.json for rampaging_cyclops, assuming it's 4P/5HP)
+	# If it's 4P/4HP, then the expected HP after taking 1 damage would be 3.
+	# Let's assume its resource base_max_hp is correctly set.
+	cyclops_instance.setup(rampaging_cyclops_res, player, opponent, 2, battle, cyclops_instance_id)
+	player.lanes[2] = cyclops_instance # Manually place it in the lane array
+	
+	var initial_pscout_hp = player_scout_instance.current_hp # Should be 2
+	var initial_oknight_hp = opponent_knight_instance.current_hp # Should be 3
+	var initial_cyclops_hp = cyclops_instance.current_hp # Base HP from resource (e.g., 5 or 4)
+
+	var ps_id = player_scout_instance.instance_id
+	var ok_id = opponent_knight_instance.instance_id
+	var cyclops_id = cyclops_instance.instance_id # This is cyclops_instance_id
+	
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call Cyclops's _on_arrival effect
+	if rampaging_cyclops_res.has_method("_on_arrival"):
+		rampaging_cyclops_res._on_arrival(cyclops_instance, player, opponent, battle)
+	else:
+		fail_test("Rampaging Cyclops resource does not have _on_arrival method.")
+		return
+
 	# Assert: Other creatures took 1 damage
-	assert_eq(p_scout.current_hp, 2 - 1, "Player Scout HP incorrect.")
-	assert_eq(o_knight.current_hp, 3 - 1, "Opponent Knight HP incorrect.")
-	# Assert: Cyclops itself unharmed
-	assert_eq(instance.current_hp, 4, "Cyclops HP should be reduced by 1.")
-	# Assert: Events (2x creature_hp_change)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var hp_changes = 0
-	for event in events_after:
-		if event.get("event_type") == "creature_hp_change" and event.get("amount") == -1:
-			hp_changes += 1
-	assert_eq(hp_changes, 3, "Incorrect hp_change count.")
+	assert_eq(player_scout_instance.current_hp, initial_pscout_hp - 1, "Cyclops: Player Scout HP incorrect.")
+	assert_eq(opponent_knight_instance.current_hp, initial_oknight_hp - 1, "Cyclops: Opponent Knight HP incorrect.")
+	
+	# Assert: Cyclops itself also took 1 damage (as per current effect logic)
+	assert_eq(cyclops_instance.current_hp, initial_cyclops_hp - 1, "Cyclops: Own HP incorrect (should also take damage).")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. visual_effect (for Cyclops's stomp)
+	# 3x creature_hp_change (one for p_scout, one for o_knight, one for Cyclops itself, all sourced by Cyclops)
+	# (Plus any creature_defeated/card_moved if damage was lethal, p_scout might die if its HP was 1)
+	# Player Scout (2HP - 1 = 1HP)
+	# Opponent Knight (3HP - 1 = 2HP)
+	# Cyclops (e.g. 5HP - 1 = 4HP or 4HP - 1 = 3HP)
+	# No deaths in this specific setup. So, 1 visual + 3 hp_change = 4 events.
+
+	assert_eq(new_events.size(), 4, "Rampaging Cyclops effect should generate 4 events. Found: %s" % new_events.size())
+	
+	var visual_effect_stomp_found: bool = false
+	var hp_changes_count: int = 0
+	var affected_instance_ids_in_hp_events: Array[int] = []
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var src_inst_id = event_data.get("source_instance_id")
+		var src_card_id = event_data.get("source_card_id")
+
+		if type == "visual_effect" and event_data.get("effect_id") == "rampaging_cyclops_stomp" and \
+		   inst_id == cyclops_instance_id and src_inst_id == cyclops_instance_id:
+			visual_effect_stomp_found = true
+		
+		elif type == "creature_hp_change" and \
+			 src_card_id == rampaging_cyclops_res.id and \
+			 src_inst_id == cyclops_instance_id:
+			hp_changes_count += 1
+			assert_eq(event_data.get("amount"), -1, "Cyclops AoE: creature_hp_change amount incorrect for instance %s." % inst_id)
+			affected_instance_ids_in_hp_events.append(inst_id)
+			
+	assert_true(visual_effect_stomp_found, "Visual effect for Cyclops stomp not found or improperly sourced.")
+	assert_eq(hp_changes_count, 3, "Incorrect number of creature_hp_change events from Cyclops stomp.")
+
+	# Check that all three expected creatures received an HP change event
+	assert_true(ps_id in affected_instance_ids_in_hp_events, "Player Scout (instance %s) did not have an HP change event from Cyclops." % ps_id)
+	assert_true(ok_id in affected_instance_ids_in_hp_events, "Opponent Knight (instance %s) did not have an HP change event from Cyclops." % ok_id)
+	assert_true(cyclops_id in affected_instance_ids_in_hp_events, "Cyclops itself (instance %s) did not have an HP change event from its stomp." % cyclops_id)
 
 # --- Hexplate Tests ---
 func test_hexplate_buffs_leftmost():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
-	# Place targets
-	var scout = place_summon_for_test(player, goblin_scout_res, 0, battle) # Leftmost
-	var knight = place_summon_for_test(player, knight_res, 1, battle)
-	var initial_scout_power = scout.get_current_power()
-	var initial_scout_hp = scout.get_current_max_hp()
-	var initial_knight_power = knight.get_current_power()
-	var initial_knight_hp = knight.get_current_max_hp()
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # Get opponent for apply_effect signature
+	var battle: Battle = setup["battle"]
+	
+	# Place target creatures for the player
+	var scout_instance = place_summon_for_test(player, goblin_scout_res, 0, battle) # Leftmost, in player's lane 0
+	var knight_instance = place_summon_for_test(player, knight_res, 1, battle)      # Player's lane 1
+	
+	var initial_scout_power = scout_instance.get_current_power()
+	var initial_scout_hp = scout_instance.get_current_max_hp() # Test uses max_hp for buff check
+	var initial_knight_power = knight_instance.get_current_power()
+	var initial_knight_hp = knight_instance.get_current_max_hp()
 
-	# Action
-	hexplate_res.apply_effect(hexplate_res, player, player.opponent, battle)
+	var scout_instance_id = scout_instance.instance_id
+	# var knight_instance_id = knight_instance.instance_id # Not directly buffed
 
-	# Assert: Scout buffed (+1/+4)
-	assert_eq(scout.get_current_power(), initial_scout_power + 1, "Hexplate: Scout power incorrect.")
-	assert_eq(scout.get_current_max_hp(), initial_scout_hp + 4, "Hexplate: Scout max HP incorrect.")
-	# Assert: Knight unchanged
-	assert_eq(knight.get_current_power(), initial_knight_power, "Hexplate: Knight power should be unchanged.")
-	assert_eq(knight.get_current_max_hp(), initial_knight_hp, "Hexplate: Knight max HP should be unchanged.")
+	var initial_event_count: int = battle.battle_events.size()
 
+	# Create a CardInZone for the Hexplate spell
+	var hexplate_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var hexplate_card_in_zone: CardInZone = CardInZone.new(hexplate_res, hexplate_spell_instance_id)
+
+	# Action: Apply Hexplate effect
+	if hexplate_res.script and hexplate_res.script.has_method("apply_effect"):
+		hexplate_res.script.apply_effect(hexplate_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Hexplate resource does not have a script with apply_effect.")
+		return
+
+	# Assert: Scout (leftmost) is buffed (+1 Power / +4 MaxHP)
+	assert_eq(scout_instance.get_current_power(), initial_scout_power + 1, "Hexplate: Scout power incorrect after buff.")
+	assert_eq(scout_instance.get_current_max_hp(), initial_scout_hp + 4, "Hexplate: Scout max HP incorrect after buff.")
+	# Check current HP too, as add_hp also heals
+	assert_eq(scout_instance.current_hp, initial_scout_hp + 4, "Hexplate: Scout current HP should match new max HP after buff.")
+	
+	# Assert: Knight (not leftmost) is unchanged
+	assert_eq(knight_instance.get_current_power(), initial_knight_power, "Hexplate: Knight power should be unchanged.")
+	assert_eq(knight_instance.get_current_max_hp(), initial_knight_hp, "Hexplate: Knight max HP should be unchanged.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events for Hexplate successfully buffing Scout:
+	# 1. stat_change (for Scout's power, from add_power, sourced by Hexplate)
+	# 2. stat_change (for Scout's max_hp, from add_hp, sourced by Hexplate)
+	# 3. creature_hp_change (for Scout's current HP heal, from add_hp -> heal, sourced by Hexplate)
+	# 4. visual_effect (for Hexplate buff applied to Scout, from Hexplate effect script)
+	# Total = 4 events
+
+	assert_eq(new_events.size(), 4, "Hexplate effect should generate 4 events. Found: %s" % new_events.size())
+
+	var power_stat_change_found: bool = false
+	var maxhp_stat_change_found: bool = false
+	var creature_hp_heal_found: bool = false
+	var visual_effect_hexplate_found: bool = false
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var src_inst_id = event_data.get("source_instance_id")
+		var src_card_id = event_data.get("source_card_id")
+
+		if type == "stat_change" and inst_id == scout_instance_id and \
+		   src_card_id == hexplate_card_in_zone.get_card_id() and \
+		   src_inst_id == hexplate_spell_instance_id:
+			if event_data.get("stat") == "power":
+				power_stat_change_found = true
+				assert_eq(event_data.get("amount"), 1, "Hexplate: power stat_change amount incorrect.")
+				assert_eq(event_data.get("new_value"), initial_scout_power + 1, "Hexplate: power stat_change new_value incorrect.")
+			elif event_data.get("stat") == "max_hp":
+				maxhp_stat_change_found = true
+				assert_eq(event_data.get("amount"), 4, "Hexplate: max_hp stat_change amount incorrect.")
+				assert_eq(event_data.get("new_value"), initial_scout_hp + 4, "Hexplate: max_hp stat_change new_value incorrect.")
+		
+		elif type == "creature_hp_change" and inst_id == scout_instance_id and \
+			 src_card_id == hexplate_card_in_zone.get_card_id() and \
+			 src_inst_id == hexplate_spell_instance_id:
+			creature_hp_heal_found = true
+			assert_eq(event_data.get("amount"), 4, "Hexplate: creature_hp_change (heal) amount incorrect.") # Heals by the HP buff amount
+			assert_eq(event_data.get("new_hp"), initial_scout_hp + 4, "Hexplate: creature_hp_change (heal) new_hp incorrect.")
+		
+		elif type == "visual_effect" and \
+			 event_data.get("effect_id") == "hexplate_buff_applied" and \
+			 inst_id == scout_instance_id and \
+			 src_inst_id == hexplate_spell_instance_id:
+			visual_effect_hexplate_found = true
+			assert_eq(event_data.get("details", {}).get("power_gained"), 1, "Hexplate visual_effect details: power_gained incorrect.")
+			assert_eq(event_data.get("details", {}).get("hp_gained"), 4, "Hexplate visual_effect details: hp_gained incorrect.")
+
+	assert_true(power_stat_change_found, "Hexplate: Power stat_change event for Scout not found or improperly sourced.")
+	assert_true(maxhp_stat_change_found, "Hexplate: Max_hp stat_change event for Scout not found or improperly sourced.")
+	assert_true(creature_hp_heal_found, "Hexplate: Creature_hp_change (heal) event for Scout not found or improperly sourced.")
+	assert_true(visual_effect_hexplate_found, "Visual effect for Hexplate buff not found or improperly sourced.")
+	
 
 # --- Songs of the Lost Tests ---
 func test_songs_of_the_lost_mana_swing():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup: 3 summons in player grave, opponent has 5 mana
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup: 3 summons in player's graveyard, opponent has 5 mana
 	player.graveyard.clear()
-	player.graveyard.append(goblin_scout_res)
-	player.graveyard.append(knight_res)
-	player.graveyard.append(healer_res)
+	# Add CardInZone objects to the graveyard
+	var scout_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(goblin_scout_res, scout_gy_id))
+	var knight_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(knight_res, knight_gy_id))
+	var healer_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(healer_res, healer_gy_id))
+	
 	player.mana = 1
 	opponent.mana = 5
-	var initial_player_mana = player.mana
-	var initial_opp_mana = opponent.mana
-	var creature_count = 3
-	var expected_gain = creature_count * 2 # 6
-	var expected_loss = creature_count * 1 # 3
+	var initial_player_mana: int = player.mana
+	var initial_opponent_mana: int = opponent.mana
+	
+	var creature_count_in_player_grave: int = 3 # Based on setup
+	var expected_mana_gain_for_player: int = creature_count_in_player_grave * 2 # = 6
+	var expected_mana_loss_for_opponent: int = creature_count_in_player_grave * 1 # = 3
 
-	# Action
-	songs_of_the_lost_res.apply_effect(songs_of_the_lost_res, player, opponent, battle)
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Assert: Player mana gained (capped)
-	assert_eq(player.mana, min(initial_player_mana + expected_gain, Constants.MAX_MANA), "Songs: Player mana incorrect.")
-	# Assert: Opponent mana lost
-	assert_eq(opponent.mana, initial_opp_mana - expected_loss, "Songs: Opponent mana incorrect.")
+	# Create a CardInZone for the Songs of the Lost spell
+	var songs_spell_instance_id: int = battle._generate_new_card_instance_id()
+	var songs_card_in_zone: CardInZone = CardInZone.new(songs_of_the_lost_res, songs_spell_instance_id)
 
+	# Action: Apply Songs of the Lost effect
+	if songs_of_the_lost_res.script and songs_of_the_lost_res.script.has_method("apply_effect"):
+		songs_of_the_lost_res.script.apply_effect(songs_card_in_zone, player, opponent, battle)
+	else:
+		fail_test("Songs of the Lost resource does not have a script with apply_effect.")
+		return
+
+	# Assert: Player mana gained (correctly capped by MAX_MANA)
+	var final_expected_player_mana = min(initial_player_mana + expected_mana_gain_for_player, Constants.MAX_MANA)
+	assert_eq(player.mana, final_expected_player_mana, "Songs: Player mana after gain incorrect.")
+	
+	# Assert: Opponent mana lost (correctly floored at 0)
+	var final_expected_opponent_mana = max(0, initial_opponent_mana - expected_mana_loss_for_opponent)
+	assert_eq(opponent.mana, final_expected_opponent_mana, "Songs: Opponent mana after loss incorrect.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. mana_change (for player gain, sourced by Songs spell)
+	# 2. mana_change (for opponent loss, sourced by Songs spell)
+	# 3. visual_effect (for the Songs spell cast itself)
+	# Total = 3 events
+	assert_eq(new_events.size(), 3, "Songs of the Lost effect should generate 3 events. Found: %s" % new_events.size())
+
+	var player_mana_gain_event_found: bool = false
+	var opponent_mana_loss_event_found: bool = false
+	var songs_visual_effect_found: bool = false
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var event_player = event_data.get("player")
+		var event_amount = event_data.get("amount")
+		var event_source_card_id = event_data.get("source")
+		var event_source_instance_id = event_data.get("source_instance_id")
+		var event_main_instance_id = event_data.get("instance_id")
+
+
+		if type == "mana_change" and event_player == player.combatant_name:
+			player_mana_gain_event_found = true
+			assert_eq(event_amount, final_expected_player_mana - initial_player_mana, "Songs: Player mana_change amount incorrect.")
+			assert_eq(event_source_card_id, songs_card_in_zone.get_card_id(), "Songs: Player mana_change source card_id incorrect.")
+			assert_eq(event_main_instance_id, songs_spell_instance_id, "Songs: Player mana_change main instance_id (spell) incorrect.")
+			assert_eq(event_source_instance_id, songs_spell_instance_id, "Songs: Player mana_change source_instance_id incorrect.")
+		
+		elif type == "mana_change" and event_player == opponent.combatant_name:
+			opponent_mana_loss_event_found = true
+			assert_eq(event_amount, -(initial_opponent_mana - final_expected_opponent_mana), "Songs: Opponent mana_change amount incorrect (should be negative loss).")
+			assert_eq(event_source_card_id, songs_card_in_zone.get_card_id(), "Songs: Opponent mana_change source card_id incorrect.")
+			assert_eq(event_main_instance_id, songs_spell_instance_id, "Songs: Opponent mana_change main instance_id (spell) incorrect.")
+			assert_eq(event_source_instance_id, songs_spell_instance_id, "Songs: Opponent mana_change source_instance_id incorrect.")
+			
+		elif type == "visual_effect" and \
+			 event_data.get("effect_id") == "songs_of_the_lost_cast" and \
+			 event_main_instance_id == songs_spell_instance_id: # Event's instance_id is the spell
+			songs_visual_effect_found = true
+			assert_eq(event_source_instance_id, songs_spell_instance_id, "Songs visual_effect: source_instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("creatures_in_graveyard"), creature_count_in_player_grave, "Songs visual_effect details: creatures_in_graveyard incorrect.")
+
+	assert_true(player_mana_gain_event_found, "Player mana_gain event for Songs of the Lost not found or improperly sourced.")
+	assert_true(opponent_mana_loss_event_found, "Opponent mana_loss event for Songs of the Lost not found or improperly sourced.")
+	assert_true(songs_visual_effect_found, "Visual effect for Songs of the Lost cast not found or improperly sourced.")
+	
 
 # --- Ascending Protoplasm Tests ---
 func test_ascending_protoplasm_grows_on_attack():
@@ -3307,25 +4180,83 @@ func test_corpsetide_lich_steals_grave():
 # --- Coffin Traders Tests ---
 func test_coffin_traders_swaps_graves():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup graves
-	player.graveyard.clear(); player.graveyard.append(goblin_scout_res) # Player has Scout
-	opponent.graveyard.clear(); opponent.graveyard.append(knight_res)  # Opponent has Knight
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(coffin_traders_res, player, opponent, 0, battle, new_id)
-	# Action
-	coffin_traders_res._on_arrival(instance, player, opponent, battle)
-	# Assert: Player grave now has Knight
-	assert_eq(player.graveyard.size(), 1, "Player grave size incorrect.")
-	assert_eq(player.graveyard[0].id, "Knight", "Player grave content incorrect.")
-	# Assert: Opponent grave now has Scout
-	assert_eq(opponent.graveyard.size(), 1, "Opponent grave size incorrect.")
-	assert_eq(opponent.graveyard[0].id, "GoblinScout", "Opponent grave content incorrect.")
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup graveyards with CardInZone objects
+	player.graveyard.clear()
+	var scout_in_player_grave_id = battle._generate_new_card_instance_id()
+	var player_scout_ciz = CardInZone.new(goblin_scout_res, scout_in_player_grave_id)
+	player.graveyard.append(player_scout_ciz) # Player initially has Goblin Scout
 
+	opponent.graveyard.clear()
+	var knight_in_opponent_grave_id = battle._generate_new_card_instance_id()
+	var opponent_knight_ciz = CardInZone.new(knight_res, knight_in_opponent_grave_id)
+	opponent.graveyard.append(opponent_knight_ciz) # Opponent initially has Knight
+	
+	# Simulate Coffin Traders arrival
+	var traders_instance = SummonInstance.new()
+	var traders_instance_id: int = battle._generate_new_card_instance_id()
+	traders_instance.setup(coffin_traders_res, player, opponent, 0, battle, traders_instance_id)
+	# player.lanes[0] = traders_instance # If placement is needed (not for this effect)
+
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call _on_arrival effect
+	if coffin_traders_res.has_method("_on_arrival"):
+		coffin_traders_res._on_arrival(traders_instance, player, opponent, battle)
+	else:
+		fail_test("Coffin Traders resource does not have _on_arrival method.")
+		return
+
+	# Assert: Player's graveyard now contains the Knight (originally opponent's)
+	assert_eq(player.graveyard.size(), 1, "Player's graveyard size incorrect after swap.")
+	assert_true(player.graveyard[0] is CardInZone, "Card in player's graveyard should be CardInZone.")
+	if player.graveyard.size() == 1:
+		var card_now_in_player_grave = player.graveyard[0] as CardInZone
+		assert_eq(card_now_in_player_grave.get_card_id(), "Knight", "Player's graveyard content (card_id) incorrect after swap.")
+		assert_eq(card_now_in_player_grave.get_card_instance_id(), knight_in_opponent_grave_id, "Player's graveyard content (instance_id) incorrect after swap - should be original Knight's instance_id.")
+
+	# Assert: Opponent's graveyard now contains the Goblin Scout (originally player's)
+	assert_eq(opponent.graveyard.size(), 1, "Opponent's graveyard size incorrect after swap.")
+	assert_true(opponent.graveyard[0] is CardInZone, "Card in opponent's graveyard should be CardInZone.")
+	if opponent.graveyard.size() == 1:
+		var card_now_in_opponent_grave = opponent.graveyard[0] as CardInZone
+		assert_eq(card_now_in_opponent_grave.get_card_id(), "GoblinScout", "Opponent's graveyard content (card_id) incorrect after swap.")
+		assert_eq(card_now_in_opponent_grave.get_card_instance_id(), scout_in_player_grave_id, "Opponent's graveyard content (instance_id) incorrect after swap - should be original Scout's instance_id.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# 1. "graveyards_swapped" (custom event from CoffinTraders effect)
+	# 2. "visual_effect" (for the swap animation)
+	# Total = 2 events
+	assert_eq(new_events.size(), 2, "Coffin Traders effect should generate 2 events. Found: %s" % new_events.size())
+
+	var graveyards_swapped_event_found: bool = false
+	var visual_effect_swap_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "graveyards_swapped" and \
+		   event_data.get("source_instance_id") == traders_instance_id:
+			graveyards_swapped_event_found = true
+			assert_eq(event_data.get("player1_name"), player.combatant_name, "Swapped event: player1_name mismatch.")
+			assert_eq(event_data.get("player1_graveyard_now_contains_instance_ids"), [knight_in_opponent_grave_id], "Swapped event: player1_graveyard_now_contains_instance_ids mismatch.")
+			assert_eq(event_data.get("player2_name"), opponent.combatant_name, "Swapped event: player2_name mismatch.")
+			assert_eq(event_data.get("player2_graveyard_now_contains_instance_ids"), [scout_in_player_grave_id], "Swapped event: player2_graveyard_now_contains_instance_ids mismatch.")
+			assert_eq(event_data.get("instance_id"), traders_instance_id, "Swapped event: main instance_id (Traders) incorrect.")
+
+
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "coffin_traders_graveyard_swap_visual" and \
+			 event_data.get("instance_id") == traders_instance_id:
+			visual_effect_swap_found = true
+			assert_eq(event_data.get("source_instance_id"), traders_instance_id, "Coffin Traders visual_effect: source_instance_id incorrect.")
+
+	assert_true(graveyards_swapped_event_found, "'graveyards_swapped' event not found or improperly sourced.")
+	assert_true(visual_effect_swap_found, "Visual effect for Coffin Traders swap not found or improperly sourced.")
+	
 
 # --- Angel of Justice Tests ---
 func test_angel_of_justice_destroys_if_fewer_creatures():
@@ -3368,77 +4299,226 @@ func test_angel_of_justice_does_not_destroy_if_equal_creatures():
 
 
 # --- Scavenger Ghoul Tests ---
+# --- Scavenger Ghoul Tests ---
 func test_scavenger_ghoul_consumes_and_heals():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup graves and player HP
-	player.graveyard.clear(); player.graveyard.append(goblin_scout_res); player.graveyard.append(energy_axe_res) # 1 summon
-	opponent.graveyard.clear(); opponent.graveyard.append(knight_res); opponent.graveyard.append(healer_res)     # 2 summons
+	var player: Combatant = setup["player"]    # Ghoul's owner
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup player's graveyard with CardInZone objects
+	player.graveyard.clear()
+	var p_scout_gy_id = battle._generate_new_card_instance_id() # Summon, will be consumed
+	player.graveyard.append(CardInZone.new(goblin_scout_res, p_scout_gy_id))
+	var p_energy_axe_gy_id = battle._generate_new_card_instance_id() # Spell, should remain
+	player.graveyard.append(CardInZone.new(energy_axe_res, p_energy_axe_gy_id))
+	
+	# Setup opponent's graveyard with CardInZone objects
+	opponent.graveyard.clear()
+	var o_knight_gy_id = battle._generate_new_card_instance_id() # Summon, will be consumed
+	opponent.graveyard.append(CardInZone.new(knight_res, o_knight_gy_id))
+	var o_healer_gy_id = battle._generate_new_card_instance_id() # Summon, will be consumed
+	opponent.graveyard.append(CardInZone.new(healer_res, o_healer_gy_id))
+	
 	player.current_hp = 5
-	var initial_hp = player.current_hp
-	var expected_consumed = 1 + 2 # 3 summons total
-	var expected_heal = expected_consumed * 2 # 6
+	var initial_player_hp: int = player.current_hp
+	var expected_summons_consumed: int = 1 + 2 # 1 from player, 2 from opponent
+	var expected_life_heal: int = expected_summons_consumed * 2 # = 6
 
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(scavenger_ghoul_res, player, opponent, 0, battle, new_id)
-	# Action
-	scavenger_ghoul_res._on_arrival(instance, player, opponent, battle)
+	# Simulate Scavenger Ghoul arrival (owned by player)
+	var ghoul_instance = SummonInstance.new()
+	var ghoul_instance_id: int = battle._generate_new_card_instance_id()
+	ghoul_instance.setup(scavenger_ghoul_res, player, opponent, 0, battle, ghoul_instance_id)
+	# player.lanes[0] = ghoul_instance # If placement is needed for effect
 
-	# Assert: Graves contain only non-summons (Energy Axe)
-	assert_eq(player.graveyard.size(), 1, "Player grave size incorrect.")
-	assert_eq(player.graveyard[0].id, "EnergyAxe", "Player grave content incorrect.")
-	assert_true(opponent.graveyard.is_empty(), "Opponent grave should be empty.")
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call Scavenger Ghoul's _on_arrival effect
+	if scavenger_ghoul_res.has_method("_on_arrival"):
+		scavenger_ghoul_res._on_arrival(ghoul_instance, player, opponent, battle)
+	else:
+		fail_test("Scavenger Ghoul resource does not have _on_arrival method.")
+		return
+
+	# Assert: Player's graveyard contains only non-summons (Energy Axe)
+	assert_eq(player.graveyard.size(), 1, "Player's graveyard size incorrect after Ghoul consumes.")
+	if player.graveyard.size() == 1:
+		assert_true(player.graveyard[0] is CardInZone, "Remaining card in player's grave should be CardInZone.")
+		assert_eq(player.graveyard[0].get_card_id(), "EnergyAxe", "EnergyAxe should be the only card in player's graveyard.")
+		assert_eq(player.graveyard[0].get_card_instance_id(), p_energy_axe_gy_id, "EnergyAxe instance ID mismatch in player's grave.")
+	
+	# Assert: Opponent's graveyard is empty (all its summons were consumed)
+	assert_true(opponent.graveyard.is_empty(), "Opponent's graveyard should be empty after Ghoul consumes.")
+	
 	# Assert: Player healed correctly
-	assert_eq(player.current_hp, min(initial_hp + expected_heal, player.max_hp), "Player HP after heal incorrect.")
+	var final_expected_player_hp = min(initial_player_hp + expected_life_heal, player.max_hp)
+	assert_eq(player.current_hp, final_expected_player_hp, "Player HP after Ghoul's heal incorrect.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# - 3x card_removed (1 from player's grave, 2 from opponent's grave, all sourced by Ghoul)
+	# - 1x hp_change (for player heal, sourced by Ghoul)
+	# - 1x visual_effect (for Ghoul's consume & heal action)
+	# Total = 5 events
+
+	var card_removed_event_count: int = 0
+	var player_hp_change_event_found: bool = false
+	var ghoul_visual_effect_found: bool = false
+	var removed_instance_ids_from_events: Array[int] = []
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var src_inst_id = event_data.get("source_instance_id")
+		var src_card_id = event_data.get("source_card_id")
+
+		if type == "card_removed" and \
+		   event_data.get("from_zone") == "graveyard" and \
+		   src_card_id == scavenger_ghoul_res.id and \
+		   src_inst_id == ghoul_instance_id:
+			card_removed_event_count += 1
+			removed_instance_ids_from_events.append(inst_id) # inst_id is the ID of the card that was removed
+		
+		elif type == "hp_change" and \
+			 event_data.get("player") == player.combatant_name and \
+			 src_card_id == scavenger_ghoul_res.id and \
+			 src_inst_id == ghoul_instance_id: # Ghoul's effect caused this player heal
+			player_hp_change_event_found = true
+			assert_eq(event_data.get("amount"), final_expected_player_hp - initial_player_hp, "Ghoul heal: hp_change amount incorrect.")
+			assert_eq(inst_id, ghoul_instance_id, "Ghoul heal: hp_change main instance_id (Ghoul) incorrect.")
+
+		elif type == "visual_effect" and \
+			 event_data.get("effect_id") == "scavenger_ghoul_consume_heal" and \
+			 inst_id == ghoul_instance_id: # Ghoul is the subject of this visual
+			ghoul_visual_effect_found = true
+			assert_eq(src_inst_id, ghoul_instance_id, "Ghoul visual_effect: source_instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("summons_consumed_total"), expected_summons_consumed, "Ghoul visual_effect details: summons_consumed_total incorrect.")
+			assert_eq(event_data.get("details", {}).get("life_healed"), expected_life_heal, "Ghoul visual_effect details: life_healed incorrect.")
+
+	assert_eq(card_removed_event_count, expected_summons_consumed, "Incorrect number of card_removed events for Scavenger Ghoul.")
+	# Verify the correct instances were removed
+	assert_true(p_scout_gy_id in removed_instance_ids_from_events, "Player's Goblin Scout was not logged as removed by Ghoul.")
+	assert_true(o_knight_gy_id in removed_instance_ids_from_events, "Opponent's Knight was not logged as removed by Ghoul.")
+	assert_true(o_healer_gy_id in removed_instance_ids_from_events, "Opponent's Healer was not logged as removed by Ghoul.")
+	assert_false(p_energy_axe_gy_id in removed_instance_ids_from_events, "Player's Energy Axe should not have been removed by Ghoul.")
+
+	assert_true(player_hp_change_event_found, "Player hp_change event from Ghoul's heal not found or improperly sourced.")
+	assert_true(ghoul_visual_effect_found, "Visual effect for Scavenger Ghoul's action not found or improperly sourced.")
 
 # --- Heedless Vandal Tests ---
 func test_heedless_vandal_mills_both():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup libraries
-	player.library.clear(); player.library.append(knight_res)
-	opponent.library.clear(); opponent.library.append(goblin_scout_res)
-	var initial_player_lib = player.library.size()
-	var initial_opp_lib = opponent.library.size()
-	var initial_player_grave = player.graveyard.size()
-	var initial_opp_grave = opponent.graveyard.size()
-	var initial_event_count = battle.battle_events.size()
+	var player: Combatant = setup["player"]    # Vandal's owner
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup player's library with one CardInZone
+	player.library.clear()
+	var p_knight_lib_id = battle._generate_new_card_instance_id()
+	var player_knight_ciz = CardInZone.new(knight_res, p_knight_lib_id)
+	player.library.append(player_knight_ciz)
+	
+	# Setup opponent's library with one CardInZone
+	opponent.library.clear()
+	var o_scout_lib_id = battle._generate_new_card_instance_id()
+	var opponent_scout_ciz = CardInZone.new(goblin_scout_res, o_scout_lib_id)
+	opponent.library.append(opponent_scout_ciz)
+	
+	var initial_player_lib_size: int = player.library.size()     # Should be 1
+	var initial_opponent_lib_size: int = opponent.library.size() # Should be 1
+	var initial_player_grave_size: int = player.graveyard.size()
+	var initial_opponent_grave_size: int = opponent.graveyard.size()
+	
+	# Simulate Heedless Vandal arrival (owned by player)
+	var vandal_instance = SummonInstance.new()
+	var vandal_instance_id: int = battle._generate_new_card_instance_id()
+	vandal_instance.setup(heedless_vandal_res, player, opponent, 0, battle, vandal_instance_id)
+	# player.lanes[0] = vandal_instance # If placement needed for effect
 
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(heedless_vandal_res, player, opponent, 0, battle, new_id)
-	# Action
-	heedless_vandal_res._on_arrival(instance, player, opponent, battle)
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Assert: Libraries decreased
-	assert_eq(player.library.size(), initial_player_lib - 1, "Player library size incorrect.")
-	assert_eq(opponent.library.size(), initial_opp_lib - 1, "Opponent library size incorrect.")
-	# Assert: Graveyards increased
-	assert_eq(player.graveyard.size(), initial_player_grave + 1, "Player graveyard size incorrect.")
-	assert_eq(opponent.graveyard.size(), initial_opp_grave + 1, "Opponent graveyard size incorrect.")
-	# Assert: Correct cards milled
-	assert_eq(player.graveyard[-1].id, "Knight", "Wrong card milled for player.")
-	assert_eq(opponent.graveyard[-1].id, "GoblinScout", "Wrong card milled for opponent.")
+	# Action: Call Heedless Vandal's _on_arrival effect
+	if heedless_vandal_res.has_method("_on_arrival"):
+		heedless_vandal_res._on_arrival(vandal_instance, player, opponent, battle)
+	else:
+		fail_test("Heedless Vandal resource does not have _on_arrival method.")
+		return
 
-	# Assert: Events generated (2x card_moved library->graveyard)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var player_milled = false
-	var opp_milled = false
-	for event in events_after:
-		if event.get("event_type") == "card_moved" and event.get("to_zone") == "graveyard":
-			if event.get("player") == player.combatant_name and event.get("card_id") == "Knight":
-				player_milled = true
-			elif event.get("player") == opponent.combatant_name and event.get("card_id") == "GoblinScout":
-				opp_milled = true
-	assert_true(player_milled, "Player mill event missing.")
-	assert_true(opp_milled, "Opponent mill event missing.")
+	# Assert: Player's library decreased by 1 (empty)
+	assert_eq(player.library.size(), initial_player_lib_size - 1, "Vandal: Player library size incorrect after mill.")
+	assert_true(player.library.is_empty(), "Player library should be empty.")
+	
+	# Assert: Opponent's library decreased by 1 (empty)
+	assert_eq(opponent.library.size(), initial_opponent_lib_size - 1, "Vandal: Opponent library size incorrect after mill.")
+	assert_true(opponent.library.is_empty(), "Opponent library should be empty.")
+
+	# Assert: Player's graveyard increased by 1
+	assert_eq(player.graveyard.size(), initial_player_grave_size + 1, "Vandal: Player graveyard size incorrect after mill.")
+	# Assert: Opponent's graveyard increased by 1
+	assert_eq(opponent.graveyard.size(), initial_opponent_grave_size + 1, "Vandal: Opponent graveyard size incorrect after mill.")
+	
+	# Assert: Correct cards milled to respective graveyards, maintaining their instance IDs
+	assert_true(player.graveyard[-1] is CardInZone, "Milled card in player's graveyard should be CardInZone.")
+	var milled_knight_in_player_grave = player.graveyard[-1] as CardInZone
+	if milled_knight_in_player_grave:
+		assert_eq(milled_knight_in_player_grave.get_card_id(), "Knight", "Incorrect card_id milled to player's graveyard.")
+		assert_eq(milled_knight_in_player_grave.get_card_instance_id(), p_knight_lib_id, "Instance ID of milled Knight should be maintained in player's graveyard.")
+	else:
+		fail_test("Card in player's graveyard was not a CardInZone as expected.")
+
+	assert_true(opponent.graveyard[-1] is CardInZone, "Milled card in opponent's graveyard should be CardInZone.")
+	var milled_scout_in_opponent_grave = opponent.graveyard[-1] as CardInZone
+	if milled_scout_in_opponent_grave:
+		assert_eq(milled_scout_in_opponent_grave.get_card_id(), "GoblinScout", "Incorrect card_id milled to opponent's graveyard.")
+		assert_eq(milled_scout_in_opponent_grave.get_card_instance_id(), o_scout_lib_id, "Instance ID of milled Scout should be maintained in opponent's graveyard.")
+	else:
+		fail_test("Card in opponent's graveyard was not a CardInZone as expected.")
+
+	# Assert: Event generation
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected events:
+	# - 1x card_moved (Player's Knight: library -> graveyard, from mill_top_card)
+	# - 1x card_moved (Opponent's Scout: library -> graveyard, from mill_top_card)
+	# - 1x visual_effect (for Vandal's overall mill action)
+	# Total = 3 events
+	# Note: Combatant.mill_top_card calls remove_card_from_library (event lib->play) then add_card_to_graveyard (event play->grave).
+	# So, each mill is actually TWO card_moved events. Total = 2 (player) + 2 (opponent) + 1 (vandal visual) = 5 events.
+
+	assert_eq(new_events.size(), 5, "Heedless Vandal effect should generate 5 events (2x2 card_moved + 1 visual). Found: %s" % new_events.size())
+
+	var player_mill_to_play_found: bool = false
+	var player_mill_to_grave_found: bool = false
+	var opponent_mill_to_play_found: bool = false
+	var opponent_mill_to_grave_found: bool = false
+	var vandal_visual_effect_found: bool = false
+
+	for event_data in new_events:
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id") # ID of the card being moved
+		var event_player = event_data.get("player")
+		var from_zone = event_data.get("from_zone")
+		var to_zone = event_data.get("to_zone")
+		var card_id = event_data.get("card_id")
+		# For card_moved from mill, source_instance_id might not be easily set to Vandal by default yet
+
+		if type == "card_moved" and event_player == player.combatant_name and card_id == "Knight" and inst_id == p_knight_lib_id:
+			if from_zone == "library" and to_zone == "play": player_mill_to_play_found = true
+			elif from_zone == "play" and to_zone == "graveyard": player_mill_to_grave_found = true
+		
+		elif type == "card_moved" and event_player == opponent.combatant_name and card_id == "GoblinScout" and inst_id == o_scout_lib_id:
+			if from_zone == "library" and to_zone == "play": opponent_mill_to_play_found = true
+			elif from_zone == "play" and to_zone == "graveyard": opponent_mill_to_grave_found = true
+
+		elif type == "visual_effect" and event_data.get("effect_id") == "heedless_vandal_mill_action" and \
+			 inst_id == vandal_instance_id and event_data.get("source_instance_id") == vandal_instance_id:
+			vandal_visual_effect_found = true
+			
+	assert_true(player_mill_to_play_found, "Vandal: Player's Knight card_moved (lib->play) event missing.")
+	assert_true(player_mill_to_grave_found, "Vandal: Player's Knight card_moved (play->grave) event missing.")
+	assert_true(opponent_mill_to_play_found, "Vandal: Opponent's Scout card_moved (lib->play) event missing.")
+	assert_true(opponent_mill_to_grave_found, "Vandal: Opponent's Scout card_moved (play->grave) event missing.")
+	assert_true(vandal_visual_effect_found, "Visual effect for Heedless Vandal's action not found or improperly sourced.")
 
 
 # --- Taunting Elf Tests ---
