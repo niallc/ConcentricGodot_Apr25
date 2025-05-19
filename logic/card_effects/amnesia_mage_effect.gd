@@ -21,7 +21,8 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant, opponent_com
 			"event_type": "visual_effect",
 			"effect_id": "amnesia_mana_drain",
 			"target_locations": [opponent_combatant.combatant_name],
-			"details": {"amount": mana_to_lose}
+			"details": {"amount": mana_to_lose},
+			"instance_id": summon_instance.instance_id
 		})
 	else:
 		print("...Opponent has no mana to lose.")

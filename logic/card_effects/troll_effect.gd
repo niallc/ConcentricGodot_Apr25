@@ -7,6 +7,6 @@ func _end_of_turn_upkeep_effect(summon_instance: SummonInstance, _battle_instanc
 	var heal_amount = 1
 	if summon_instance.current_hp < summon_instance.get_current_max_hp():
 		print("Troll regenerating %d HP." % heal_amount)
-		summon_instance.heal(heal_amount) # heal() handles clamping and event generation
+		summon_instance.heal(heal_amount, summon_instance.card_resource.id, summon_instance.instance_id) # heal() handles clamping and event generation
 	# else: # Already at max HP, do nothing
 	#	print("Troll already at max HP.")

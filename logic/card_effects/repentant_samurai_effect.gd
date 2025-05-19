@@ -44,7 +44,8 @@ func _perform_modified_direct_attack(summon_instance: SummonInstance, active_com
 		"attacking_instance_id": samurai_instance_id,
 		"target_player": opponent_combatant.combatant_name,
 		"amount": damage_amount,
-		"target_player_remaining_hp": opponent_combatant.current_hp
+		"target_player_remaining_hp": opponent_combatant.current_hp,
+		"instance_id": samurai_instance_id
 		# source_card_id and source_instance_id are implicitly the attacker here
 	})
 	

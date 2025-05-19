@@ -21,14 +21,16 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 			"player": active_combatant.combatant_name,
 			"amount": player_change,
 			"new_total": active_combatant.current_hp,
-			"source": "KnightOfOpposites"
+			"source": "KnightOfOpposites",
+			"instance_id": _summon_instance.instance_id
 		}) # hp_change event for player
 		battle_instance.add_event({
 			"event_type": "hp_change",
 			"player": opponent_combatant.combatant_name,
 			"amount": opponent_change,
 			"new_total": opponent_combatant.current_hp,
-			"source": "KnightOfOpposites"
+			"source": "KnightOfOpposites",
+			"instance_id": _summon_instance.instance_id
 		}) # hp_change event for opponent
 
 		# Optional visual effect
@@ -36,7 +38,8 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 			"event_type": "visual_effect",
 			"effect_id": "knight_hp_swap",
 			"target_locations": [active_combatant.combatant_name, opponent_combatant.combatant_name],
-			"details": {}
+			"details": {},
+			"instance_id": _summon_instance.instance_id
 		}) # visual_effect event
 
 		# Check if swap caused game over

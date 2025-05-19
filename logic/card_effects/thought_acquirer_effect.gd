@@ -74,5 +74,6 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant: Combatant, 
 			"event_type": "log_message",
 			"message": "Thought Acquirer (Instance: %s) found opponent's library empty." % acquirer_instance_id,
 			"source_card_id": acquirer_card_id,
-			"source_instance_id": acquirer_instance_id
+			"source_instance_id": acquirer_instance_id,
+			"instance_id": acquirer_instance_id
 		})

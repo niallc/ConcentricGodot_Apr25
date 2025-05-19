@@ -51,7 +51,8 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant: Combatant, 
 			"source_player": active_combatant.combatant_name, # Player controlling the Chanter
 			"target_player": opponent_combatant.combatant_name,
 			"amount": damage_to_deal_to_opponent,
-			"target_player_remaining_hp": opponent_combatant.current_hp
+			"target_player_remaining_hp": opponent_combatant.current_hp,
+			"instance_id": chanter_instance_id
 			# The main "instance_id" of this event could be the Chanter causing the damage.
 			# "instance_id": chanter_instance_id 
 		})

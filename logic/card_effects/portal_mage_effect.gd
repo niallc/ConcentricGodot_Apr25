@@ -68,6 +68,8 @@ func _on_arrival(summon_instance: SummonInstance, _active_combatant: Combatant, 
 		battle_instance.add_event({
 			"event_type":"log_message", 
 			"message":"Portal Mage (Instance: %s) found no target in opposing lane." % portal_mage_instance_id,
+			"card_id": portal_mage_card_id, # Good to have the card_id of the subject if instance_id is present
+			"instance_id": portal_mage_instance_id, # The Portal Mage instance is the subject of this log
 			"source_card_id": portal_mage_card_id,
-			"source_instance_id": portal_mage_instance_id
+			"source_instance_id": portal_mage_instance_id # Also the source
 		})

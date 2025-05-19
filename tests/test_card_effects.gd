@@ -137,6 +137,7 @@ func test_energy_axe_applies_power():
 		effect_script.apply_effect(energy_axe_card_in_zone, player, opponent, battle) # Pass opponent
 	else:
 		fail_test("Energy Axe effect script or apply_effect method not found.")
+		assert(false)
 	
 	# Assert: Target's power increased
 	assert_eq(scout_instance.get_current_power(), initial_power + 3, "Energy Axe should increase power by 3.")

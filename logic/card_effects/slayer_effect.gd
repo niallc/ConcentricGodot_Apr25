@@ -14,7 +14,9 @@ func _on_arrival(summon_instance: SummonInstance, _active_combatant, opponent_co
 				"event_type": "visual_effect",
 				"effect_id": "slayer_destroy",
 				"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, target_lane_index + 1]],
-				"details": {}
+				"details": {},
+				"source_instance_id": summon_instance.instance_id,
+				"instance_id": target_instance.instance_id
 			})
 			# Destroy the target (die handles events)
 			target_instance.die()

@@ -31,7 +31,9 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 				"event_type": "visual_effect",
 				"effect_id": "angel_destroy",
 				"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, target_lane_index + 1]],
-				"details": {}
+				"details": {},
+				"source_instance_id": _summon_instance.instance_id,
+				"instance_id": target_instance.instance_id
 			}) # visual_effect event
 			target_instance.die() # die() handles events
 		else:

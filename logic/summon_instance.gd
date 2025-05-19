@@ -92,7 +92,7 @@ func take_damage(amount: int, p_source_card_id: String, p_source_instance_id: in
 	elif old_hp < 0:
 		printerr("Unexpected Case where creature's HP was already <= 0, intended?")
 
-func heal(amount: int, p_source_card_id: String = "unknown_heal", p_source_instance_id: int = -1):
+func heal(amount: int, p_source_card_id: String, p_source_instance_id: int):
 	var heal_increment = max(0, amount)
 	var max_hp = get_current_max_hp()
 	var hp_before = current_hp
@@ -209,7 +209,7 @@ func _perform_direct_attack():
 		"attacking_player": owner_combatant.combatant_name,
 		"attacking_lane": lane_index + 1,
 		"attacking_card_id": self.card_resource.id, # Good to add attacker's card type
-		"attacking_instance_id": self.instance_id, # This is the "instance_id" for this event, the attacker.
+		"instance_id": self.instance_id, # This is the "instance_id" for this event, the attacker.
 		"target_player": opponent_combatant.combatant_name,
 		"amount": damage,
 		"target_player_remaining_hp": opponent_combatant.current_hp,
@@ -261,7 +261,7 @@ func _perform_combat(target_instance: SummonInstance):
 		"attacking_player": owner_combatant.combatant_name,
 		"attacking_lane": lane_index + 1,
 		"attacking_card_id": self.card_resource.id, # Good to add
-		"attacking_instance_id": self.instance_id,
+		"instance_id": self.instance_id,
 		"defending_player": target_instance.owner_combatant.combatant_name,
 		"defending_lane": target_instance.lane_index + 1,
 		"defending_card_id": target_instance.card_resource.id, # Good to add
@@ -281,7 +281,7 @@ func _perform_combat(target_instance: SummonInstance):
 		self.card_resource._on_attack_resolved(self, battle_instance)
 
 
-func add_power(amount: int, p_source_card_id: String = "unknown_effect", p_source_instance_id: int = -1, duration: int = -1):
+func add_power(amount: int, p_source_card_id: String, p_source_instance_id: int, duration: int = -1):
 	var modifier = {"source": p_source_card_id, "value": amount, "duration": duration} # Source here is the Card ID for the modifier dictionary
 	power_modifiers.append(modifier)
 	print("%s (Instance: %s) gets %d power from %s (Instance: %s). Duration: %s. New Calculated Power: %d" % [card_resource.card_name, instance_id, amount, p_source_card_id, str(p_source_instance_id), str(duration), get_current_power()])
@@ -302,7 +302,7 @@ func add_power(amount: int, p_source_card_id: String = "unknown_effect", p_sourc
 
 	battle_instance.add_event(event_data)
 
-func add_hp(amount: int, p_source_card_id: String = "unknown_effect", p_source_instance_id: int = -1, duration: int = -1):
+func add_hp(amount: int, p_source_card_id: String, p_source_instance_id: int, duration: int = -1):
 	var modifier = {"source": p_source_card_id, "value": amount, "duration": duration}
 	max_hp_modifiers.append(modifier)
 	print("%s (Instance: %s) gets %d max HP from %s (Instance: %s). Duration: %s. New Calculated MaxHP: %d" % [card_resource.card_name, instance_id, amount, p_source_card_id, str(p_source_instance_id), str(duration), get_current_max_hp()])
@@ -329,7 +329,7 @@ func add_hp(amount: int, p_source_card_id: String = "unknown_effect", p_source_i
 
 	# Also increase current HP by the same amount (heal effect)
 	# Call heal, which handles clamping and generating the creature_hp_change event
-	heal(amount)
+	heal(amount, p_source_card_id, p_source_instance_id)
 
 
 func add_counter(amount: int, p_source_card_id: String = "unknown_counter", p_source_instance_id: int = -1, duration: int = -1):

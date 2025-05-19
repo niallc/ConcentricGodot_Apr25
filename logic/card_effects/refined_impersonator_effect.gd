@@ -20,9 +20,9 @@ func _on_arrival(summon_instance: SummonInstance, _active_combatant, opponent_co
 
 		# Apply permanent modifiers (using add_power/add_hp for events)
 		if power_gain != 0:
-			summon_instance.add_power(power_gain, summon_instance.card_resource.id + "_arrival", -1)
+			summon_instance.add_power(power_gain, summon_instance.card_resource.id + "_arrival", summon_instance.instance_id, -1)
 		if hp_gain != 0:
-			summon_instance.add_hp(hp_gain, summon_instance.card_resource.id + "_arrival", -1)
+			summon_instance.add_hp(hp_gain, summon_instance.card_resource.id + "_arrival", summon_instance.instance_id, -1)
 			# Ensure current HP matches new max HP after adjustment
 			summon_instance.current_hp = summon_instance.get_current_max_hp()
 			# Generate another event for the current HP change if needed, though add_hp's heal might cover it
@@ -34,7 +34,8 @@ func _on_arrival(summon_instance: SummonInstance, _active_combatant, opponent_co
 			"event_type": "visual_effect",
 			"effect_id": "impersonator_copy",
 			"target_locations": ["%s lane %d" % [summon_instance.owner_combatant.combatant_name, target_lane_index + 1]],
-			"details": {"target_id": opposing_instance.card_resource.id}
+			"details": {"target_id": opposing_instance.card_resource.id},
+			"instance_id": summon_instance.instance_id
 		}) # visual_effect event
 
 	else:

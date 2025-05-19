@@ -18,6 +18,6 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant, _opponent_co
 
 	if consumed_count > 0:
 		print("...Devourer consumed %d creatures, gaining +%d/+%d." % [consumed_count, consumed_count * 2, consumed_count * 2])
-		summon_instance.add_counter(consumed_count * 2, summon_instance.card_resource.id + "_arrival", -1)
+		summon_instance.add_counter(consumed_count * 2, summon_instance.card_resource.id + "_arrival", summon_instance.instance_id, -1)
 	else:
 		print("...Found no other creatures to devour.")
