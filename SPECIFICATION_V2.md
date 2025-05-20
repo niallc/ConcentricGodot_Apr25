@@ -1,59 +1,49 @@
 # Concentric Godot Port - Specification v2
-*Version: 2.0 (Draft)*
-*Date: 2025-05-05*
+*Version: 2.1 (Revised Draft)*
+*Date: 2025-05-20*
 
 ## 1. Project Overview
 
-* **Game Type:** Turn-based Player vs. Environment (PvE) Deck-Building Auto-Battler.
-* **Core Loop (Full Game):** Player selects a deck, navigates a maze encountering adversaries, battles are automatically simulated, player collects rewards (new cards), and repeats until a final boss (Besieger) is defeated.
-* **Key Distinction:** Player interaction is limited to deck building and maze navigation. Battle outcomes are pre-calculated based on deterministic logic and then visually replayed.
-* **Target Platform:** Godot Engine v4.x, using GDScript.
-* **Project Goal (Current Scope):** To implement the core **Battle Simulation** logic and a visually engaging **Battle Replay** scene based solely on the simulation's output (event log). Integration with other game components (Maze, Deck Building, Persistence) is outside the current scope but the architecture should facilitate future integration.
-* **Current Status:** The core battle simulation logic for the target set of 70 cards (derived from original JS implementation) is implemented and covered by unit tests (GUT). The next phase focuses on implementing the Battle Replay scene.
+* **Game Type:** Turn-based Player vs. Environment (PvE) Deck-Building Auto-Battler. [cite: 1]
+* **Core Loop (Full Game):** Player selects a deck, navigates a maze encountering adversaries, battles are automatically simulated, player collects rewards (new cards), and repeats until a final boss (Besieger) is defeated. [cite: 1]
+* **Key Distinction:** Player interaction is limited to deck building and maze navigation. [cite: 1] Battle outcomes are pre-calculated based on deterministic logic and then visually replayed. [cite: 1]
+* **Target Platform:** Godot Engine v4.x, using GDScript. [cite: 1]
+* **Project Goal (Current Scope):** To implement the core **Battle Simulation** logic and a visually engaging **Battle Replay** scene based solely on the simulation's output (event log). [cite: 1] Integration with other game components (Maze, Deck Building, Persistence) is outside the current scope but the architecture should facilitate future integration. [cite: 1]
+* **Current Status:** The core battle simulation logic is being refined to ensure robust instance tracking and event generation for the Battle Replay scene. [cite: 1] Unit tests (GUT) cover existing logic. [cite: 1]
 
 ## 2. Architecture
 
-The project follows a modular design separating data, logic, and presentation.
+The project follows a modular design separating data, logic, and presentation. [cite: 1]
 
 * **Scene Structure (Potential Full Game):**
-    * `MainMenu.tscn` (Out of Scope): Initial entry point.
-    * `MazeScene.tscn` (Out of Scope): Maze navigation interface.
-    * `DeckBuildingScene.tscn` (Out of Scope): Interface for player deck construction.
-    * `BattleReplayScene.tscn` (**Current Focus**): Visualizes a completed battle simulation.
-    * `ResultsScene.tscn` (Out of Scope): Displays battle/quest outcomes and rewards.
+    * `MainMenu.tscn` (Out of Scope) [cite: 1]
+    * `MazeScene.tscn` (Out of Scope) [cite: 1]
+    * `DeckBuildingScene.tscn` (Out of Scope) [cite: 1]
+    * `BattleReplayScene.tscn` (**Current Focus**) [cite: 1]
+    * `ResultsScene.tscn` (Out of Scope) [cite: 1]
 
-* **Core Logic Classes (`res://logic/`):** Encapsulate simulation rules, independent of visuals.
-    * `Battle.gd`: Orchestrates a single battle simulation, manages turns, and generates the event log.
-    * `Combatant.gd`: Represents the state of a player or opponent during a battle (HP, mana, library, graveyard, lanes).
-    * `SummonInstance.gd`: Represents a specific creature instance on the board, holding dynamic state (current HP/Power, modifiers, status effects).
-    * Card Effect Scripts (`res://logic/card_effects/*.gd`): Implement unique card behaviors by overriding methods from base card scripts.
+* **Core Logic Classes (`res://logic/`):** Encapsulate simulation rules, independent of visuals. [cite: 1]
+    * `Battle.gd`: Orchestrates a single battle simulation, manages turns, generates unique instance IDs for all card entities in the battle, and produces the event log.
+    * `Combatant.gd`: Represents the state of a player or opponent during a battle (HP, mana, library, graveyard, lanes). [cite: 1] Library and Graveyard now store `CardInZone` objects.
+    * `CardInZone.gd`: Represents a specific instance of a card in a non-battlefield zone (library, graveyard, "play"), linking a `CardResource` with a battle-specific `instance_id`.
+    * `SummonInstance.gd`: Represents a specific creature instance on the board, holding dynamic state (current HP/Power, modifiers, status effects) and a unique battle-specific `instance_id`. [cite: 1]
+    * Card Effect Scripts (`res://logic/card_effects/*.gd`): Implement unique card behaviors by overriding methods from base card scripts (`SpellCardResource`, `SummonCardResource`). [cite: 1]
 
-* **Data (Resources - `res://data/`):** Define static game data.
-    * Card Resources (`res://logic/cards/*.tres`, `res://data/cards/instances/*.tres`): Define base card types (`CardResource`, `SpellCardResource`, `SummonCardResource`) and specific card instances (`.tres` files) holding stats, art paths, descriptions, and links to effect scripts.
-    * `card_data.json`: Source file for card data, used by the importer tool.
-
-* **`CardInZone` (`res://logic/card_in_zone.gd`):**
-    * Represents a specific instance of a card in a non-battlefield zone (library, graveyard, or temporarily in "play" before resolution).
-    * `extends RefCounted`, `class_name CardInZone`.
-    * Properties:
-        * `card_resource: CardResource`: The underlying static card data.
-        * `instance_id: int`: A unique identifier for this specific instance of the card within the current battle, generated by `Battle._generate_new_card_instance_id()`.
-        * `source_card_id: String`: (Convenience) The `id` from the `card_resource`.
-    * Key Methods:
-        * `_init(p_card_resource: CardResource, p_instance_id: int)`
-        * Delegate methods to access properties of `card_resource` (e.g., `get_card_id()`, `get_card_name()`, `get_cost()`).
+* **Data (Resources - `res://data/`):** Define static game data. [cite: 1]
+    * Card Resources (`res://logic/cards/*.tres`, `res://data/cards/instances/*.tres`): Define base card types (`CardResource`, `SpellCardResource`, `SummonCardResource`) and specific card instances (`.tres` files) holding stats, art paths, descriptions, and links to effect scripts. [cite: 1]
+    * `card_data.json`: Source file for card data, used by the importer tool. [cite: 1]
 
 * **Tools (`res://logic/tools/`):**
-    * `card_importer_tool.gd`: `@tool` script run in the editor to generate/update card `.tres` resources and placeholder `_effect.gd` scripts from `card_data.json`.
+    * `card_importer_tool.gd`: `@tool` script run in the editor to generate/update card `.tres` resources and placeholder `_effect.gd` scripts from `card_data.json`. [cite: 1]
 
 * **Autoload Singletons:**
-    * `Constants.gd`: Holds globally accessible constants (max HP, lane count, etc.).
-    * `GameManager.gd` (Minimal/Placeholder): Will eventually manage game state, scene transitions, player pool, etc. For now, only needed if coordinating scenes beyond the battle replay.
+    * `Constants.gd`: Holds globally accessible constants (max HP, lane count, etc.). [cite: 1]
+    * `GameManager.gd` (Minimal/Placeholder): Will eventually manage game state, scene transitions, player pool, etc. [cite: 1]
+    * `CardDB.gd`: Loads and provides access to all `CardResource` definitions by their ID.
 
-* **Key Interface: Battle Events:** The `Battle.run_battle()` function returns an `Array[Dictionary]`, where each dictionary is a `BattleEvent`. This array is the *sole* input for the `BattleReplayScene`, ensuring separation between simulation logic and visual presentation.
+* **Key Interface: Battle Events:** The `Battle.run_battle()` function returns an `Array[Dictionary]`, where each dictionary is a `BattleEvent`. [cite: 1] This array is the *sole* input for the `BattleReplayScene`. [cite: 1]
 
 * **Component Interaction Diagram:**
-
     ```mermaid
     graph LR
         subgraph OutOfScope
@@ -67,11 +57,10 @@ The project follows a modular design separating data, logic, and presentation.
         subgraph CoreLogic
             B(Battle)
             C{Combatant}
+            CIZ{CardInZone} 
             SI{SummonInstance}
             CE[Card Effects]
-            %% Simplified ID for Card Resources
             CR[CardResources]
-            %% Simplified ID
             JSON[CardDataJson] -- Used by --> TOOL[ImporterTool]
             TOOL -- Generates/Updates --> CR
             TOOL -- Generates --> CE
@@ -79,7 +68,8 @@ The project follows a modular design separating data, logic, and presentation.
 
         subgraph ReplayFocus
             BRE[BattleReplay Scene]
-            SV[Summon Visual Node]
+            SV[Summon Visual Node] 
+            CV[Card Visual Node] 
         end
 
         subgraph DataInterface
@@ -92,23 +82,27 @@ The project follows a modular design separating data, logic, and presentation.
         GM -- Passes Events --> BRE;
         BRE -- Reads --> BE;
         BRE -- Instantiates/Updates --> SV;
-        %% Simplified ID
+        BRE -- Instantiates/Updates --> CV; 
         BRE -- Updates --> UI[Replay UI];
 
         B -- Instantiates --> C;
-        B -- Instantiates --> SI;
+        B -- Generates IDs for --> CIZ; 
+        B -- Generates IDs for --> SI;
         B -- Calls Methods --> C;
         B -- Calls Methods --> SI;
-        B -- Calls Methods --> CE;
-        SI -- Calls Methods --> CE;
+        B -- Calls Methods --> CE; 
+
+        C -- Holds --> CIZ; 
+        SI -- Calls Methods --> CE; 
 
         C -- Calls --> B(add_event);
         SI -- Calls --> B(add_event);
-        CE -- Calls --> B(add_event);
+        CE -- Calls --> B(add_event); 
 
-        SI -- References --> CR;
-        CE -- References --> CR;
-        B -- Uses --> CR;
+        CIZ -- References --> CR;
+        SI -- References --> CR; 
+        CE -- References --> CR; 
+        B -- Uses --> CR; 
 
         style BE fill:#9cf,stroke:#333,stroke-width:2px
     ```
@@ -116,224 +110,250 @@ The project follows a modular design separating data, logic, and presentation.
 ## 3. Core Data Structures
 
 * **`CardResource` (`res://logic/cards/card.gd`, `res://logic/cards/card.tres`):**
-    * Base class for all cards (`extends Resource`, `class_name CardResource`).
-    * `@export var id: String`: Unique identifier (e.g., "GoblinScout").
-    * `@export var card_name: String`: Display name (e.g., "Goblin Scout").
-    * `@export var cost: int`: Mana cost.
-    * `@export var artwork_path: String`: Path to card art (e.g., "res://art/cards/goblin_scout.webp").
-    * `@export var description_template: String`: Base description text.
-    * `@export var script: GDScript`: Link to the specific effect script (`_effect.gd`) or base script.
-    * Methods: `get_card_type() -> String`, `get_formatted_description() -> String`.
+    * Base class for all cards (`extends Resource`, `class_name CardResource`). [cite: 1]
+    * `@export var id: String`: Unique identifier (e.g., "GoblinScout"). [cite: 1]
+    * `@export var card_name: String`: Display name (e.g., "Goblin Scout"). [cite: 1]
+    * `@export var cost: int`: Mana cost. [cite: 1]
+    * `@export var artwork_path: String`: Path to card art. [cite: 1]
+    * `@export var description_template: String`: Base description text. [cite: 1]
+    * `@export var script: GDScript`: Link to the specific effect script (`_effect.gd`) or base script. [cite: 1]
+    * Methods: `get_card_type() -> String`, `get_formatted_description() -> String`. [cite: 1]
 
 * **`SpellCardResource` (`res://logic/cards/spell_card.gd`, `res://logic/cards/spell_card.tres`):**
-    * Inherits `CardResource` (`class_name SpellCardResource`).
-    * Virtual Methods: `apply_effect(source_card_res, active_combatant, opponent_combatant, battle_instance)`, `can_play(active_combatant, opponent_combatant, turn_count, battle_instance) -> bool`.
+    * Inherits `CardResource` (`class_name SpellCardResource`). [cite: 1]
+    * Virtual Methods: `apply_effect(p_played_spell_card_in_zone: CardInZone, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)`, `can_play(active_combatant: Combatant, opponent_combatant: Combatant, turn_count: int, battle_instance: Battle) -> bool`. [cite: 1]
 
 * **`SummonCardResource` (`res://logic/cards/summon_card.gd`, `res://logic/cards/summon_card.tres`):**
-    * Inherits `CardResource` (`class_name SummonCardResource`).
-    * `@export var base_power: int`.
-    * `@export var base_max_hp: int`.
-    * `@export var tags: Array[String]`: Static tags (e.g., "Undead", "Relentless").
-    * `@export var is_swift: bool`: Can act on arrival turn.
-    * Virtual Methods: `_on_arrival(summon_instance, ...)`, `_on_death(summon_instance, ...)`, `perform_turn_activity_override(summon_instance, ...) -> bool`, `_on_kill_target(killer, defeated, ...)`, `_get_direct_attack_bonus_damage(summon_instance) -> int`, `_get_bonus_combat_damage(attacker, target) -> int`, `_on_deal_direct_damage(summon_instance, ...) -> bool`, `_end_of_turn_upkeep_effect(summon_instance, ...)`.
+    * Inherits `CardResource` (`class_name SummonCardResource`). [cite: 1]
+    * `@export var base_power: int`. [cite: 1]
+    * `@export var base_max_hp: int`. [cite: 1]
+    * `@export var tags: Array[String]`: Static tags. [cite: 1]
+    * `@export var is_swift: bool`: Can act on arrival turn. [cite: 1]
+    * Virtual Methods: `_on_arrival(summon_instance: SummonInstance, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)`, `_on_death(summon_instance: SummonInstance, active_combatant: Combatant, opponent_combatant: Combatant, battle_instance: Battle)`, `perform_turn_activity_override(summon_instance: SummonInstance, ...) -> bool`, `_on_kill_target(killer: SummonInstance, defeated: SummonInstance, ...)`, `_get_direct_attack_bonus_damage(summon_instance: SummonInstance) -> int`, `_get_bonus_combat_damage(attacker: SummonInstance, target: SummonInstance) -> int`, `_on_deal_direct_damage(summon_instance: SummonInstance, ...) -> bool`, `_end_of_turn_upkeep_effect(summon_instance: SummonInstance, ...)`. [cite: 1]
+
+* **`CardInZone` (`res://logic/card_in_zone.gd`):**
+    * Represents a specific instance of a card in a non-battlefield zone (library, graveyard, or temporarily in "play").
+    * `extends RefCounted`, `class_name CardInZone`.
+    * Properties:
+        * `card_resource: CardResource`: The underlying static card data.
+        * `instance_id: int`: A unique identifier for this specific instance of the card within the current battle, assigned by `Battle._generate_new_card_instance_id()`.
+    * Methods: `_init(p_card_resource: CardResource, p_instance_id: int)`, `get_card_id() -> String`, `get_card_name() -> String`, `get_cost() -> int`, `get_card_instance_id() -> int`.
 
 * **Card Instances (`res://data/cards/instances/*.tres`):**
-    * Individual `.tres` files inheriting from `SpellCardResource` or `SummonCardResource`.
-    * Contain specific data (cost, stats, name, art path, description) set via Inspector or tool script.
-    * Crucially link to their specific `_effect.gd` script via the `script` property.
+    * Individual `.tres` files inheriting from `SpellCardResource` or `SummonCardResource`. [cite: 1]
+    * Contain specific data set via Inspector or tool. [cite: 1]
+    * Link to their specific `_effect.gd` script via the `script` property. [cite: 1]
 
 * **`card_data.json` & Importer Tool:**
-    * `res://data/cards/card_data.json`: Source of truth for card data in a simple format.
-    * Structure: Array of objects, each with keys like `id`, `type`, `name`, `cost`, `art`, `description`, `power`, `hp`, `tags`, `swift`.
-    * `res://logic/tools/card_importer_tool.gd`: `@tool` script run via `Script -> Run...` menu. Reads JSON, creates/updates `.tres` files in `instances/`, creates placeholder `_effect.gd` scripts in `card_effects/`, links scripts to resources. Uses snake_case for filenames. Halts on first validation or save error.
+    * `res://data/cards/card_data.json`: Source of truth for card data. [cite: 1]
+    * `res://logic/tools/card_importer_tool.gd`: `@tool` script to generate/update resources and effect script placeholders. [cite: 1]
 
 ## 4. Core Logic Implementation
 
 * **`Combatant.gd` (`extends Object`, `class_name Combatant`):**
-    * Properties: `combatant_name`, `max_hp`, `current_hp`, `mana`, `library: Array[CardInZone]`, `graveyard: Array[CardInZone]`, `lanes: Array` (holds `SummonInstance` or `null`), `battle_instance: Battle`, `opponent: Combatant`. 
+    * Properties: `combatant_name`, `max_hp`, `current_hp`, `mana`, `library: Array[CardInZone]`, `graveyard: Array[CardInZone]`, `lanes: Array` (holds `SummonInstance` or `null`), `battle_instance: Battle`, `opponent: Combatant`. [cite: 1]
     * Key Methods:
-        * `setup()`: Initializes state, duplicates deck (no shuffle). Wraps input CardResource objects from decklists into CardInZone objects, each receiving a unique instance_id from the Battle instance.
-        * `take_damage()`: Reduces `current_hp`, generates `hp_change` event, returns `true` if HP <= 0.
-        * `heal()`: Increases `current_hp` (up to `max_hp`), generates `hp_change` event.
-        * `gain_mana()`: Increases `mana` (up to `Constants.MAX_MANA`), generates `mana_change` event.
-        * `lose_mana()`: Decreases `mana` (down to 0), generates `mana_change` event.
-        * `pay_mana()`: Decreases `mana`, generates `mana_change` event, returns `true` if successful.
-        * `add_card_to_graveyard(card_in_zone_obj: CardInZone, from_zone: String, p_instance_id_if_relevant: int = -1)`: Appends CardInZone objects, generates `card_moved` event.
-        * `mill_top_card()`: Removes card from library top, calls `add_card_to_graveyard`.
-        * `find_first_empty_lane()`: Returns index or -1.
-        * `place_summon_in_lane()`: Assigns `SummonInstance` to `lanes` array.
-        * `remove_summon_from_lane()`: Sets lane slot to `null`.
+        * `setup(deck_res_list: Array[CardResource], ...)`: Initializes state. [cite: 1] Wraps `CardResource` objects from `deck_res_list` into `CardInZone` objects for the library, each getting a unique `instance_id` from `battle_instance`.
+        * `take_damage(amount: int, p_source_card_id: String, p_source_instance_id: int)`: Reduces `current_hp`, generates `hp_change` event. [cite: 1]
+        * `heal(amount: int, p_source_card_id: String, p_source_instance_id: int)`: Increases `current_hp`, generates `hp_change` event. [cite: 1]
+        * `gain_mana(amount: int, p_source_card_id: String, p_source_instance_id: int)`: Increases `mana`, generates `mana_change` event. [cite: 1]
+        * `lose_mana(amount: int, p_source_card_id: String, p_source_instance_id: int)`: Decreases `mana`, generates `mana_change` event. [cite: 1]
+        * `pay_mana(amount: int, p_source_card_id: String, p_source_instance_id: int)`: Decreases `mana`, generates `mana_change` event. [cite: 1] (**TODO:** Confirm if `p_source_card_id` and `p_source_instance_id` for payer are needed for event or if play context is enough).
+        * `add_card_to_graveyard(p_card_in_zone_obj: CardInZone, p_from_zone: String, p_instance_id_from_origin_zone: int = -1, p_reason_card_id: String = "", p_reason_instance_id: int = -1)`: Appends `CardInZone`, generates `card_moved` event with rich source/destination details. [cite: 1] (**TODO:** Implement this signature change in code).
+        * `remove_card_from_library() -> CardInZone`: Removes `CardInZone` from library top, generates `card_moved` event. [cite: 1]
+        * `mill_top_card(reason_suffix: String)`: Calls `remove_card_from_library`, then `add_card_to_graveyard`. [cite: 1]
+        * `find_first_empty_lane() -> int`. [cite: 1]
+        * `place_summon_in_lane(summon_instance: SummonInstance, lane_index: int)`. [cite: 1]
+        * `remove_summon_from_lane(lane_index: int)`. [cite: 1]
 
 * **`SummonInstance.gd` (`extends Object`, `class_name SummonInstance`):**
-    * Properties: `card_resource: SummonCardResource`, `owner_combatant`, `opponent_combatant`, `battle_instance`, `lane_index`, `base_power`, `base_max_hp`, `current_hp`, `power_modifiers: Array[Dictionary]`, `max_hp_modifiers: Array[Dictionary]`, `tags: Array[String]`, `is_newly_arrived`, `is_swift`, `is_relentless`, `custom_state: Dictionary`. When its card_resource goes to the graveyard, it's wrapped in a new CardInZone with a new instance_id. The card_moved event logs the SummonInstance's ID as the one that moved from the lane.
-    * Modifier Format: `{"source": String, "value": int, "duration": int}` (`-1` = permanent).
+    * Properties: `card_resource: SummonCardResource`, `owner_combatant`, `opponent_combatant`, `battle_instance`, `lane_index`, `instance_id: int` (unique ID for this summon on the field, assigned by `Battle`), `base_power`, `base_max_hp`, `current_hp`, `power_modifiers`, `max_hp_modifiers`, `tags`, `is_newly_arrived`, `is_swift`, `is_relentless`, `custom_state`. [cite: 1]
     * Key Methods:
-        * `setup()`: Initializes state from `card_resource`, sets `is_relentless` based on tags.
-        * `get_current_power()`, `get_current_max_hp()`: Calculate stats by applying active modifiers to base values.
-        * `take_damage()`: Reduces `current_hp`, generates `creature_hp_change`, calls `die()` if needed.
-        * `heal()`: Increases `current_hp` (up to `get_current_max_hp()`), generates `creature_hp_change`.
-        * `add_power()`, `add_hp()`: Add modifier dictionary to list, generate `stat_change` event (reporting *new* calculated total). `add_hp` also calls `heal`.
-        * `add_counter()`: Calls `add_power` and `add_hp`.
-        * `perform_turn_activity()`: Checks for script override, then checks `is_relentless`/opposing lane, calls `_perform_direct_attack` or `_perform_combat`, generates `summon_turn_activity` event.
-        * `_perform_direct_attack()`: Calculates damage (using `get_current_power` + bonus damage hook), calls `opponent_combatant.take_damage`, generates `direct_damage` event, calls `_on_deal_direct_damage` hook, checks for Glassgraft sacrifice, checks game over.
-        * `_perform_combat()`: Calculates damage (using `get_current_power` + bonus damage hook), calls `target_instance.take_damage`, generates `combat_damage` event, checks for kill and calls `_on_kill_target` hook, calls `_on_attack_resolved` hook.
-        * `die()`: Generates `creature_defeated`, calls `_on_death` hook, checks `replaced_in_lane` flag before calling `owner_combatant.remove_summon_from_lane`, checks `prevent_graveyard` flag before calling `owner_combatant.add_card_to_graveyard`.
-        * `_end_of_turn_upkeep()`: Resets `is_newly_arrived`, processes modifier durations (decrements, removes expired), generates `stat_change` events if stats changed due to expiration, clamps `current_hp` to new `max_hp` (generating `creature_hp_change` if needed), calls `_end_of_turn_upkeep_effect` hook.
+        * `setup(card_res: SummonCardResource, ..., new_instance_id: int)`: Initializes state, including its `instance_id`. [cite: 1]
+        * `take_damage(amount: int, p_source_card_id: String, p_source_instance_id: int)`: Reduces `current_hp`, generates `creature_hp_change`, calls `die()`. [cite: 1]
+        * `heal(amount: int, p_source_card_id: String, p_source_instance_id: int)`: Increases `current_hp`, generates `creature_hp_change`. [cite: 1]
+        * `add_power(amount: int, p_source_card_id: String, p_source_instance_id: int, duration: int)`: Adds modifier, generates `stat_change`. [cite: 1]
+        * `add_hp(amount: int, p_source_card_id: String, p_source_instance_id: int, duration: int)`: Adds modifier, generates `stat_change`, calls `heal`. [cite: 1]
+        * `add_counter(amount: int, p_source_card_id: String, p_source_instance_id: int, duration: int)`: Calls `add_power` and `add_hp`. [cite: 1]
+        * `perform_turn_activity()`: Generates `summon_turn_activity` event (event includes acting summon's `card_id` and `instance_id`). [cite: 1]
+        * `_perform_direct_attack()`: Generates `direct_damage` event (event includes attacker details). [cite: 1]
+        * `_perform_combat(target_instance: SummonInstance)`: Generates `combat_damage` event (event includes attacker/defender details). [cite: 1]
+        * `die()`: Generates `creature_defeated`. [cite: 1] Calls `owner_combatant.add_card_to_graveyard` (passing a new `CardInZone` with a new `instance_id`, and the dying summon's `instance_id` as `p_instance_id_from_origin_zone`). (**TODO:** `die()` should pass its own `card_resource.id` and `instance_id` as the `p_reason_card_id` and `p_reason_instance_id` to `add_card_to_graveyard` for the resulting `card_moved` event's sourcing).
+        * `_end_of_turn_upkeep()`: Generates `stat_change` or `creature_hp_change` if stats/HP change due to expirations. [cite: 1] Sourced to "expiration", `instance_id` is the summon.
 
 * **`Battle.gd` (`extends Object`, `class_name Battle`):**
-    * Properties: `duelist1: Combatant`, `duelist2: Combatant`, `turn_count`, `battle_events: Array[Dictionary]`, `_event_timestamp_counter`, `_event_id_counter`, `rng`, `current_seed`, `battle_state`.
+    * Properties: `duelist1: Combatant`, `duelist2: Combatant`, `turn_count`, `battle_events: Array[Dictionary]`, `_event_timestamp_counter`, `_event_id_counter`, `rng`, `current_seed`, `battle_state`, `_next_card_instance_id: int`. [cite: 1]
     * Key Methods:
-        * `run_battle()`: Entry point. Initializes state, sets up Combatants, runs main turn loop, returns `battle_events`.
-        * `add_event()`: Appends event dictionary to `battle_events`, adding `turn`, `timestamp`, `event_id`.
-        * `check_game_over()`: Checks if `duelist1.current_hp <= 0` or `duelist2.current_hp <= 0`, calls `log_winner` if true and state was "Ongoing". Returns `true` if game ended.
-        * `log_winner()`: Sets `battle_state` to "Finished", determines outcome (uses "Draw (Player loss)" for turn limit), generates `battle_end` event.
-        * `conduct_turn()`: Executes phases for the active player:
-            1.  **Start of Turn:** Generate `turn_start` event. `active_duelist.gain_mana()`. (*TODO: Add start-of-turn triggers if needed*). Check game over.
-            2.  **Card Play:** Check top card of `library`. Check `can_play` (mana, custom script, lane availability). If playable: `pay_mana`, `remove_card_from_library`, generate `card_played` event. If Summon: create `SummonInstance`, `setup`, `place_summon_in_lane`, generate `summon_arrives`, call `_on_arrival`. If Spell: call `apply_effect`, `add_card_to_graveyard`. Check game over.
-            3.  **Summon Activity:** Iterate active player's lanes. For each `SummonInstance` not newly arrived (unless swift), call `perform_turn_activity`. Check game over after each summon acts.
-            4.  **End of Turn:** Iterate active player's lanes, call `_end_of_turn_upkeep` on each `SummonInstance`. (*TODO: Add end-of-turn triggers if needed*).
-    * **Simultaneous Event Order:** Active Player > Opponent Player; Lane 1 > Lane 2 > Lane 3; Library/Graveyard Top > Bottom.
-
-* **Effect Scripts (`res://logic/card_effects/*.gd`):**
-    * Inherit from `SpellCardResource` or `SummonCardResource`.
-    * Override virtual methods (`apply_effect`, `can_play`, `_on_arrival`, `_on_death`, `_on_kill_target`, `_get_bonus_combat_damage`, etc.) to implement card-specific logic.
-    * Responsible for calling `battle_instance.add_event` for visual effects or specific logging related to their actions.
-    * Example (Troll): `troll_effect.gd` overrides `_end_of_turn_upkeep_effect` to call `summon_instance.heal(1)`.
+        * `_generate_new_card_instance_id() -> int`: Returns a unique integer ID for any card entity (`CardInZone` or `SummonInstance`) within the battle.
+        * `run_battle()`: Initializes, sets up Combatants, runs turn loop. [cite: 1] Emits `initial_library_state` events.
+        * `add_event()`: Appends event, adding `turn`, `timestamp`, `event_id`. [cite: 1] (**TODO:** Consider adding basic validation here for presence/type of `event_type` and `instance_id`).
+        * `conduct_turn()`:
+            1.  **Card Play:** `CardInZone` is drawn. [cite: 1] `card_played` event logged (includes played `CardInZone`'s `instance_id`).
+                * If Summon: New `SummonInstance` created (gets new `instance_id`). `summon_arrives` event logged (includes new `SummonInstance`'s `instance_id`, and `source_card_id`/`source_instance_id` if summoned by an effect). `card_moved` event (from "play" with original `CardInZone`'s `instance_id`, to "lane" with new `SummonInstance`'s `instance_id` in `to_details`).
+                * If Spell: `apply_effect` called (passes the `CardInZone` of the spell). `add_card_to_graveyard` called (passes the same `CardInZone`).
 
 ## 5. Battle Event Specification
 
-* **Purpose:** Chronological, structured log generated by `Battle.run_battle()`, detailing all significant state changes and actions for consumption by the `BattleReplay` scene.
-* **Format:** `Array[Dictionary]`
+* **Purpose:** Chronological, structured log detailing all significant state changes and actions for consumption by the `BattleReplay` scene. [cite: 1]
+* **Format:** `Array[Dictionary]` [cite: 1]
 * **Common Properties (in each Dictionary):**
-    * `event_type: String`: Identifier for the event category.
-    * `turn: int`: Turn number (0-based start, increments after opponent's turn completes).
-    * `timestamp: float`: Auto-incrementing value for ordering events within a turn.
-    * `event_id: int`: Unique sequential ID for each event generated.
+    * `event_type: String`: Identifier for the event category. [cite: 1]
+    * `turn: int`: Turn number. [cite: 1]
+    * `timestamp: float`: Auto-incrementing value for ordering. [cite: 1]
+    * `event_id: int`: Unique sequential ID for each event. [cite: 1]
+    * `instance_id: int`: The `instance_id` of the primary card/summon instance this event is about. Use `-1` if not applicable to a specific card instance (e.g., player HP change from turn start, `battle_end`).
+    * `card_id: String` (Optional, but recommended if `instance_id` refers to a card/summon instance): The `CardResource.id` of the primary instance.
+    * `source_card_id: String` (Optional): The `CardResource.id` of the card/effect that caused this event.
+    * `source_instance_id: int` (Optional): The `instance_id` of the specific card/summon instance that caused this event. Use `-1` if not applicable.
+
 * **Detailed Event Types:**
-    * **`turn_start`**: Indicates the start of a player's turn phase.
-        * `player: String`: Name of the active combatant.
-    * **`mana_change`**: Player gains or loses mana.
-        * `player: String`: Name of the affected combatant.
-        * `amount: int`: Mana change (+ve for gain, -ve for loss/cost).
-        * `new_total: int`: Mana total after the change.
-        * `source: String` (Optional): ID of the card/effect causing the change (e.g., "turn_start", "CardID", "AmnesiaMage").
-    * **`card_played`**: Summary event logged after a card is successfully played and its cost paid.
-        * `player: String`: Name of the player.
-        * `card_id: String`: ID of the card resource played.
-        * `card_type: String`: "Spell" or "Summon".
-        * `remaining_mana: int`: Player's mana after paying the cost.
-* **`card_moved`**: A card entity transitions between zones.
-    * `player: String`: Name of the combatant whose zones are involved.
-    * `card_id: String`: ID of the base card resource.
-    * `instance_id: int`: The unique `instance_id` of the card *as it existed in the `from_zone`*.
-    * `source_instance_id: int` (Optional): If the move was caused by another specific card instance's effect, its `instance_id`.
-    * `from_zone: String`: e.g., "library", "graveyard", "lane", "play".
-    * `from_details: Dictionary` (Optional): e.g., 
-        * `{"lane": int (1-based)}` (if from_zone is "lane")
-        * `{"position": "top" | "bottom"}` (if from_zone is "library")
-    * `to_zone: String`: e.g., "library", "graveyard", "lane", "play".
-    * `to_details: Dictionary` (Optional): e.g.,
-        * `{"lane": int (1-based)}` (if to_zone is "lane")
-        * `{"position": "top" | "bottom"}` (if to_zone is "library")
-        * `{"new_instance_id": int}` (The `instance_id` of the card as it now exists in the `to_zone`, especially if it received a new `CardInZone` wrapper or became a new `SummonInstance`).
-    * `reason: String` (Optional): ID of card/effect causing the move (e.g., "play", "death_SummonID", "effect_PortalMage", "mill_Ghoul").
-    * **`card_removed`**: A card resource reference is removed entirely (e.g., consumed from graveyard).
-        * `player: String`: Owner of the zone.
-        * `card_id: String`: ID of the card resource removed.
-        * `from_zone: String`: "graveyard", etc.
-        * `reason: String`: ID of card/effect causing removal (e.g., "corpsecraft_titan", "superior_intellect", "chanter_of_ashes").
-    * **`summon_arrives`**: A `SummonInstance` is created and placed in a lane.
-        * `player: String`: Owner of the summon.
-        * `card_id: String`: ID of the summon card resource.
-        * `lane: int`: Lane index (1-based).
-        * `instance_id: int` (**TODO: Implement** - Unique ID for this specific instance).
-        * `power: int`: Initial calculated power.
-        * `max_hp: int`: Initial calculated max HP.
-        * `current_hp: int`: Initial current HP (usually == max_hp).
-        * `is_swift: bool`: If the summon can act this turn.
-        * `tags: Array[String]` (Optional): Initial tags (e.g., ["Undead"]).
-        * `source_effect: String` (Optional): ID of the card/effect that summoned it (if not played directly, e.g., "GoblinRally", "Reanimate").
-    * **`summon_leaves_lane`**: A `SummonInstance` is removed from a lane (for reasons other than standard death, e.g., bounce).
-        * `player: String`: Owner of the summon.
-        * `lane: int`: Lane index (1-based).
-        * `card_id: String`: ID of the summon card resource.
-        * `instance_id: int` (**TODO: Implement**).
-        * `reason: String`: Cause (e.g., "bounce_portal_mage", "bounce_elsewhere").
-    * **`summon_turn_activity`**: A summon starts its action phase for the turn.
-        * `player: String`: Owner of the summon.
-        * `lane: int`: Lane index (1-based).
-        * `instance_id: int` (**TODO: Implement**).
-        * `activity_type: String`: "attack" (vs creature), "direct_attack" (vs player), "ability_mana_gen" (WallOfVines), etc.
-    * **`combat_damage`**: Damage dealt from one summon instance to another.
-        * `attacking_player: String`.
-        * `attacking_lane: int` (1-based).
-        * `attacking_instance_id: int` (**TODO: Implement**).
-        * `defending_player: String`.
-        * `defending_lane: int` (1-based).
-        * `defending_instance_id: int` (**TODO: Implement**).
-        * `amount: int`: Damage dealt (always >= 0).
-        * `defender_remaining_hp: int`: Target's HP *after* damage.
-    * **`direct_damage`**: Damage dealt from a summon instance directly to a player.
-        * `attacking_player: String`.
-        * `attacking_lane: int` (1-based).
-        * `attacking_instance_id: int` (**TODO: Implement**).
-        * `target_player: String`: Player taking damage.
-        * `amount: int`: Damage dealt (always >= 0).
-        * `target_player_remaining_hp: int`: Target player's HP *after* damage.
-    * **`effect_damage`**: Damage dealt directly to a player from a spell/effect source (not combat).
-        * `source_card_id: String`: ID of the spell/summon causing damage.
-        * `source_player: String`: Player controlling the source.
-        * `target_player: String`: Player taking damage.
-        * `amount: int`: Damage dealt (always >= 0).
-        * `target_player_remaining_hp: int`: Target player's HP *after* damage.
-    * **`hp_change`**: A player's main HP changes (heal or non-combat damage).
-        * `player: String`: Affected player.
-        * `amount: int`: Change amount (+ve for heal, -ve for damage).
-        * `new_total: int`: HP after change.
-        * `source: String` (Optional): ID of card/effect causing change (e.g., "Healer", "Nap", "KnightOfOpposites").
-    * **`creature_hp_change`**: A summon instance's HP changes.
-        * `player: String`: Owner of the summon.
-        * `lane: int`: Lane index (1-based).
-        * `instance_id: int` (**TODO: Implement**).
-        * `amount: int`: Change amount (+ve for heal, -ve for damage).
-        * `new_hp: int`: Current HP after change.
-        * `new_max_hp: int`: Current Max HP after change.
-        * `source: String` (Optional): ID of card/effect/instance causing change.
-    * **`stat_change`**: A summon instance's calculated Power or MaxHP changes.
-        * `player: String`: Owner of the summon.
-        * `lane: int`: Lane index (1-based).
-        * `instance_id: int` (**TODO: Implement**).
-        * `stat: String`: "power" or "max_hp".
-        * `amount: int`: The amount the stat *modifier* added/removed.
-        * `new_value: int`: The *new calculated total* value of the stat after the change.
-        * `source: String` (Optional): ID of card/effect causing change (e.g., "EnergyAxe", "expiration").
-    * **`status_change`**: A summon instance gains or loses a status/tag dynamically.
-        * `player: String`: Owner of the summon.
-        * `lane: int`: Lane index (1-based).
-        * `instance_id: int` (**TODO: Implement**).
-        * `status: String`: Name of the status (e.g., "Relentless", "Undead").
-        * `gained: bool`: `true` if gained, `false` if lost.
-        * `source: String` (Optional): ID of card/effect causing change.
-    * **`creature_defeated`**: A summon instance's HP reached <= 0 and it died.
-        * `player: String`: Owner of the summon.
-        * `lane: int`: Lane index (1-based).
-        * `instance_id: int` (**TODO: Implement**).
-        * `card_id: String` (Optional): ID of the defeated creature's card resource.
-    * **`visual_effect`**: Trigger a purely visual effect not tied directly to state change.
-        * `effect_id: String`: Unique name for the effect animation (e.g., "inferno_damage", "hexplate_buff", "samurai_sacrifice").
-        * `target_locations: Array[String]`: List of targets (e.g., ["Player lane 1", "Opponent", "all_lanes", "Player graveyard"]). Needs mapping in replay script.
-        * `details: Dictionary` (Optional): Extra data for the animation (e.g., `{"amount": 3}`, `{"color": "#FF0000"}`).
-    * **`log_message`**: Generic message for debugging or non-critical info replay.
-        * `message: String`: Text to display/log.
-    * **`battle_end`**: Final event indicating battle conclusion.
-        * `outcome: String`: "Player Wins", "Opponent Wins", "Draw (Player loss)". (**NOTE:** Need to ensure `log_winner` uses consistent player/opponent naming).
-        * `winner: String`: Name of the winning combatant ("Nobody" for draw).
+    * **`initial_library_state`**: Indicates initial cards in a player's library.
+        * `player: String`
+        * `card_ids: Array[String]` (**TODO:** Review if this should be an array of objects like `{"card_id": String, "instance_id": int}` for full tracking from turn 0).
+        * `instance_id: -1` (Event is about a zone).
+    * **`turn_start`**:
+        * `player: String`. [cite: 1]
+        * `instance_id: -1`.
+    * **`mana_change`**:
+        * `player: String`. [cite: 1]
+        * `amount: int`. [cite: 1]
+        * `new_total: int`. [cite: 1]
+        * `source_card_id: String` (Optional): ID of card/effect (e.g., "turn_start", "CardID"). [cite: 1] (Was "source").
+        * `instance_id: int`: `instance_id` of the card causing the change, or `-1` if generic (e.g. turn_start).
+        * `source_instance_id: int` (Optional): If different from `instance_id`, or for clarity.
+    * **`card_played`**:
+        * `player: String`. [cite: 1]
+        * `card_id: String`: ID of the card resource played. [cite: 1]
+        * `instance_id: int`: `instance_id` of the `CardInZone` that was played.
+        * `card_type: String`: "Spell" or "Summon". [cite: 1]
+        * `remaining_mana: int`. [cite: 1]
+    * **`card_moved`**: A card entity transitions between zones.
+        * `player: String`. [cite: 1]
+        * `card_id: String`: ID of the card resource moved. [cite: 1]
+        * `instance_id: int`: `instance_id` of the card *as it existed in the `from_zone`*.
+        * `from_zone: String`. [cite: 1]
+        * `from_details: Dictionary` (Optional): e.g., `{"lane": int (1-based), "instance_id": int (ID in from_zone)}`, `{"position": "top" | "bottom"}`. [cite: 1]
+        * `to_zone: String`. [cite: 1]
+        * `to_details: Dictionary` (Optional): e.g., `{"lane": int (1-based), "instance_id": int (new ID in this zone if changed)}`, `{"position": "top" | "bottom"}`. [cite: 1]
+        * `reason: String` (Optional): e.g., "play", "death", "reanimate_ReanimateCardID". [cite: 1]
+        * `source_card_id: String` (Optional): Card ID of the effect/entity causing the move.
+        * `source_instance_id: int` (Optional): Instance ID of the effect/entity causing the move.
+    * **`card_removed`**: A card is removed from a zone (e.g., consumed from graveyard).
+        * `player: String`. [cite: 1]
+        * `card_id: String`: ID of the card resource removed. [cite: 1]
+        * `instance_id: int`: `instance_id` of the card that was removed.
+        * `from_zone: String`. [cite: 1]
+        * `reason: String` (Optional): Card ID of effect causing removal. [cite: 1]
+        * `source_card_id: String` (Optional).
+        * `source_instance_id: int` (Optional).
+    * **`summon_arrives`**: A `SummonInstance` is created and placed.
+        * `player: String`. [cite: 1]
+        * `card_id: String`: ID of the summon card resource. [cite: 1]
+        * `instance_id: int`: Unique `instance_id` for this new summon on the field.
+        * `lane: int` (1-based). [cite: 1]
+        * `power: int`, `max_hp: int`, `current_hp: int`. [cite: 1]
+        * `is_swift: bool`. [cite: 1]
+        * `tags: Array[String]`. [cite: 1]
+        * `custom_state_keys: Array[String]` (Optional): For special states like "glassgrafted".
+        * `source_card_id: String` (Optional): Card ID of the spell/effect that summoned it. (Replaces `source_effect`). [cite: 1]
+        * `source_instance_id: int` (Optional): Instance ID of the spell/effect.
+    * **`summon_leaves_lane`**: A `SummonInstance` is removed from a lane (not standard death).
+        * `player: String`. [cite: 1]
+        * `card_id: String`: ID of the summon card resource. [cite: 1]
+        * `instance_id: int`: `instance_id` of the summon that left.
+        * `lane: int` (1-based). [cite: 1]
+        * `reason: String` (e.g., "bounce_PortalMage"). [cite: 1]
+        * `source_card_id: String` (Optional).
+        * `source_instance_id: int` (Optional).
+    * **`summon_turn_activity`**: A summon starts its action phase.
+        * `player: String`. [cite: 1]
+        * `card_id: String`: Card ID of the acting summon.
+        * `instance_id: int`: `instance_id` of the acting summon.
+        * `lane: int` (1-based). [cite: 1]
+        * `activity_type: String` (e.g., "attack", "direct_attack", "ability_mana_gen"). [cite: 1]
+        * `details: Dictionary` (Optional).
+    * **`combat_damage`**:
+        * `attacking_player: String`, `attacking_lane: int`, `attacking_card_id: String`, `attacking_instance_id: int`. [cite: 1]
+        * `defending_player: String`, `defending_lane: int`, `defending_card_id: String`, `defending_instance_id: int`. [cite: 1]
+        * `amount: int`. [cite: 1]
+        * `defender_remaining_hp: int`. [cite: 1]
+        * `instance_id: int`: `attacking_instance_id` (Attacker is primary subject).
+    * **`direct_damage`**:
+        * `attacking_player: String`, `attacking_lane: int`, `attacking_card_id: String`, `attacking_instance_id: int`. [cite: 1]
+        * `target_player: String`. [cite: 1]
+        * `amount: int`. [cite: 1]
+        * `target_player_remaining_hp: int`. [cite: 1]
+        * `instance_id: int`: `attacking_instance_id` (Attacker is primary subject).
+    * **`effect_damage`**: Damage to a player from a non-combat card effect.
+        * `source_player: String`. [cite: 1]
+        * `source_card_id: String`. [cite: 1]
+        * `source_instance_id: int`.
+        * `target_player: String`. [cite: 1]
+        * `amount: int`. [cite: 1]
+        * `target_player_remaining_hp: int`. [cite: 1]
+        * `instance_id: int`: `source_instance_id` (The card causing damage is primary subject).
+    * **`hp_change`**: Player's main HP.
+        * `player: String`. [cite: 1]
+        * `amount: int`. [cite: 1]
+        * `new_total: int`. [cite: 1]
+        * `source_card_id: String` (Optional): Card ID of source. [cite: 1] (Was "source").
+        * `instance_id: int`: Instance ID of card causing change, or `-1`.
+        * `source_instance_id: int` (Optional).
+    * **`creature_hp_change`**: Summon's HP.
+        * `player: String` (owner). [cite: 1]
+        * `lane: int`. [cite: 1]
+        * `card_id: String`: Card ID of the summon.
+        * `instance_id: int`: `instance_id` of the summon whose HP changed.
+        * `amount: int`. [cite: 1]
+        * `new_hp: int`, `new_max_hp: int`. [cite: 1]
+        * `source_card_id: String` (Optional): Card ID of source. [cite: 1] (Was "source").
+        * `source_instance_id: int` (Optional).
+    * **`stat_change`**: Summon's Power/MaxHP.
+        * `player: String` (owner). [cite: 1]
+        * `lane: int`. [cite: 1]
+        * `card_id: String`: Card ID of the summon.
+        * `instance_id: int`: `instance_id` of the summon whose stat changed.
+        * `stat: String` ("power" or "max_hp"). [cite: 1]
+        * `amount: int` (modifier value). [cite: 1]
+        * `new_value: int` (new calculated total). [cite: 1]
+        * `source_card_id: String` (Optional): Card ID of source. [cite: 1] (Was "source").
+        * `source_instance_id: int` (Optional).
+    * **`status_change`**: Summon gains/loses a dynamic tag.
+        * `player: String` (owner). [cite: 1]
+        * `lane: int`. [cite: 1]
+        * `card_id: String`: Card ID of the summon.
+        * `instance_id: int`: `instance_id` of the summon.
+        * `status: String`. [cite: 1]
+        * `gained: bool`. [cite: 1]
+        * `source_card_id: String` (Optional): Card ID of source. [cite: 1] (Was "source").
+        * `source_instance_id: int` (Optional).
+    * **`creature_defeated`**:
+        * `player: String` (owner). [cite: 1]
+        * `lane: int`. [cite: 1]
+        * `card_id: String`: ID of the defeated creature's card resource. [cite: 1]
+        * `instance_id: int`: `instance_id` of the summon that was defeated.
+        * (**TODO:** Consider adding `source_card_id` and `source_instance_id` for what *caused* the death, if `SummonInstance.die()` is enhanced).
+    * **`visual_effect`**:
+        * `effect_id: String`. [cite: 1]
+        * `instance_id: int`: `instance_id` of primary card instance subject/causing this visual, or `-1`.
+        * `card_id: String` (Optional): Card resource ID of `instance_id` if applicable.
+        * `target_locations: Array[String]`. [cite: 1]
+        * `details: Dictionary` (Optional). [cite: 1]
+        * `source_card_id: String` (Optional).
+        * `source_instance_id: int` (Optional).
+    * **`log_message`**:
+        * `message: String`. [cite: 1]
+        * `instance_id: int`: `instance_id` of card instance related to log, or `-1`.
+        * `card_id: String` (Optional).
+        * `source_card_id: String` (Optional).
+        * `source_instance_id: int` (Optional).
+    * **`battle_end`**:
+        * `outcome: String`. [cite: 1]
+        * `winner: String`. [cite: 1]
+        * `instance_id: -1`.
 
-* **TODO:** Decide on and implement `instance_id` generation (e.g., simple counter in `Battle`) and inclusion in relevant events. Store this ID on `SummonInstance`.
-* **TODO:** Refine `source` fields - use Card IDs consistently where applicable.
-* **Tracking Usage:** The `BattleReplay` implementation should document which event fields it uses. Periodically review generated events vs. used fields to identify potentially redundant data.
-
-## 6. Battle Replay Scene (`BattleReplay`) Guidance
+* **Instance ID Generation:** `Battle._generate_new_card_instance_id()` is the sole source for `instance_id`s for `CardInZone` and `SummonInstance`.
+* **Source Fields:** Standardized to `source_card_id` (String, `CardResource.id`) and `source_instance_id` (int, battle-specific instance ID).
 
 * **Goal:** Visually reconstruct the battle turn-by-turn based *only* on the `BattleEvents` array. Provide clear feedback to the player about the game flow and actions.
 * **Input:** `battle_events: Array[Dictionary]` (passed from `GameManager` or test script).
@@ -411,28 +431,21 @@ The project follows a modular design separating data, logic, and presentation.
 * **Simplified Replay First:** Implement handlers first using only `print()` statements or simple `Label` updates to verify event processing order and data extraction *before* adding complex scene instantiation and animations. This validates the event log consumption.
 * **Timing/Pacing:** Use `await get_tree().create_timer(duration * playback_speed_scale).timeout` between processing steps within handlers or between events to control speed. Use `await some_animation_player.animation_finished` to wait for visual actions to complete.
 
-## 7. Other Components (Briefly)
+* **Event Handlers:** Will need to utilize the richer `instance_id`, `source_card_id`, `source_instance_id`, and `*_details.instance_id` fields to accurately update visuals and trace card lineage if necessary. E.g., `handle_card_moved` will need to check `event.instance_id` for the card in `from_zone` and `event.to_details.instance_id` for its new ID in `to_zone`. [cite: 1]
 
-* **GameManager:** Central coordinator. Will need methods like `start_battle(player_deck, opponent_deck)` which instantiates `Battle`, runs it, and transitions to `BattleReplayScene`, passing the events. Manages player card pool, quest state (Out of Scope).
-* **Maze/DeckBuilding/Results:** Interact with `GameManager` to get necessary data (available rooms, card pool, battle outcomes) and trigger actions (select room, build deck, start battle). (Out of Scope).
-* **Integration Points:** `GameManager` passing decks to `Battle` and events to `BattleReplay`. `BattleReplay` potentially signalling completion back to `GameManager` to transition to `ResultsScene`.
+## 7. Other Components (Briefly)
+(No significant changes anticipated from this refactor here, but ensure `GameManager` correctly passes initial deck lists of `CardResource` to `Battle.setup()`). [cite: 1]
 
 ## 8. Testing Strategy
-
-* **Logic (GUT):** Extensive unit tests cover `Combatant`, `SummonInstance`, card effect logic, and resource loading. Tests verify state changes and event generation. (Currently ~74 tests passing).
-* **Battle Simulation:** Tests run minimal `Battle` simulations with specific decks to verify outcomes and high-level event sequences.
-* **Battle Replay:** Primarily manual testing by feeding known event sequences (from tests or saved simulations) and verifying visual output matches expectations. Automated scene-based testing might be possible but complex. Focus on testing individual event handlers visually, especially during the "Simplified Replay First" phase.
+* **Logic (GUT):** Update tests to reflect new `CardInZone` usage in `Combatant`, new method signatures, and to assert correct `instance_id`, `source_card_id`, and `source_instance_id` values in generated events. [cite: 1]
+* **Battle Replay:** Manual testing with known event sequences, verifying visual output and handling of new event fields. [cite: 1]
 
 ## 9. Constants & Configuration
-
-* `Constants.gd` (Autoload): Defines core game values (HP, Mana, Lanes, Turns).
-* Card data configured via `card_data.json` and `.tres` files.
-* Consider Project Settings for replay speed defaults or other UI configurations.
+(No changes from this refactor). [cite: 1]
 
 ## 10. Future Considerations / Potential Refactors
-
-* **Control Change / Static Auras:** Identified as complex mechanics requiring potential architectural changes if implemented (rethinking `SummonInstance` ownership, global effect management).
-* **Counters:** Generic counters (e.g., +1/+1 counters, poison counters) could likely be implemented using the existing `SummonInstance.custom_state` dictionary or potentially by adding a dedicated `counters: Dictionary` property. The modifier system handles stat changes, but distinct named counters might need separate tracking.
-* **Performance:** Monitor performance during replay, especially with many visual effects or summons. Optimize event processing and animations if needed.
-* **Event Granularity:** Review event usage by the replay; potentially prune unused fields or add more detail if required by animations.
-
+* **Event Sourcing for `creature_defeated`:** As noted in Section 5, `SummonInstance.die()` could be enhanced to accept and log the source/cause of death. [cite: 1]
+* **Event Validation in `Battle.add_event()`:** Add assertions for core event fields (e.g., presence and type of `instance_id`).
+* **`initial_library_state` Event:** Review if it should log an array of `{"card_id": String, "instance_id": int}` for full tracking from turn 0.
+* **`Combatant.pay_mana` sourcing:** Confirm if `p_source_card_id` / `p_source_instance_id` are truly needed for its event or if `card_played` context is enough.
+* **`Combatant.add_card_to_graveyard` signature:** Implement the proposed signature change `(..., p_reason_card_id: String, p_reason_instance_id: int)` in code to allow its `card_moved` event to be sourced by the ultimate cause (e.g., a spell effect or a summon's death ability).

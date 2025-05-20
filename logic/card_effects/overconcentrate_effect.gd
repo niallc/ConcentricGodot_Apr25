@@ -24,7 +24,7 @@ func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant,
 				"lane": target_lane_index + 1,
 				"status": "Relentless",
 				"gained": true,
-				"source": overconcentrate_spell_instance_id,
+				"source_card_id": overconcentrate_spell_instance_id,
 				"source_instance_id": overconcentrate_spell_instance_id,
 				"instance_id": target_instance.instance_id,
 				"instance_id_note": "Note that 'instance_id' by default refers to the _affected_ entity, the target, here"

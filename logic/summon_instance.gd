@@ -80,7 +80,7 @@ func take_damage(amount: int, p_source_card_id: String, p_source_instance_id: in
 		"amount": -hp_decrement, # The actual damage dealt
 		"new_hp": current_hp, # HP after damage (can be <=0)
 		"new_max_hp": get_current_max_hp(),
-		"source": p_source_card_id # Card ID of the source of damage
+		"source_card_id": p_source_card_id # Card ID of the source of damage
 	}
 	if p_source_instance_id != -1:
 		event_data["source_instance_id"] = p_source_instance_id
@@ -109,7 +109,7 @@ func heal(amount: int, p_source_card_id: String, p_source_instance_id: int):
 			"amount": current_hp - hp_before,
 			"new_hp": current_hp,
 			"new_max_hp": max_hp,
-			"source": p_source_card_id
+			"source_card_id": p_source_card_id
 		}
 		if p_source_instance_id != -1:
 			event_data["source_instance_id"] = p_source_instance_id
@@ -281,7 +281,7 @@ func _perform_combat(target_instance: SummonInstance):
 
 
 func add_power(amount: int, p_source_card_id: String, p_source_instance_id: int, duration: int = -1):
-	var modifier = {"source": p_source_card_id, "value": amount, "duration": duration} # Source here is the Card ID for the modifier dictionary
+	var modifier = {"source_card_id": p_source_card_id, "value": amount, "duration": duration} # Source here is the Card ID for the modifier dictionary
 	power_modifiers.append(modifier)
 	print("%s (Instance: %s) gets %d power from %s (Instance: %s). Duration: %s. New Calculated Power: %d" % [card_resource.card_name, instance_id, amount, p_source_card_id, str(p_source_instance_id), str(duration), get_current_power()])
 
@@ -294,7 +294,7 @@ func add_power(amount: int, p_source_card_id: String, p_source_instance_id: int,
 		"stat": "power",
 		"amount": amount, # The modifier value
 		"new_value": get_current_power(), # The resulting total value
-		"source": p_source_card_id # Card ID of what granted the modifier
+		"source_card_id": p_source_card_id # Card ID of what granted the modifier
 	}
 	if p_source_instance_id != -1:
 		event_data["source_instance_id"] = p_source_instance_id
@@ -302,7 +302,7 @@ func add_power(amount: int, p_source_card_id: String, p_source_instance_id: int,
 	battle_instance.add_event(event_data)
 
 func add_hp(amount: int, p_source_card_id: String, p_source_instance_id: int, duration: int = -1):
-	var modifier = {"source": p_source_card_id, "value": amount, "duration": duration}
+	var modifier = {"source_card_id": p_source_card_id, "value": amount, "duration": duration}
 	max_hp_modifiers.append(modifier)
 	print("%s (Instance: %s) gets %d max HP from %s (Instance: %s). Duration: %s. New Calculated MaxHP: %d" % [card_resource.card_name, instance_id, amount, p_source_card_id, str(p_source_instance_id), str(duration), get_current_max_hp()])
 
@@ -316,7 +316,7 @@ func add_hp(amount: int, p_source_card_id: String, p_source_instance_id: int, du
 		"stat": "max_hp",
 		"amount": amount,
 		"new_value": new_max_hp,
-		"source": p_source_card_id
+		"source_card_id": p_source_card_id
 	}
 	if p_source_instance_id != -1:
 		event_data["source_instance_id"] = p_source_instance_id
@@ -385,7 +385,7 @@ func _end_of_turn_upkeep():
 				"stat": "power",
 				"amount": final_power - power_before_upkeep, # Net change
 				"new_value": final_power,
-				"source": "expiration" # Indicate cause
+				"source_card_id": "expiration" # Indicate cause
 			})
 		if final_max_hp != max_hp_before_upkeep:
 			battle_instance.add_event({
@@ -396,7 +396,7 @@ func _end_of_turn_upkeep():
 				"stat": "max_hp",
 				"amount": final_max_hp - max_hp_before_upkeep, # Net change
 				"new_value": final_max_hp,
-				"source": "expiration"
+				"source_card_id": "expiration"
 			})
 
 		# Clamp current HP to the potentially new (lower) max HP
@@ -413,5 +413,5 @@ func _end_of_turn_upkeep():
 				"amount": change_amount,
 				"new_hp": current_hp,
 				"new_max_hp": final_max_hp,
-				"source": "expiration_clamp" # Indicate cause
+				"source_card_id": "expiration_clamp" # Indicate cause
 			})

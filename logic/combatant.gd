@@ -86,7 +86,7 @@ func heal(amount: int, p_source_card_id: String = "unknown_heal_source", p_sourc
 			"player": combatant_name, # Identifies the combatant being healed
 			"amount": current_hp - hp_before_heal,
 			"new_total": current_hp,
-			"source": p_source_card_id # Card ID of the source of healing
+			"source_card_id": p_source_card_id # Card ID of the source of healing
 		}
 		
 		# If a specific card instance caused this heal
@@ -112,7 +112,7 @@ func gain_mana(amount: int, source_card_id_for_event: String, p_source_instance_
 			"player": combatant_name, # Clearly identifies the player affected
 			"amount": mana - old_mana,
 			"new_total": mana,
-			"source": source_card_id_for_event # e.g., "Focus" or "turn_start"
+			"source_card_id": source_card_id_for_event # e.g., "Focus" or "turn_start"
 		}
 
 		# If a specific card instance caused this mana gain (e.g., ability of a summon, or a played spell)
@@ -148,20 +148,19 @@ func pay_mana(amount: int) -> bool:
 		return true
 	return false
 
-# Updated signature and logic
-func add_card_to_graveyard(p_card_in_zone_for_graveyard: CardInZone, p_from_zone: String, p_instance_id_from_origin_zone: int = -1):
+func add_card_to_graveyard(
+	p_card_in_zone_for_graveyard: CardInZone, 
+	p_from_zone: String, 
+	p_instance_id_from_origin_zone: int = -1, 
+	p_cause_source_card_id: String = "",     # Parameter for the ultimate cause's card_id
+	p_cause_source_instance_id: int = -1     # Parameter for the ultimate cause's instance_id
+):
 	if not p_card_in_zone_for_graveyard is CardInZone or not p_card_in_zone_for_graveyard.card_resource:
 		printerr("%s.add_card_to_graveyard: Attempted to add null or invalid CardInZone." % combatant_name)
 		return
 	
 	var card_res_id_for_event: String = p_card_in_zone_for_graveyard.get_card_id()
-	# p_card_in_zone_for_graveyard.instance_id is the NEW instance_id for the card IN THE GRAVEYARD.
-	var new_graveyard_ciz_instance_id: int = p_card_in_zone_for_graveyard.get_card_instance_id() 
-
-	print("Adding CardInZone (New GY Instance: %s, CardID: %s) to %s's graveyard from %s (Original Instance from Zone: %s)" % [new_graveyard_ciz_instance_id, card_res_id_for_event, combatant_name, p_from_zone, str(p_instance_id_from_origin_zone)])
-	graveyard.push_back(p_card_in_zone_for_graveyard) # Add the CardInZone (which has the new ID)
-
-	# Determine the primary instance_id for the event (ID of the card as it was in the FROM zone)
+	var new_graveyard_ciz_instance_id: int = p_card_in_zone_for_graveyard.get_card_instance_id()
 	var event_main_instance_id: int = p_instance_id_from_origin_zone
 	if p_instance_id_from_origin_zone == -1:
 		# If it's moving from a zone where it was already this CardInZone (e.g., library -> graveyard, play -> graveyard for a spell)
@@ -170,18 +169,17 @@ func add_card_to_graveyard(p_card_in_zone_for_graveyard: CardInZone, p_from_zone
 		if p_from_zone == "lane": # Should always have p_instance_id_from_origin_zone if from lane
 			printerr("WARNING: Card moved from 'lane' to 'graveyard' without p_instance_id_from_origin_zone. Using new GY ID for event.")
 
+	graveyard.push_back(p_card_in_zone_for_graveyard)
 
 	var event_data = {
 		"event_type": "card_moved",
 		"card_id": card_res_id_for_event,
 		"player": combatant_name,
 		"from_zone": p_from_zone,
-		"instance_id": event_main_instance_id, # ID of the card as it was known in p_from_zone
+		"instance_id": event_main_instance_id, 
 		"to_zone": "graveyard",
-		"to_details": { # <<< ADDED/MODIFIED THIS
-			"instance_id": new_graveyard_ciz_instance_id # The instance_id of the CardInZone now in the graveyard
-		},
-		# "reason" could be added here if add_card_to_graveyard got a reason param
+		"to_details": { "instance_id": new_graveyard_ciz_instance_id },
+		"reason": p_from_zone # Or a more detailed reason if passed in
 	}
 
 	# If moving from a lane, include from_details for that lane
@@ -263,7 +261,7 @@ func lose_mana(amount: int, p_source_card_id: String = "unknown_loss_source", p_
 			"player": combatant_name,
 			"amount": -actual_mana_lost, # Negative for loss
 			"new_total": mana,
-			"source": p_source_card_id
+			"source_card_id": p_source_card_id
 		}
 		if p_source_instance_id != -1:
 			event_data["source_instance_id"] = p_source_instance_id

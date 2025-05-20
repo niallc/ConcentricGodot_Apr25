@@ -42,7 +42,7 @@ func test_add_permanent_power_modifier():
 	# Assert: Modifier list should contain the new modifier
 	assert_eq(scout_instance.power_modifiers.size(), 1, "Power modifiers list should have 1 entry.")
 	assert_eq(scout_instance.power_modifiers[0]["value"], boost_amount, "Modifier value incorrect.")
-	assert_eq(scout_instance.power_modifiers[0]["source"], source_id, "Modifier source incorrect.")
+	assert_eq(scout_instance.power_modifiers[0]["source_card_id"], source_id, "Modifier source incorrect.")
 
 	# Assert: Calculated power should increase
 	assert_eq(scout_instance.get_current_power(), initial_power + boost_amount, "Calculated power after boost is incorrect.")

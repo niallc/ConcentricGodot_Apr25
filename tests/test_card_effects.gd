@@ -148,7 +148,7 @@ func test_energy_axe_applies_power():
 	# Assert: Modifier was added
 	var found_energy_axe_modifier = false
 	for modifier in scout_instance.power_modifiers:
-		if modifier["source"] == energy_axe_card_in_zone.get_card_id(): # Check against the card_id
+		if modifier["source_card_id"] == energy_axe_card_in_zone.get_card_id(): # Check against the card_id
 			assert_eq(modifier["value"], 3, "Energy Axe modifier value should be 3.")
 			found_energy_axe_modifier = true
 			break
@@ -166,7 +166,7 @@ func test_energy_axe_applies_power():
 		if event_data.get("event_type") == "stat_change" and \
 		   event_data.get("instance_id") == scout_instance.instance_id and \
 		   event_data.get("stat") == "power" and \
-		   event_data.get("source") == energy_axe_card_in_zone.get_card_id() and \
+		   event_data.get("source_card_id") == energy_axe_card_in_zone.get_card_id() and \
 		   event_data.get("source_instance_id") == energy_axe_card_in_zone.get_card_instance_id():
 			stat_change_event_found = true
 			assert_eq(event_data.get("new_value"), initial_power + 3, "Stat change event new_value incorrect.")
@@ -270,7 +270,7 @@ func test_disarm_reduces_highest_power():
 	# Assert: Modifier added to Knight
 	assert_eq(strong_knight.power_modifiers.size(), 1, "Disarm should add power modifier to Knight.")
 	assert_eq(strong_knight.power_modifiers[0]["value"], -2, "Disarm modifier value should be -2.")
-	assert_eq(strong_knight.power_modifiers[0]["source"], "Disarm", "Disarm modifier source incorrect.")
+	assert_eq(strong_knight.power_modifiers[0]["source_card_id"], "Disarm", "Disarm modifier source incorrect.")
 
 	var events_after_disarm = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
 
@@ -286,7 +286,7 @@ func test_disarm_reduces_highest_power():
 			stat_change_event_for_knight_found = true
 			assert_eq(event_data.get("amount"), -2, "Disarm stat_change event 'amount' (modifier value) incorrect.")
 			assert_eq(event_data.get("new_value"), initial_knight_power - 2, "Disarm stat_change event 'new_value' incorrect.")
-			assert_eq(event_data.get("source"), disarm_card_in_zone.get_card_id(), "Disarm stat_change 'source' (card_id) incorrect.")
+			assert_eq(event_data.get("source_card_id"), disarm_card_in_zone.get_card_id(), "Disarm stat_change 'source' (card_id) incorrect.")
 			assert_eq(event_data.get("source_instance_id"), disarm_card_in_zone.get_card_instance_id(), "Disarm stat_change 'source_instance_id' incorrect.")
 		
 		# 2. Check for the visual_effect of Disarm
@@ -360,7 +360,7 @@ func test_goblin_firework_death_deals_damage():
 			creature_hp_change_event_found = true
 			assert_eq(event_data.get("amount"), -1, "Firework damage event: amount incorrect.")
 			assert_eq(event_data.get("new_hp"), initial_knight_hp - 1, "Firework damage event: new_hp incorrect.")
-			assert_eq(event_data.get("source"), goblin_firework_res.id, "Firework damage event: source card_id incorrect.")
+			assert_eq(event_data.get("source_card_id"), goblin_firework_res.id, "Firework damage event: source card_id incorrect.")
 			assert_eq(event_data.get("source_instance_id"), firework_instance.instance_id, "Firework damage event: source_instance_id incorrect.")
 		
 		elif event_data.get("event_type") == "visual_effect" and \
@@ -433,7 +433,7 @@ func test_wall_of_vines_generates_mana():
 			mana_change_event_found = true
 			assert_eq(event_data.get("amount"), 1, "Mana change event: amount incorrect.")
 			assert_eq(event_data.get("new_total"), initial_mana + 1, "Mana change event: new_total incorrect.")
-			assert_eq(event_data.get("source"), wall_of_vines_res.id, "Mana change event: source card_id incorrect.")
+			assert_eq(event_data.get("source_card_id"), wall_of_vines_res.id, "Mana change event: source card_id incorrect.")
 			assert_eq(event_data.get("source_instance_id"), wall_instance.instance_id, "Mana change event: source_instance_id incorrect.")
 			# Also check the main instance_id of the mana_change event itself
 			assert_eq(event_data.get("instance_id"), wall_instance.instance_id, "Mana change event: main instance_id incorrect (should be WoV).")
@@ -677,7 +677,7 @@ func test_focus_grants_mana():
 			mana_change_event_found = true
 			assert_eq(event_data.get("amount"), expected_player_mana - initial_player_mana, "Focus mana_change event: amount incorrect.")
 			assert_eq(event_data.get("new_total"), expected_player_mana, "Focus mana_change event: new_total incorrect.")
-			assert_eq(event_data.get("source"), focus_card_in_zone.get_card_id(), "Focus mana_change event: source card_id incorrect.")
+			assert_eq(event_data.get("source_card_id"), focus_card_in_zone.get_card_id(), "Focus mana_change event: source card_id incorrect.")
 			assert_eq(event_data.get("instance_id"), focus_card_in_zone.get_card_instance_id(), "Focus mana_change event: instance_id (the spell) incorrect.")
 			assert_eq(event_data.get("source_instance_id"), focus_card_in_zone.get_card_instance_id(), "Focus mana_change event: source_instance_id incorrect.")
 		
@@ -1842,7 +1842,7 @@ func test_nap_heals_player():
 			hp_change_event_found = true
 			assert_eq(event_data.get("amount"), expected_player_hp - initial_player_hp, "Nap hp_change event: amount incorrect.")
 			assert_eq(event_data.get("new_total"), expected_player_hp, "Nap hp_change event: new_total incorrect.")
-			assert_eq(event_data.get("source"), nap_card_in_zone.get_card_id(), "Nap hp_change event: source card_id incorrect.")
+			assert_eq(event_data.get("source_card_id"), nap_card_in_zone.get_card_id(), "Nap hp_change event: source card_id incorrect.")
 			assert_eq(event_data.get("instance_id"), nap_card_in_zone.get_card_instance_id(), "Nap hp_change event: instance_id (the spell) incorrect.")
 			assert_eq(event_data.get("source_instance_id"), nap_card_in_zone.get_card_instance_id(), "Nap hp_change event: source_instance_id incorrect.")
 		
@@ -1937,69 +1937,113 @@ func test_totem_of_champions_buffs_debuffs():
 # --- Amnesia Mage Tests ---
 func test_amnesia_mage_drains_mana():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup state
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup player's graveyard with CardInZone objects
 	player.graveyard.clear()
-	player.graveyard.append(goblin_scout_res) # Knight is leftmost
-	player.graveyard.append(knight_res)
+	var p_scout_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(goblin_scout_res, p_scout_gy_id))
+	var p_knight_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(knight_res, p_knight_gy_id))
 
-	opponent.mana = 5 # Opponent has mana to lose
-	var initial_opp_mana = opponent.mana
-	var expected_drain = 2 + player.graveyard.size() # 2 + 2 = 4
-	var initial_event_count = battle.battle_events.size()
+	opponent.mana = 5 
+	var initial_opponent_mana: int = opponent.mana
+	# Amnesia Mage drain is base 2 + 1 per card in owner's (player's) graveyard.
+	# Player has 2 cards in grave here. So, 2 + 2 = 4 drain.
+	var expected_drain_amount: int = 2 + player.graveyard.size() 
+	
+	# Simulate Amnesia Mage arrival
+	var amnesia_mage_instance = SummonInstance.new()
+	var amnesia_mage_instance_id: int = battle._generate_new_card_instance_id()
+	amnesia_mage_instance.setup(amnesia_mage_res, player, opponent, 0, battle, amnesia_mage_instance_id)
 
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(amnesia_mage_res, player, opponent, 0, battle, new_id)
+	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Call arrival effect
-	amnesia_mage_res._on_arrival(instance, player, opponent, battle)
+	# Action: Call _on_arrival effect
+	if amnesia_mage_res.has_method("_on_arrival"):
+		amnesia_mage_res._on_arrival(amnesia_mage_instance, player, opponent, battle)
+	else:
+		fail_test("Amnesia Mage resource does not have _on_arrival method.")
+		return
 
 	# Assert: Opponent mana reduced
-	assert_eq(opponent.mana, initial_opp_mana - expected_drain, "Opponent mana incorrect after drain.")
+	var final_expected_opponent_mana = max(0, initial_opponent_mana - expected_drain_amount)
+	assert_eq(opponent.mana, final_expected_opponent_mana, "Amnesia Mage: Opponent mana incorrect after drain.")
 
-	# Assert: Event generated (mana_change for opponent)
-	var events_after = battle.battle_events.slice(initial_event_count, battle.battle_events.size())
-	var mana_event_found = false
-	for event in events_after:
-		if event.get("event_type") == "mana_change" and event.get("player") == opponent.combatant_name:
-			mana_event_found = true
-			assert_eq(event["amount"], -expected_drain, "Amnesia mana drain amount incorrect.")
-			break
-	assert_true(mana_event_found, "Mana change event for Amnesia Mage drain not found.")
+	# Assert: Event generation (mana_change for opponent, visual_effect for Amnesia)
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
+	# Expected: 1x mana_change (opponent), 1x visual_effect (Amnesia) = 2 events
+	assert_eq(new_events.size(), 2, "Amnesia Mage effect should generate 2 events. Found: %s" % new_events.size())
+
+	var opponent_mana_loss_event_found: bool = false
+	var amnesia_visual_effect_found: bool = false
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "mana_change" and \
+		   event_data.get("player") == opponent.combatant_name:
+			opponent_mana_loss_event_found = true
+			assert_eq(event_data.get("amount"), -expected_drain_amount, "Amnesia Mage: Opponent mana_change amount incorrect.")
+			assert_eq(event_data.get("source_card_id"), amnesia_mage_res.id, "Amnesia Mage: Opponent mana_change source_card_id incorrect.")
+			assert_eq(event_data.get("instance_id"), amnesia_mage_instance_id, "Amnesia Mage: Opponent mana_change main instance_id (Amnesia Mage) incorrect.")
+			assert_eq(event_data.get("source_instance_id"), amnesia_mage_instance_id, "Amnesia Mage: Opponent mana_change source_instance_id incorrect.")
+		
+		elif event_data.get("event_type") == "visual_effect" and \
+			 event_data.get("effect_id") == "amnesia_mana_drain" and \
+			 event_data.get("instance_id") == amnesia_mage_instance_id:
+			amnesia_visual_effect_found = true
+			assert_eq(event_data.get("source_instance_id"), amnesia_mage_instance_id, "Amnesia Mage visual_effect: source_instance_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("amount"), expected_drain_amount, "Amnesia Mage visual_effect details: amount incorrect.")
+
+	assert_true(opponent_mana_loss_event_found, "Opponent mana_loss event from Amnesia Mage not found or improperly sourced.")
+	assert_true(amnesia_visual_effect_found, "Visual effect for Amnesia Mage not found or improperly sourced.")
 
 
 func test_amnesia_mage_drain_limited_by_opponent_mana():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
 	player.graveyard.clear()
-	player.graveyard.append(goblin_scout_res)
+	var p_scout_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(goblin_scout_res, p_scout_gy_id)) # 1 card in grave
 
-	opponent.mana = 2 # Opponent has less mana than potential drain (2+1=3)
-	var expected_drain = 2 + player.graveyard.size() # Potential drain = 3
-	var actual_drain = min(expected_drain, opponent.mana) # Actual drain = 2
+	opponent.mana = 2 # Opponent has less mana than potential drain
+	var initial_opponent_mana = opponent.mana
+	var potential_drain = 2 + player.graveyard.size() # 2 + 1 = 3
+	var actual_mana_drained = min(potential_drain, initial_opponent_mana) # Should be 2
 
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(amnesia_mage_res, player, opponent, 0, battle, new_id)
-	amnesia_mage_res._on_arrival(instance, player, opponent, battle)
+	var amnesia_mage_instance = SummonInstance.new()
+	var amnesia_mage_instance_id: int = battle._generate_new_card_instance_id()
+	amnesia_mage_instance.setup(amnesia_mage_res, player, opponent, 0, battle, amnesia_mage_instance_id)
+	
+	var initial_event_count: int = battle.battle_events.size()
 
-	assert_eq(opponent.mana, 0, "Opponent mana should be 0.") # Drained to zero
-	# Check event amount reflects actual drain
-	var events = battle.battle_events
+	if amnesia_mage_res.has_method("_on_arrival"):
+		amnesia_mage_res._on_arrival(amnesia_mage_instance, player, opponent, battle)
+	else:
+		fail_test("Amnesia Mage resource does not have _on_arrival method (limited drain test).")
+		return
+
+	assert_eq(opponent.mana, 0, "Opponent mana should be 0 after limited drain by Amnesia Mage.")
+	
+	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
 	var mana_event_found = false
-	for event in events:
-		if event.get("event_type") == "mana_change" and event.get("player") == opponent.combatant_name:
-			mana_event_found = true
-			assert_eq(event["amount"], -actual_drain, "Amnesia drain amount should be limited by opponent mana.")
-			break
-	assert_true(mana_event_found, "Mana change event for limited Amnesia Mage drain not found.")
+	# Also expect a visual effect
+	assert_eq(new_events.size(), 2, "Amnesia Mage (limited drain) effect should generate 2 events. Found: %s" % new_events.size())
 
+
+	for event_data in new_events:
+		if event_data.get("event_type") == "mana_change" and event_data.get("player") == opponent.combatant_name:
+			mana_event_found = true
+			assert_eq(event_data.get("amount"), -actual_mana_drained, "Amnesia Mage (limited): mana_change amount incorrect.")
+			assert_eq(event_data.get("source_card_id"), amnesia_mage_res.id)
+			assert_eq(event_data.get("instance_id"), amnesia_mage_instance_id)
+			assert_eq(event_data.get("source_instance_id"), amnesia_mage_instance_id)
+	assert_true(mana_event_found, "Mana change event for limited Amnesia Mage drain not found or improperly sourced.")
+	
 
 # --- Overconcentrate Tests ---
 func test_overconcentrate_makes_relentless():
@@ -2048,7 +2092,7 @@ func test_overconcentrate_makes_relentless():
 			assert_eq(event_data.get("player"), opponent.combatant_name, "Status_change event: player (owner of Knight) incorrect.")
 			assert_eq(event_data.get("lane"), 1, "Status_change event: lane (1-based for Knight) incorrect.") # Knight is in opponent's lane 0 (index 0) -> event lane 1
 			assert_eq(event_data.get("card_id"), knight_res.id, "Status_change event: card_id (Knight) incorrect.")
-			assert_eq(event_data.get("source"), overconcentrate_card_in_zone.get_card_id(), "Status_change event: source card_id (Overconcentrate) incorrect.")
+			assert_eq(event_data.get("source_card_id"), overconcentrate_card_in_zone.get_card_id(), "Status_change event: source card_id (Overconcentrate) incorrect.")
 			assert_eq(event_data.get("source_instance_id"), overconcentrate_card_in_zone.get_card_instance_id(), "Status_change event: source_instance_id (Overconcentrate spell) incorrect.")
 		
 		elif event_data.get("event_type") == "visual_effect" and \
@@ -2194,30 +2238,41 @@ func test_vengeful_warlord_no_buff_if_hp_not_lower():
 # --- Corpsecraft Titan Tests ---
 func test_corpsecraft_titan_can_play():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var battle = setup["battle"]
+	var player: Combatant = setup["player"]
+	var opponent: Combatant = setup["opponent"] # For can_play signature
+	var battle: Battle = setup["battle"]         # For can_play signature
 
-	player.mana = 6 # Enough mana
-	player.graveyard.clear()
-	
+	player.mana = corpsecraft_titan_res.cost # Ensure enough mana
+
 	# Case 1: Not enough summons in grave
-	assert_false(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan needs 3 summons in grave.")
-	player.graveyard.append(healer_res)
-	player.graveyard.append(knight_res)
-	player.graveyard.append(goblin_scout_res)
-	assert_true(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan should be playable with 3 summons.")
+	player.graveyard.clear()
+	assert_false(corpsecraft_titan_res.can_play(player, opponent, 0, battle), "Titan needs 3 summons in grave; 0 present.")
+	
+	player.graveyard.append(CardInZone.new(healer_res, battle._generate_new_card_instance_id()))
+	assert_false(corpsecraft_titan_res.can_play(player, opponent, 0, battle), "Titan needs 3 summons in grave; 1 present.")
+	
+	player.graveyard.append(CardInZone.new(knight_res, battle._generate_new_card_instance_id()))
+	assert_false(corpsecraft_titan_res.can_play(player, opponent, 0, battle), "Titan needs 3 summons in grave; 2 present.")
+
+	player.graveyard.append(CardInZone.new(goblin_scout_res, battle._generate_new_card_instance_id()))
+	# Ensure a free lane for the summon
+	player.lanes[0] = null 
+	assert_true(corpsecraft_titan_res.can_play(player, opponent, 0, battle), "Titan should be playable with 3 summons and a free lane.") # Line 2203
+
 	# Case 2: Not enough mana
-	player.mana = 5
-	assert_false(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan needs 6 mana.")
-	# Case 3: No empty lane (assuming can_play checks this - it should!)
-	player.mana = 6
-	place_summon_for_test(player, knight_res, 0, battle)
-	place_summon_for_test(player, knight_res, 1, battle)
-	place_summon_for_test(player, knight_res, 2, battle)
-	assert_false(corpsecraft_titan_res.can_play(player, player.opponent, 0, battle), "Titan needs an empty lane.")
+	player.mana = corpsecraft_titan_res.cost - 1
+	assert_false(corpsecraft_titan_res.can_play(player, opponent, 0, battle), "Titan should not be playable without enough mana.")
+	
+	# Case 3: No empty lane
+	player.mana = corpsecraft_titan_res.cost # Reset mana
+	# Ensure player has 3 summons in grave (from previous setup)
+	assert_eq(player.graveyard.filter(func(ciz): return ciz.card_resource is SummonCardResource).size(), 3, "Pre-check for no-lane test: Graveyard summon count incorrect.")
 
+	var _b1 = place_summon_for_test(player, knight_res, 0, battle)
+	var _b2 = place_summon_for_test(player, knight_res, 1, battle)
+	var _b3 = place_summon_for_test(player, knight_res, 2, battle)
+	assert_false(corpsecraft_titan_res.can_play(player, opponent, 0, battle), "Titan should not be playable if no lanes are free.")
 
-# res://tests/test_card_effects.gd
 
 func test_corpsecraft_titan_consumes_grave():
 	var setup = create_test_battle_setup()
@@ -4066,7 +4121,7 @@ func test_songs_of_the_lost_mana_swing():
 		var type = event_data.get("event_type")
 		var event_player = event_data.get("player")
 		var event_amount = event_data.get("amount")
-		var event_source_card_id = event_data.get("source")
+		var event_source_card_id = event_data.get("source_card_id")
 		var event_source_instance_id = event_data.get("source_instance_id")
 		var event_main_instance_id = event_data.get("instance_id")
 
@@ -4161,31 +4216,72 @@ func test_refined_impersonator_no_target():
 # --- Corpsetide Lich Tests ---
 func test_corpsetide_lich_steals_grave():
 	var setup = create_test_battle_setup()
-	var player = setup["player"]
-	var opponent = setup["opponent"]
-	var battle = setup["battle"]
-	# Setup graves
-	player.graveyard.clear(); player.graveyard.append(goblin_scout_res)
-	opponent.graveyard.clear(); opponent.graveyard.append(knight_res); opponent.graveyard.append(healer_res)
-	var initial_player_grave_size = player.graveyard.size() # 1
-	var initial_opp_grave_size = opponent.graveyard.size() # 2
-	# Simulate arrival
-	var instance = SummonInstance.new()
-	var new_id = battle.get_new_instance_id()
-	instance.setup(corpsetide_lich_res, player, opponent, 0, battle, new_id)
-	# Action
-	corpsetide_lich_res._on_arrival(instance, player, opponent, battle)
-	# Assert: Opponent grave empty
-	assert_true(opponent.graveyard.is_empty(), "Opponent grave should be empty.")
-	# Assert: Player grave size increased
-	assert_eq(player.graveyard.size(), initial_player_grave_size + initial_opp_grave_size, "Player grave size incorrect.")
-	# Assert: Player grave contains all cards
-	var ids_in_grave = []
-	for card in player.graveyard: ids_in_grave.append(card.id)
-	assert_true(ids_in_grave.has("GoblinScout"), "Scout missing from player grave.")
-	assert_true(ids_in_grave.has("Knight"), "Knight missing from player grave.")
-	assert_true(ids_in_grave.has("Healer"), "Healer missing from player grave.")
+	var player: Combatant = setup["player"]    # Lich's owner
+	var opponent: Combatant = setup["opponent"]
+	var battle: Battle = setup["battle"]
+	
+	# Setup player's graveyard
+	player.graveyard.clear()
+	var p_scout_gy_id = battle._generate_new_card_instance_id()
+	player.graveyard.append(CardInZone.new(goblin_scout_res, p_scout_gy_id))
+	
+	# Setup opponent's graveyard
+	opponent.graveyard.clear()
+	var o_knight_gy_id = battle._generate_new_card_instance_id()
+	opponent.graveyard.append(CardInZone.new(knight_res, o_knight_gy_id))
+	var o_healer_gy_id = battle._generate_new_card_instance_id()
+	opponent.graveyard.append(CardInZone.new(healer_res, o_healer_gy_id))
+	
+	var initial_player_grave_size_val: int = player.graveyard.size() # Should be 1
+	var initial_opponent_grave_size_val: int = opponent.graveyard.size() # Should be 2
 
+	# Simulate Corpsetide Lich arrival
+	var lich_instance = SummonInstance.new()
+	var lich_instance_id: int = battle._generate_new_card_instance_id()
+	lich_instance.setup(corpsetide_lich_res, player, opponent, 0, battle, lich_instance_id)
+
+	var initial_event_count: int = battle.battle_events.size()
+
+	# Action: Call _on_arrival effect
+	if corpsetide_lich_res.has_method("_on_arrival"):
+		corpsetide_lich_res._on_arrival(lich_instance, player, opponent, battle)
+	else:
+		fail_test("Corpsetide Lich resource does not have _on_arrival method.")
+		return
+
+	# Assert: Opponent's graveyard is now empty
+	assert_true(opponent.graveyard.is_empty(), "Opponent's graveyard should be empty after Lich steals it.")
+	
+	# Assert: Player's graveyard size increased by the number of cards from opponent's grave
+	assert_eq(player.graveyard.size(), initial_player_grave_size_val + initial_opponent_grave_size_val, "Player's graveyard size incorrect after Lich steals opponent's grave.")
+	
+	# Assert: Player's graveyard now contains all original cards plus opponent's cards
+	var player_grave_card_ids: Array[String] = []
+	var player_grave_instance_ids: Array[int] = []
+	for card_in_zone_obj in player.graveyard:
+		player_grave_card_ids.append(card_in_zone_obj.get_card_id())
+		player_grave_instance_ids.append(card_in_zone_obj.get_card_instance_id())
+		
+	assert_true("GoblinScout" in player_grave_card_ids, "Original player GoblinScout missing from player's grave after Lich effect.")
+	assert_true(p_scout_gy_id in player_grave_instance_ids, "Original player GoblinScout instance ID missing.")
+
+	assert_true("Knight" in player_grave_card_ids, "Stolen Knight missing from player's grave after Lich effect.")
+	assert_true(o_knight_gy_id in player_grave_instance_ids, "Stolen Knight's original instance ID missing.")
+	
+	assert_true("Healer" in player_grave_card_ids, "Stolen Healer missing from player's grave after Lich effect.")
+	assert_true(o_healer_gy_id in player_grave_instance_ids, "Stolen Healer's original instance ID missing.")
+
+
+	# Event Assertions (expect card_moved for each card from opp_grave->limbo, then limbo->player_grave, plus a visual)
+	# This depends on how corpsetide_lich_effect.gd logs events.
+	# Our refactored version should log:
+	# - N card_moved (opp_grave -> limbo)
+	# - N card_moved (limbo -> player_grave) (via add_card_to_graveyard)
+	# - 1 visual_effect
+	# So, 2*initial_opponent_grave_size_val + 1 events
+	var new_events = battle.battle_events.slice(initial_event_count)
+	assert_eq(new_events.size(), (2 * initial_opponent_grave_size_val) + 1, "Corpsetide Lich: Incorrect number of events. Expected %s, got %s" % [(2*initial_opponent_grave_size_val)+1, new_events.size()])
+	# Further detailed event checking can be added here if needed.
 
 # --- Coffin Traders Tests ---
 func test_coffin_traders_swaps_graves():
