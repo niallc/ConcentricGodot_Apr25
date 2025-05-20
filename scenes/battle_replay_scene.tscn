@@ -367,6 +367,10 @@ layout_mode = 2
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
 
+[node name="HorizontalSpacer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+
 [connection signal="timeout" from="MainMarginContainer/PlaybackTimer" to="." method="_on_playback_timer_timeout"]
 [connection signal="pressed" from="MainMarginContainer/MainVBox/ButtonContainer/PlayButton" to="." method="_on_play_button_pressed"]
 [connection signal="pressed" from="MainMarginContainer/MainVBox/ButtonContainer/PauseButton" to="." method="_on_pause_button_pressed"]

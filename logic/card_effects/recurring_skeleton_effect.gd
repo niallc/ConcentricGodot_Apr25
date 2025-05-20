@@ -43,7 +43,8 @@ func _on_death(summon_instance: SummonInstance, active_combatant, _opponent_comb
 			# Main instance_id of the event: the ID of the entity as it was in the from_zone.
 			"instance_id": dying_summon_instance_id, 
 			"reason": "death_effect_" + skeleton_card_id,
-			"source_instance_id": skeleton_effect_source_instance_id # The skeleton caused its own return
+			"source_instance_id": skeleton_effect_source_instance_id, # The skeleton caused its own return
+			"source_card_id": skeleton_card_id
 		})
 		
 		# Prevent the default die() behavior from adding it to the graveyard

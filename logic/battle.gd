@@ -277,6 +277,8 @@ func add_event(event_data: Dictionary):
 		#printerr("Temporary debugging to find out what's going on with instance_id.")
 	if "instance_id" not in event_data.keys():
 		printerr("instance_id missing from event_data")
+	if event_data["turn"] == -1:
+		printerr("Using an instance_id of -1, is this intended?")
 	if event_data.size() <= 3:
 		printerr("event_data does not contain required information: turn %d, timestamp %d, event_id %d",
 				 turn_count, _event_id_counter, _event_id_counter)

@@ -124,8 +124,7 @@ func die():
 		"player": owner_combatant.combatant_name,
 		"lane": lane_index + 1, # 1-based for events
 		"instance_id": instance_id,
-		# Optional: Add card_id if needed by replay?
-		# "card_id": card_resource.id
+		"card_id": card_resource.id
 	})
 
 	var prevent_graveyard = false # Flag to check

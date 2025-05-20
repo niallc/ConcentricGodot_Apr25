@@ -1083,11 +1083,10 @@ func test_thought_acquirer_steals_card():
 			 event_data.get("effect_id") == "thought_acquirer_steal" and \
 			 event_data.get("source_instance_id") == acquirer_instance_id:
 			visual_effect_found = true
-			assert_eq(event_data.get("details", {}).get("card_id"), bottom_card_to_be_stolen_original_card_id, "Visual effect details: card_id incorrect.")
+			assert_eq(event_data.get("details", {}).get("stolen_card_id"), bottom_card_to_be_stolen_original_card_id, "Visual effect details: stolen_card_id incorrect.")
 			# The main instance_id of this visual effect could be the Thought Acquirer or the stolen card.
 			# Let's assume the Acquirer for now, or it could be -1 if it's a general "steal" visual.
 			assert_eq(event_data.get("instance_id"), acquirer_instance_id, "Visual effect instance_id (Thought Acquirer) incorrect.")
-
 
 	assert_true(moved_from_opponent_lib_found, "Card moved from opponent library event not found or improperly sourced.")
 	assert_true(moved_to_player_lib_found, "Card moved to player library event not found or improperly sourced.")
@@ -1208,20 +1207,26 @@ func test_reanimate_summons_from_graveyard():
 		var event_src_card_id = event_data.get("source_card_id")
 		var event_src_instance_id = event_data.get("source_instance_id")
 
+		var check_event_type: bool = event_data.get("event_type") == "status_change"
+		var check_card_id: bool = event_data.get("card_id") == "Knight"
+		var check_instance_id: bool = event_data.get("instance_id") == reanimated_knight_field_instance_id
+		var check_status: bool = Constants.TAG_UNDEAD and event_data.get("gained") == true 
+		var check_source_id: bool = event_src_card_id == reanimate_card_in_zone.get_card_id()
+		var check_source_instance_id: bool = reanimate_card_in_zone.get_card_instance_id()
+		var overall_undead_check = check_event_type and check_card_id and \
+									check_instance_id and check_status and \
+									check_source_id and check_source_instance_id
+									
+		
+
 		if event_data.get("event_type") == "card_moved" and \
 		   event_data.get("card_id") == "Knight" and \
 		   event_data.get("instance_id") == knight_in_grave_instance_id and \
 		   event_data.get("from_zone") == "graveyard" and event_data.get("to_zone") == "limbo" and \
 		   event_src_card_id == reanimate_card_in_zone.get_card_id() and \
 		   event_src_instance_id == reanimate_card_in_zone.get_card_instance_id():
-			moved_from_grave_found = true
-		
-		elif event_data.get("event_type") == "status_change" and \
-			 event_data.get("card_id") == "Knight" and \
-			 event_data.get("instance_id") == reanimated_knight_field_instance_id and \
-			 event_data.get("status") == Constants.TAG_UNDEAD and event_data.get("gained") == true and \
-			 event_src_card_id == reanimate_card_in_zone.get_card_id() and \
-			 event_src_instance_id == reanimate_card_in_zone.get_card_instance_id():
+			moved_from_grave_found = true		
+		elif overall_undead_check:
 			status_undead_gained_found = true # This event is logged by the revised reanimate_effect.gd
 
 		elif event_data.get("event_type") == "summon_arrives" and \

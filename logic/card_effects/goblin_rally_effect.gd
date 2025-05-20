@@ -65,7 +65,8 @@ func apply_effect(p_rally_card_in_zone: CardInZone, active_combatant: Combatant,
 			"event_type": "log_message",
 			"message": "Goblin Rally (Instance: %s) found no empty lanes." % rally_spell_instance_id,
 			"source_card_id": rally_spell_card_id,
-			"source_instance_id": rally_spell_instance_id
+			"source_instance_id": rally_spell_instance_id,
+			"instance_id": rally_spell_instance_id
 		})
 
 	# Visual effect for the Goblin Rally spell itself casting

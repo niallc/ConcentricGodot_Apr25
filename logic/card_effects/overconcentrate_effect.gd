@@ -41,7 +41,11 @@ func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant,
 			print("...Target %s is already Relentless." % target_instance.card_resource.card_name)
 	else:
 		print("...Found no target creature.")
-		battle_instance.add_event({"event_type":"log_message", "message":"Overconcentrate found no target."})
+		battle_instance.add_event({
+			"event_type":"log_message", 
+			"message":"Overconcentrate found no target.",
+			"instance_id": overconcentrate_spell_instance_id
+		})
 
 
 # Check if opponent has creatures

@@ -55,6 +55,7 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 				"status": Constants.TAG_UNDEAD,
 				"gained": true,
 				"source": reanimate_spell_card_id,
+				"source_card_id": reanimate_spell_card_id,
 				"source_instance_id": reanimate_spell_instance_id
 			})
 
@@ -103,7 +104,8 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 			"event_type":"log_message", 
 			"message":"Reanimate (Instance: %s) found no summon target in graveyard." % reanimate_spell_instance_id,
 			"source_card_id": reanimate_spell_card_id,
-			"source_instance_id": reanimate_spell_instance_id
+			"source_instance_id": reanimate_spell_instance_id,
+			"instance_id": reanimate_spell_instance_id
 			})
 	else: # No empty lane
 		print("...No empty lane available to reanimate into.")
@@ -111,7 +113,8 @@ func apply_effect(p_reanimate_card_in_zone: CardInZone, active_combatant: Combat
 			"event_type":"log_message", 
 			"message":"Reanimate (Instance: %s) found no empty lane for target." % reanimate_spell_instance_id,
 			"source_card_id": reanimate_spell_card_id,
-			"source_instance_id": reanimate_spell_instance_id
+			"source_instance_id": reanimate_spell_instance_id,
+			"instance_id": reanimate_spell_instance_id
 			})
 
 
