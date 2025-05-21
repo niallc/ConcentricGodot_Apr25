@@ -17,7 +17,8 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant, opponent_com
 			"gained": true,
 			# TODO: One way or another, handle instancing for status_change
 			#       events. There could be multiple e.g. tigers.
-			"instance_id": "Not implemented yet but needed. Gained swift event."
+			"instance_id": "Not implemented yet but needed. Gained swift event.",
+			"source_id": summon_instance.card_resource.id
 		})
 	else:
 		print("...Player HP not lower, no Swift granted.")

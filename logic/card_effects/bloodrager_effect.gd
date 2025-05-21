@@ -19,6 +19,6 @@ func _on_kill_target(killer_instance: SummonInstance, _defeated_instance: Summon
 			"lane": killer_instance.lane_index + 1,
 			"status": "Relentless",
 			"gained": true,
-			"source": killer_instance.card_resource.id + "_kill_trigger", # Source is good
+			"source_card_id": killer_instance.card_resource.id + "_kill_trigger",
 			"instance_id": killer_instance.instance_id,
 		})

@@ -38,7 +38,7 @@ func _on_death(summon_instance: SummonInstance, active_combatant, opponent_comba
 	else:
 		printerr("Cursed Samurai Error: Invalid target_lane_index %d" % target_lane_index)
 		return # Cannot place if index is invalid
-	# --- END FIX ---
+
 	# Generate Arrives Event (ensure dictionary is complete)
 	battle_instance.add_event({
 		"event_type": "summon_arrives",

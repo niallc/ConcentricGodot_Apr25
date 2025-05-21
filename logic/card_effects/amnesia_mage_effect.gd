@@ -14,7 +14,7 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant, opponent_com
 		print("...Opponent losing %d mana." % mana_to_lose)
 		# We need a way to directly reduce opponent mana and generate event
 		# Let's add a lose_mana method to Combatant
-		opponent_combatant.lose_mana(mana_to_lose, summon_instance.card_resource.id) # Pass source
+		opponent_combatant.lose_mana(mana_to_lose, summon_instance.card_resource.id, summon_instance.instance_id)
 
 		# Optional visual effect
 		battle_instance.add_event({
@@ -22,7 +22,9 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant, opponent_com
 			"effect_id": "amnesia_mana_drain",
 			"target_locations": [opponent_combatant.combatant_name],
 			"details": {"amount": mana_to_lose},
-			"instance_id": summon_instance.instance_id
+			"instance_id": summon_instance.instance_id,
+			"source_instance_id": summon_instance.instance_id,
+			"source_id": summon_instance.card_resource.id
 		})
 	else:
 		print("...Opponent has no mana to lose.")
