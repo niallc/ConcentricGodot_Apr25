@@ -57,8 +57,8 @@ func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: S
 	var opponent_duelist = duelist2
 
 	var p1_initial_library_ids: Array[String] = []
-	for card_res in duelist1.library: # deck1 is the array of CardResource
-		p1_initial_library_ids.append(card_res.id)
+	for card_in_zone in duelist1.library: # deck1 is the array of CardResource
+		p1_initial_library_ids.append(card_in_zone.card_resource.id)
 	add_event({
 		"event_type": "initial_library_state",
 		"player": duelist1.combatant_name,
@@ -68,8 +68,8 @@ func run_battle(deck1: Array[CardResource], deck2: Array[CardResource], name1: S
 	})
 
 	var p2_initial_library_ids: Array[String] = []
-	for card_res in duelist2.library: # deck2 is the array of CardResource
-		p2_initial_library_ids.append(card_res.id)
+	for card_in_zone in duelist2.library: # deck2 is the array of CardResource
+		p2_initial_library_ids.append(card_in_zone.card_resource.id)
 	add_event({
 		"event_type": "initial_library_state",
 		"player": duelist2.combatant_name,

@@ -43,7 +43,7 @@ func apply_effect(p_unmake_card_in_zone: CardInZone, _active_combatant: Combatan
 		#    The source information for *why* it died isn't directly in those events yet.
 		#    We might need to pass source info into die() if we want the creature_defeated event to know it was "unmade".
 		#    For now, the visual effect above and log message give context.
-		target_creature_instance.die() 
+		target_creature_instance.die(unmake_spell_card_id, unmake_spell_instance_id)
 		# The die() method internally calls add_card_to_graveyard, which will generate
 		# a card_moved event. That event's source_instance_id should ideally reflect the Unmake spell.
 		# This requires `SummonInstance.die()` to pass the `source_instance_id` of what caused the death

@@ -88,7 +88,7 @@ func take_damage(amount: int, p_source_card_id: String, p_source_instance_id: in
 	battle_instance.add_event(event_data)
 
 	if current_hp <= 0 and old_hp > 0: # Only call die if it wasn't already "dead"
-		die()
+		die(p_source_card_id, p_source_instance_id) # Pass the source of damage as cause of death
 	elif old_hp < 0:
 		printerr("Unexpected Case where creature's HP was already <= 0, intended?")
 
@@ -267,7 +267,8 @@ func _perform_combat(target_instance: SummonInstance):
 		"event_type": "combat_damage",
 		"attacking_player": owner_combatant.combatant_name,
 		"attacking_lane": lane_index + 1,
-		"attacking_card_id": self.card_resource.id, # Good to add
+		"attacking_card_id": self.card_resource.id,
+		"attacking_instance_id": self.instance_id,
 		"instance_id": self.instance_id,
 		"defending_player": target_instance.owner_combatant.combatant_name,
 		"defending_lane": target_instance.lane_index + 1,

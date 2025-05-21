@@ -28,6 +28,7 @@ func apply_effect(p_inferno_card_in_zone: CardInZone, active_combatant: Combatan
 		battle_instance.add_event({
 			"event_type": "log_message",
 			"message": "Inferno (Instance: %s) cast but found no targets." % inferno_spell_instance_id,
+			"instance_id": inferno_spell_instance_id,
 			"source_instance_id": inferno_spell_instance_id
 		})
 		return

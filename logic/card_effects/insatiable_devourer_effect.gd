@@ -13,7 +13,7 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant, _opponent_co
 		# Check if it's another summon and NOT the Devourer itself
 		if other_instance != null and other_instance != summon_instance:
 			print("...Devouring %s in lane %d." % [other_instance.card_resource.card_name, i + 1])
-			other_instance.die() # die() handles events
+			other_instance.die(summon_instance.card_resource.id, summon_instance.instance_id)
 			consumed_count += 1
 
 	if consumed_count > 0:

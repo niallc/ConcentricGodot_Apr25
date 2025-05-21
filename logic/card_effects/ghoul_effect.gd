@@ -22,7 +22,7 @@ func _on_arrival(_summon_instance: SummonInstance, _active_combatant: Combatant,
 		# It retains its instance_id.
 		# Signature: add_card_to_graveyard(card_in_zone_obj: CardInZone, from_zone: String, p_instance_id_if_relevant: int = -1)
 		# p_instance_id_if_relevant is the ID the card had in the from_zone, which is milled_card_original_instance_id
-		opponent_combatant.add_card_to_graveyard(milled_card_in_zone, "library_bottom_ghoul_mill", milled_card_original_instance_id)
+		opponent_combatant.add_card_to_graveyard(milled_card_in_zone, "library_bottom_ghoul_mill", milled_card_original_instance_id, _summon_instance.card_resource.id, _summon_instance.instance_id)
 		# The card_moved event inside add_card_to_graveyard will use milled_card_original_instance_id.
 
 		# Optional visual effect for the mill action

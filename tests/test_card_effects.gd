@@ -2848,33 +2848,35 @@ func test_reassembling_legion_returns_to_deck_on_death():
 	var new_legion_library_instance_id_from_event: int = -1
 
 	for event_data in new_events:
-		var event_type = event_data.get("event_type")
-		var event_instance_id = event_data.get("instance_id")
-		var event_source_card_id = event_data.get("source_card_id")
-		var event_source_instance_id = event_data.get("source_instance_id")
+		var type = event_data.get("event_type")
+		var inst_id = event_data.get("instance_id")
+		var card_id = event_data.get("card_id") # Card ID of the event's subject
+		var src_card_id = event_data.get("source_card_id")
+		var src_inst_id = event_data.get("source_instance_id")
 
-		if event_type == "creature_hp_change" and \
-		   event_instance_id == legion_original_field_instance_id and \
-		   event_source_card_id == test_damage_source_card_id:
+		if type == "creature_hp_change" and \
+		   inst_id == legion_original_field_instance_id and \
+		   src_card_id == test_damage_source_card_id and \
+		   src_inst_id == test_damage_source_instance_id: # Check damage source
 			hp_change_event_found = true
 		
-		elif event_type == "creature_defeated" and \
-			 event_instance_id == legion_original_field_instance_id and \
-			 event_data.get("card_id") == "ReassemblingLegion":
+		elif type == "creature_defeated" and \
+			 inst_id == legion_original_field_instance_id and \
+			 card_id == "ReassemblingLegion":
 			legion_defeated_event_found = true
-			# The source of defeat is the test damage effect
-			assert_eq(event_source_card_id, test_damage_source_card_id, "Legion defeated: source_card_id mismatch.")
-			assert_eq(event_source_instance_id, test_damage_source_instance_id, "Legion defeated: source_instance_id mismatch.")
+			# Now check the source of death, which was the test damage
+			assert_eq(src_card_id, test_damage_source_card_id, "Legion defeated: source_card_id (cause of death) mismatch.")
+			assert_eq(src_inst_id, test_damage_source_instance_id, "Legion defeated: source_instance_id (cause of death) mismatch.")
 
-		elif event_type == "card_moved" and \
+		elif type == "card_moved" and \
 			 event_data.get("card_id") == "ReassemblingLegion" and \
-			 event_instance_id == legion_original_field_instance_id and \
+			 inst_id == legion_original_field_instance_id and \
 			 event_data.get("from_zone") == "lane" and \
 			 event_data.get("to_zone") == "library":
 			legion_moved_to_library_event_found = true
 			# This move is caused by Legion's own death effect
-			assert_eq(event_source_card_id, "ReassemblingLegion", "Legion moved_to_library: source_card_id incorrect.")
-			assert_eq(event_source_instance_id, legion_original_field_instance_id, "Legion moved_to_library: source_instance_id incorrect.")
+			assert_eq(src_card_id, "ReassemblingLegion", "Legion moved_to_library: source_card_id incorrect.")
+			assert_eq(src_inst_id, legion_original_field_instance_id, "Legion moved_to_library: source_instance_id incorrect.")
 			new_legion_library_instance_id_from_event = event_data.get("to_details", {}).get("instance_id")
 			assert_ne(new_legion_library_instance_id_from_event, legion_original_field_instance_id, "Legion in library should have a new instance ID in to_details for card_moved event.")
 
@@ -2971,6 +2973,7 @@ func test_ghoul_mills_opponent_bottom_card():
 
 	assert_true(card_moved_event_found, "Card_moved event for Ghoul mill not found or improperly sourced.")
 	assert_true(visual_effect_found, "Visual effect for Ghoul mill action not found or improperly sourced.")
+
 # --- Knight of Opposites Tests ---
 func test_knight_of_opposites_swaps_hp():
 	var setup = create_test_battle_setup()
@@ -3233,7 +3236,12 @@ func test_indulged_princeling_mills_self(): # Scenario: Enough cards to mill, Pr
 		assert_eq(player.library[0].get_card_instance_id(), knight_lib_id, "Knight's instance ID mismatch in library.")
 
 	# Assert: Princeling still in lane (did not sacrifice)
-	assert_true(player.lanes[0] == princeling_instance, "Princeling should remain in lane when enough cards are milled.")
+	if player.lanes[0] != null and princeling_instance != null:
+		print("DEBUG: ID of object in lane[0]: ", player.lanes[0].get_instance_id())
+		print("DEBUG: ID of original princeling_instance: ", princeling_instance.get_instance_id())
+		assert_eq(player.lanes[0].get_instance_id(), princeling_instance.get_instance_id(), "The object in lane[0] should be the exact same instance as the original princeling_instance.")
+	else:
+		fail_test("Either player.lanes[0] or princeling_instance is null, which is unexpected here.")
 	assert_false(princeling_instance.custom_state.has("prevent_graveyard"), "Princeling should not have prevent_graveyard if it didn't die.")
 
 

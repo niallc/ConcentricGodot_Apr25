@@ -24,7 +24,7 @@ func _on_deal_direct_damage(summon_instance: SummonInstance, _target_player_comb
 
 	# 2. Sacrifice self (Walking Sarcophagus) FIRST
 	print("...Sarcophagus (Instance: %s) sacrificing itself." % sarcophagus_instance_id)
-	summon_instance.die() # This generates creature_defeated and card_moved (lane to grave) for Sarcophagus
+	summon_instance.die(sarcophagus_card_id, sarcophagus_instance_id) # This generates creature_defeated and card_moved (lane to grave) for Sarcophagus
 
 	# 3. Reanimate target if found AND lane Sarcophagus was in is now clear
 	if target_card_from_graveyard != null:

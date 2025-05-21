@@ -69,5 +69,6 @@ func _perform_modified_direct_attack(summon_instance: SummonInstance, active_com
 			"source_card_id": samurai_card_id,         # Self-sacrifice
 			"source_instance_id": samurai_instance_id  # Self-sacrifice
 		})
-		summon_instance.die() # This will trigger creature_defeated and card_moved to graveyard
-							  # The source of these events will be the Samurai itself.
+		# die() will trigger creature_defeated and card_moved to graveyard
+		# The source of these events will be the Samurai itself.
+		summon_instance.die(samurai_card_id, samurai_instance_id)

@@ -35,7 +35,7 @@ func _on_arrival(_summon_instance: SummonInstance, active_combatant, opponent_co
 				"source_instance_id": _summon_instance.instance_id,
 				"instance_id": target_instance.instance_id
 			}) # visual_effect event
-			target_instance.die() # die() handles events
+			target_instance.die(_summon_instance.card_resource.id, _summon_instance.instance_id)
 		else:
 			# Should not happen if opponent_creature_count > 0, but log defensively
 			printerr("Angel of Justice Error: Condition met but no rightmost creature found?")

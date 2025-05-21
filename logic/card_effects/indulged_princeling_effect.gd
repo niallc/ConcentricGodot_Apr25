@@ -21,7 +21,9 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant: Combatant, _
 				print("    -> Milling %s (Instance: %s)" % [milled_card_in_zone.get_card_name(), milled_card_in_zone.get_card_instance_id()])
 				# Pass the CardInZone object and its original instance ID (from library) to add_card_to_graveyard
 				# The CardInZone object itself is moved, so it keeps its instance ID.
-				active_combatant.add_card_to_graveyard(milled_card_in_zone, "library_top_princeling_mill", milled_card_in_zone.get_card_instance_id())
+				active_combatant.add_card_to_graveyard(milled_card_in_zone, "library_top_princeling_mill",
+													  milled_card_in_zone.get_card_instance_id(), princeling_card_id,
+													  princeling_instance_id)
 			else:
 				printerr("Indulged Princeling (Instance: %s): Popped null or invalid CardInZone from library." % princeling_instance_id)
 				# If something goes wrong here, we might still need to consider the sacrifice logic below.
@@ -39,4 +41,5 @@ func _on_arrival(summon_instance: SummonInstance, active_combatant: Combatant, _
 			"source_card_id": princeling_card_id,
 			"source_instance_id": princeling_instance_id 
 		})
-		summon_instance.die() # This will generate creature_defeated & card_moved (Princeling to grave)
+		# die will generate creature_defeated & card_moved events (Princeling to grave)
+		summon_instance.die(princeling_card_id, princeling_instance_id)

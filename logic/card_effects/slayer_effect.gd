@@ -19,7 +19,7 @@ func _on_arrival(summon_instance: SummonInstance, _active_combatant, opponent_co
 				"instance_id": target_instance.instance_id
 			})
 			# Destroy the target (die handles events)
-			target_instance.die()
+			target_instance.die(summon_instance.card_resource.id, summon_instance.instance_id)
 		else:
 			print("...Opposing creature (%s) is not Undead." % target_instance.card_resource.card_name)
 	else:

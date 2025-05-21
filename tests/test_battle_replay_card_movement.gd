@@ -5,39 +5,67 @@ var replay_logic: BattleReplay # Assuming BattleReplay is class_name for battle_
 var mock_events: Array[Dictionary]
 
 func before_each():
-	replay_logic = BattleReplay.new() # Or instance from scene if needed
-	# We need to manually set up player names if _determine_player_identities isn't called
-	# or if the functions we test rely on them being pre-set.
-	# For simplicity in these unit tests, we can pre-set them.
-	replay_logic.player1_name = "Player" # Assuming Player is bottom
-	replay_logic.player2_name = "Opponent" # Assuming Opponent is top
+	replay_logic = BattleReplay.new() 
+	# Add to a temporary tree for testing node-specific logic if needed,
+	# but for pure logic tests on BattleReplay, this might not be necessary
+	# If GUT doesn't manage a tree for .new() nodes, they need manual free.
+	# get_tree().get_root().add_child(replay_logic) # Optional, if you need _ready, _process etc.
 
-	# Mock necessary HBoxContainers if _update_zone_display is called.
-	# For pure data tests, we might not need to call _update_zone_display.
+	replay_logic.player1_name = "Player" 
+	replay_logic.player2_name = "Opponent" 
+
+	# Create and assign mock nodes directly
 	replay_logic.bottom_player_library_hbox = HBoxContainer.new()
 	replay_logic.bottom_player_graveyard_hbox = HBoxContainer.new()
 	replay_logic.top_player_library_hbox = HBoxContainer.new()
 	replay_logic.top_player_graveyard_hbox = HBoxContainer.new()
-	# Add mock labels if _update_zone_display needs them
+	
 	replay_logic.bottom_player_library_count_label = Label.new()
-	# ... etc for other 3 count labels
+	replay_logic.bottom_player_graveyard_count_label = Label.new()
+	replay_logic.top_player_library_count_label = Label.new()
+	replay_logic.top_player_graveyard_count_label = Label.new()
+	
+	# If BattleReplay expects these @onready vars to be children, 
+	# you'd need to add them as children to replay_logic.
+	# For example:
+	# replay_logic.add_child(replay_logic.bottom_player_library_hbox) 
+	# This is important if @onready vars are used, as they resolve when added to tree.
+	# If they are just properties accessed by methods, direct assignment is fine,
+	# but they still need to be freed.
 
 	mock_events = []
-	gut.p("Setup complete")
+	gut.p("Setup complete for test_battle_replay_card_movement") # More specific print
 
 func after_each():
+	gut.p("Starting Teardown for test_battle_replay_card_movement")
+	# Free the manually created nodes that were assigned as properties
+	# Check is_instance_valid before calling queue_free just in case
 	if is_instance_valid(replay_logic.bottom_player_library_hbox):
 		replay_logic.bottom_player_library_hbox.queue_free()
-	# ... free other mocked nodes ...
+	if is_instance_valid(replay_logic.bottom_player_graveyard_hbox):
+		replay_logic.bottom_player_graveyard_hbox.queue_free()
+	if is_instance_valid(replay_logic.top_player_library_hbox):
+		replay_logic.top_player_library_hbox.queue_free()
+	if is_instance_valid(replay_logic.top_player_graveyard_hbox):
+		replay_logic.top_player_graveyard_hbox.queue_free()
+		
+	if is_instance_valid(replay_logic.bottom_player_library_count_label):
+		replay_logic.bottom_player_library_count_label.queue_free()
+	if is_instance_valid(replay_logic.bottom_player_graveyard_count_label):
+		replay_logic.bottom_player_graveyard_count_label.queue_free()
+	if is_instance_valid(replay_logic.top_player_library_count_label):
+		replay_logic.top_player_library_count_label.queue_free()
+	if is_instance_valid(replay_logic.top_player_graveyard_count_label):
+		replay_logic.top_player_graveyard_count_label.queue_free()
+
+	# Then free the main replay_logic node itself
 	if is_instance_valid(replay_logic):
-		replay_logic.queue_free() # If it's a Node
-		# replay_logic = null # If just an Object
-	gut.p("Teardown complete")
-
-# In res://tests/test_battle_replay_card_movement.gd
-
-# ... (before_each, after_each as you have them) ...
-
+		replay_logic.queue_free() 
+	
+	replay_logic = null # Clear the reference
+	mock_events.clear() # Clear the array if it held any complex objects
+	gut.p("Teardown complete for test_battle_replay_card_movement")
+	
 func test_initial_library_populates_arrays():
 	mock_events = [
 		{"event_type": "initial_library_state", "player": "Player", "card_ids": ["CardA", "CardB"]},
