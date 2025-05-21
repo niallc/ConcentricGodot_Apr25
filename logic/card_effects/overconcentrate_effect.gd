@@ -4,7 +4,7 @@ func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant,
 	print("Overconcentrate effect.")
 	# Find opponent's leftmost creature
 	var overconcentrate_spell_instance_id: int = p_overconcentrate_card_in_zone.get_card_instance_id()
-	#var overconcentrate_spell_card_id: String = p_overconcentrate_card_in_zone.get_card_id()
+	var overconcentrate_spell_card_id: String = p_overconcentrate_card_in_zone.get_card_id()
 	var target_instance = null # SummonInstance
 	var target_lane_index = -1
 	for i in range(opponent_combatant.lanes.size()):
@@ -24,18 +24,20 @@ func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant,
 				"lane": target_lane_index + 1,
 				"status": "Relentless",
 				"gained": true,
-				"source_card_id": overconcentrate_spell_instance_id,
+				"source_card_id": overconcentrate_spell_card_id,
 				"source_instance_id": overconcentrate_spell_instance_id,
+				"card_id": target_instance.card_resource.id,
 				"instance_id": target_instance.instance_id,
 				"instance_id_note": "Note that 'instance_id' by default refers to the _affected_ entity, the target, here"
 			})
 			# Optional visual effect
 			battle_instance.add_event({
 				"event_type": "visual_effect",
-				"effect_id": "overconcentrate_debuff",
+				"effect_id": "overconcentrate_status_gain",
 				"instance_id": target_instance.instance_id,
+				"source_instance_id": overconcentrate_spell_instance_id,
 				"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, target_lane_index + 1]],
-				"details": {}
+				"details": {"status_gained": "Relentless"}
 			})
 		else:
 			print("...Target %s is already Relentless." % target_instance.card_resource.card_name)
@@ -44,6 +46,7 @@ func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant,
 		battle_instance.add_event({
 			"event_type":"log_message", 
 			"message":"Overconcentrate found no target.",
+			"source_instance_id": overconcentrate_spell_instance_id,
 			"instance_id": overconcentrate_spell_instance_id
 		})
 

@@ -52,5 +52,4 @@ func apply_effect(p_inferno_card_in_zone: CardInZone, active_combatant: Combatan
 			# That event will correctly list the target_summon_instance.instance_id as its main "instance_id".
 			# It will also correctly list p_inferno_card_res.id as the "source" (card type)
 			# and p_inferno_spell_instance_id as the "source_instance_id".
-			#func take_damage(amount: int, p_source_card_id: String, p_source_instance_id: int):
 			target_summon_instance.take_damage(damage_amount, inferno_spell_card_id, inferno_spell_instance_id)

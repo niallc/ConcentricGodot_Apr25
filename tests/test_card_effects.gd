@@ -1606,7 +1606,7 @@ func test_slayer_kills_undead_opponent():
 	# 3. card_moved (Skeleton from lane to library, due to Skeleton's own death effect, sourced by Skeleton itself)
 	#    (Note: recurring_skeleton_effect.gd sets prevent_graveyard = true)
 
-	var visual_effect_slayer_found: bool = false # Slayer's targeting visual
+	#var visual_effect_slayer_found: bool = false # Slayer's targeting visual
 	var skeleton_defeated_event_found: bool = false
 	var skeleton_moved_to_library_event_found: bool = false
 	var new_skeleton_library_instance_id_from_event: int = -1
@@ -1618,12 +1618,11 @@ func test_slayer_kills_undead_opponent():
 		var event_source_instance_id = event_data.get("source_instance_id")
 		var event_source_card_id = event_data.get("source_card_id")
 
-		if event_type == "visual_effect" and event_data.get("effect_id") == "slayer_destroy" and \
-		   event_instance_id == target_skeleton_original_field_instance_id and \
-		   event_source_instance_id == slayer_instance_id:
-			visual_effect_slayer_found = true
-		
-		elif event_type == "creature_defeated" and \
+		#if event_type == "visual_effect" and event_data.get("effect_id") == "slayer_destroy" and \
+		   #event_instance_id == target_skeleton_original_field_instance_id and \
+		   #event_source_instance_id == slayer_instance_id:
+			#visual_effect_slayer_found = true
+		if event_type == "creature_defeated" and \
 			 event_instance_id == target_skeleton_original_field_instance_id and \
 			 event_card_id == "RecurringSkeleton":
 			skeleton_defeated_event_found = true
@@ -2614,7 +2613,7 @@ func test_glassgraft_reanimates_and_sacrifices():
 	var new_events_action2: Array[Dictionary] = battle.battle_events.slice(initial_event_count_action2)
 	var knight_activity_found = false
 	var knight_direct_damage_found = false
-	var knight_sacrifice_visual_found = false
+	#var knight_sacrifice_visual_found = false
 	var knight_defeated_found = false
 	var knight_moved_to_grave_after_sacrifice_found = false
 
@@ -2632,8 +2631,8 @@ func test_glassgraft_reanimates_and_sacrifices():
 		# If SummonInstance added a specific visual event for this sacrifice, we'd check it.
 		# For now, we rely on the sequence. The "samurai_sacrifice" was for Repentant Samurai.
 		# Let's assume SummonInstance._perform_direct_attack might add a visual effect with id "glassgraft_sacrifice"
-		elif event_type == "visual_effect" and event_data.get("effect_id") == "glassgraft_sacrifice" and event_instance_id == reanimated_knight_original_field_id:
-			knight_sacrifice_visual_found = true # This is speculative
+		#elif event_type == "visual_effect" and event_data.get("effect_id") == "glassgraft_sacrifice" and event_instance_id == reanimated_knight_original_field_id:
+			#knight_sacrifice_visual_found = true # This is speculative
 		elif event_type == "creature_defeated" and event_instance_id == reanimated_knight_original_field_id:
 			knight_defeated_found = true
 		elif event_type == "card_moved" and \
@@ -2709,7 +2708,7 @@ func test_unmake_destroys_non_undead():
 		var event_type = event_data.get("event_type")
 		var event_instance_id = event_data.get("instance_id")
 		var event_source_instance_id = event_data.get("source_instance_id")
-		var event_source_card_id = event_data.get("source_card_id")
+		#var event_source_card_id = event_data.get("source_card_id")
 
 		if event_type == "visual_effect" and \
 		   event_data.get("effect_id") == "unmake_targeting_visual" and \
@@ -3146,7 +3145,7 @@ func test_walking_sarcophagus_sacrifices_and_reanimates():
 		var inst_id = event_data.get("instance_id")
 		var card_id = event_data.get("card_id")
 		var src_inst_id = event_data.get("source_instance_id")
-		var src_card_id = event_data.get("source_card_id")
+		#var src_card_id = event_data.get("source_card_id")
 
 		if type == "summon_turn_activity" and inst_id == sarcophagus_original_field_id: sarc_activity_found = true
 		elif type == "direct_damage" and event_data.get("attacking_instance_id") == sarcophagus_original_field_id: sarc_direct_damage_found = true
@@ -3431,7 +3430,7 @@ func test_elsewhere_bounces_leftmost():
 		var event_instance_id = event_data.get("instance_id") # Main instance_id of the event
 		var event_card_id = event_data.get("card_id")
 		var event_source_instance_id = event_data.get("source_instance_id")
-		var event_source_card_id = event_data.get("source_card_id")
+		#var event_source_card_id = event_data.get("source_card_id")
 
 		if event_type == "summon_leaves_lane" and \
 		   event_instance_id == scout_original_field_instance_id and \
@@ -3520,7 +3519,7 @@ func test_carnivorous_plant_adds_scout_to_grave():
 		var card_id = event_data.get("card_id")
 		var inst_id = event_data.get("instance_id")
 		var src_inst_id = event_data.get("source_instance_id")
-		var src_card_id = event_data.get("source_card_id")
+		#var src_card_id = event_data.get("source_card_id")
 
 		if type == "card_moved" and \
 		   card_id == "GoblinScout" and \
@@ -4515,115 +4514,100 @@ func test_scavenger_ghoul_consumes_and_heals():
 # --- Heedless Vandal Tests ---
 func test_heedless_vandal_mills_both():
 	var setup = create_test_battle_setup()
-	var player: Combatant = setup["player"]    # Vandal's owner
+	var player: Combatant = setup["player"]    
 	var opponent: Combatant = setup["opponent"]
 	var battle: Battle = setup["battle"]
 	
-	# Setup player's library with one CardInZone
 	player.library.clear()
 	var p_knight_lib_id = battle._generate_new_card_instance_id()
-	var player_knight_ciz = CardInZone.new(knight_res, p_knight_lib_id)
-	player.library.append(player_knight_ciz)
+	player.library.append(CardInZone.new(knight_res, p_knight_lib_id)) # Knight in player's library
 	
-	# Setup opponent's library with one CardInZone
 	opponent.library.clear()
 	var o_scout_lib_id = battle._generate_new_card_instance_id()
-	var opponent_scout_ciz = CardInZone.new(goblin_scout_res, o_scout_lib_id)
-	opponent.library.append(opponent_scout_ciz)
+	opponent.library.append(CardInZone.new(goblin_scout_res, o_scout_lib_id)) # Scout in opponent's library
 	
-	var initial_player_lib_size: int = player.library.size()     # Should be 1
-	var initial_opponent_lib_size: int = opponent.library.size() # Should be 1
+	var initial_player_lib_size: int = player.library.size()    
+	var initial_opponent_lib_size: int = opponent.library.size() 
 	var initial_player_grave_size: int = player.graveyard.size()
 	var initial_opponent_grave_size: int = opponent.graveyard.size()
 	
-	# Simulate Heedless Vandal arrival (owned by player)
-	var vandal_instance = SummonInstance.new()
-	var vandal_instance_id: int = battle._generate_new_card_instance_id()
-	vandal_instance.setup(heedless_vandal_res, player, opponent, 0, battle, vandal_instance_id)
-	# player.lanes[0] = vandal_instance # If placement needed for effect
+	var vandal_instance = place_summon_for_test(player, heedless_vandal_res, 0, battle) # Vandal owned by player
+	var vandal_instance_id: int = vandal_instance.instance_id
 
 	var initial_event_count: int = battle.battle_events.size()
 
-	# Action: Call Heedless Vandal's _on_arrival effect
 	if heedless_vandal_res.has_method("_on_arrival"):
 		heedless_vandal_res._on_arrival(vandal_instance, player, opponent, battle)
 	else:
 		fail_test("Heedless Vandal resource does not have _on_arrival method.")
 		return
 
-	# Assert: Player's library decreased by 1 (empty)
-	assert_eq(player.library.size(), initial_player_lib_size - 1, "Vandal: Player library size incorrect after mill.")
-	assert_true(player.library.is_empty(), "Player library should be empty.")
+	assert_eq(player.library.size(), initial_player_lib_size - 1, "Vandal: Player library size incorrect.")
+	assert_eq(opponent.library.size(), initial_opponent_lib_size - 1, "Vandal: Opponent library size incorrect.")
+	assert_eq(player.graveyard.size(), initial_player_grave_size + 1, "Vandal: Player graveyard size incorrect.")
+	assert_eq(opponent.graveyard.size(), initial_opponent_grave_size + 1, "Vandal: Opponent graveyard size incorrect.")
 	
-	# Assert: Opponent's library decreased by 1 (empty)
-	assert_eq(opponent.library.size(), initial_opponent_lib_size - 1, "Vandal: Opponent library size incorrect after mill.")
-	assert_true(opponent.library.is_empty(), "Opponent library should be empty.")
-
-	# Assert: Player's graveyard increased by 1
-	assert_eq(player.graveyard.size(), initial_player_grave_size + 1, "Vandal: Player graveyard size incorrect after mill.")
-	# Assert: Opponent's graveyard increased by 1
-	assert_eq(opponent.graveyard.size(), initial_opponent_grave_size + 1, "Vandal: Opponent graveyard size incorrect after mill.")
-	
-	# Assert: Correct cards milled to respective graveyards, maintaining their instance IDs
-	assert_true(player.graveyard[-1] is CardInZone, "Milled card in player's graveyard should be CardInZone.")
 	var milled_knight_in_player_grave = player.graveyard[-1] as CardInZone
-	if milled_knight_in_player_grave:
-		assert_eq(milled_knight_in_player_grave.get_card_id(), "Knight", "Incorrect card_id milled to player's graveyard.")
-		assert_eq(milled_knight_in_player_grave.get_card_instance_id(), p_knight_lib_id, "Instance ID of milled Knight should be maintained in player's graveyard.")
-	else:
-		fail_test("Card in player's graveyard was not a CardInZone as expected.")
-
-	assert_true(opponent.graveyard[-1] is CardInZone, "Milled card in opponent's graveyard should be CardInZone.")
+	assert_true(milled_knight_in_player_grave != null and milled_knight_in_player_grave.get_card_id() == "Knight" and milled_knight_in_player_grave.get_card_instance_id() == p_knight_lib_id)
+	
 	var milled_scout_in_opponent_grave = opponent.graveyard[-1] as CardInZone
-	if milled_scout_in_opponent_grave:
-		assert_eq(milled_scout_in_opponent_grave.get_card_id(), "GoblinScout", "Incorrect card_id milled to opponent's graveyard.")
-		assert_eq(milled_scout_in_opponent_grave.get_card_instance_id(), o_scout_lib_id, "Instance ID of milled Scout should be maintained in opponent's graveyard.")
-	else:
-		fail_test("Card in opponent's graveyard was not a CardInZone as expected.")
+	assert_true(milled_scout_in_opponent_grave != null and milled_scout_in_opponent_grave.get_card_id() == "GoblinScout" and milled_scout_in_opponent_grave.get_card_instance_id() == o_scout_lib_id)
 
-	# Assert: Event generation
 	var new_events: Array[Dictionary] = battle.battle_events.slice(initial_event_count)
-	# Expected events:
-	# - 1x card_moved (Player's Knight: library -> graveyard, from mill_top_card)
-	# - 1x card_moved (Opponent's Scout: library -> graveyard, from mill_top_card)
-	# - 1x visual_effect (for Vandal's overall mill action)
-	# Total = 3 events
-	# Note: Combatant.mill_top_card calls remove_card_from_library (event lib->play) then add_card_to_graveyard (event play->grave).
-	# So, each mill is actually TWO card_moved events. Total = 2 (player) + 2 (opponent) + 1 (vandal visual) = 5 events.
+	# Expect 5 events:
+	# Player mill: (1) lib->play, (2) play->grave (sourced by Vandal via mill_top_card -> add_card_to_graveyard)
+	# Opponent mill: (3) lib->play, (4) play->grave (sourced by Vandal via mill_top_card -> add_card_to_graveyard)
+	# (5) Vandal visual effect
+	assert_eq(new_events.size(), 5, "Heedless Vandal effect should generate 5 events. Found: %s" % new_events.size())
 
-	assert_eq(new_events.size(), 5, "Heedless Vandal effect should generate 5 events (2x2 card_moved + 1 visual). Found: %s" % new_events.size())
-
-	var player_mill_to_play_found: bool = false
-	var player_mill_to_grave_found: bool = false
-	var opponent_mill_to_play_found: bool = false
-	var opponent_mill_to_grave_found: bool = false
+	var player_mill_lib_to_play_found: bool = false
+	var player_mill_play_to_grave_found: bool = false
+	var opponent_mill_lib_to_play_found: bool = false
+	var opponent_mill_play_to_grave_found: bool = false
 	var vandal_visual_effect_found: bool = false
+
+	# Store the new graveyard instance IDs for verification if add_card_to_graveyard re-wraps with a new ID
+	# However, our current add_card_to_graveyard keeps the passed CardInZone's ID.
+	var player_knight_final_gy_id = milled_knight_in_player_grave.get_card_instance_id() 
+	var opponent_scout_final_gy_id = milled_scout_in_opponent_grave.get_card_instance_id()
 
 	for event_data in new_events:
 		var type = event_data.get("event_type")
-		var inst_id = event_data.get("instance_id") # ID of the card being moved
+		var inst_id = event_data.get("instance_id") 
 		var event_player = event_data.get("player")
 		var from_zone = event_data.get("from_zone")
 		var to_zone = event_data.get("to_zone")
 		var card_id = event_data.get("card_id")
-		# For card_moved from mill, source_instance_id might not be easily set to Vandal by default yet
+		var src_card_id = event_data.get("source_card_id")
+		var src_inst_id = event_data.get("source_instance_id")
 
 		if type == "card_moved" and event_player == player.combatant_name and card_id == "Knight" and inst_id == p_knight_lib_id:
-			if from_zone == "library" and to_zone == "play": player_mill_to_play_found = true
-			elif from_zone == "play" and to_zone == "graveyard": player_mill_to_grave_found = true
+			if from_zone == "library" and to_zone == "play": 
+				player_mill_lib_to_play_found = true
+				# This event is from remove_card_from_library, might not have Vandal as source yet
+			elif from_zone == "play" and to_zone == "graveyard": 
+				player_mill_play_to_grave_found = true
+				assert_eq(src_card_id, heedless_vandal_res.id, "Player mill (play->grave): source_card_id (Vandal) incorrect.")
+				assert_eq(src_inst_id, vandal_instance_id, "Player mill (play->grave): source_instance_id (Vandal) incorrect.")
+				assert_eq(event_data.get("to_details", {}).get("instance_id"), player_knight_final_gy_id, "Player mill (play->grave): to_details.instance_id mismatch.")
 		
 		elif type == "card_moved" and event_player == opponent.combatant_name and card_id == "GoblinScout" and inst_id == o_scout_lib_id:
-			if from_zone == "library" and to_zone == "play": opponent_mill_to_play_found = true
-			elif from_zone == "play" and to_zone == "graveyard": opponent_mill_to_grave_found = true
+			if from_zone == "library" and to_zone == "play": 
+				opponent_mill_lib_to_play_found = true
+			elif from_zone == "play" and to_zone == "graveyard": 
+				opponent_mill_play_to_grave_found = true
+				assert_eq(src_card_id, heedless_vandal_res.id, "Opponent mill (play->grave): source_card_id (Vandal) incorrect.")
+				assert_eq(src_inst_id, vandal_instance_id, "Opponent mill (play->grave): source_instance_id (Vandal) incorrect.")
+				assert_eq(event_data.get("to_details", {}).get("instance_id"), opponent_scout_final_gy_id, "Opponent mill (play->grave): to_details.instance_id mismatch.")
 
 		elif type == "visual_effect" and event_data.get("effect_id") == "heedless_vandal_mill_action" and \
-			 inst_id == vandal_instance_id and event_data.get("source_instance_id") == vandal_instance_id:
+			 inst_id == vandal_instance_id and src_inst_id == vandal_instance_id:
 			vandal_visual_effect_found = true
 			
-	assert_true(player_mill_to_play_found, "Vandal: Player's Knight card_moved (lib->play) event missing.")
-	assert_true(player_mill_to_grave_found, "Vandal: Player's Knight card_moved (play->grave) event missing.")
-	assert_true(opponent_mill_to_play_found, "Vandal: Opponent's Scout card_moved (lib->play) event missing.")
-	assert_true(opponent_mill_to_grave_found, "Vandal: Opponent's Scout card_moved (play->grave) event missing.")
+	assert_true(player_mill_lib_to_play_found, "Vandal: Player's Knight card_moved (lib->play) event missing.")
+	assert_true(player_mill_play_to_grave_found, "Vandal: Player's Knight card_moved (play->grave) event missing or improperly sourced.")
+	assert_true(opponent_mill_lib_to_play_found, "Vandal: Opponent's Scout card_moved (lib->play) event missing.")
+	assert_true(opponent_mill_play_to_grave_found, "Vandal: Opponent's Scout card_moved (play->grave) event missing or improperly sourced.")
 	assert_true(vandal_visual_effect_found, "Visual effect for Heedless Vandal's action not found or improperly sourced.")
 
 

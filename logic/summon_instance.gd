@@ -116,56 +116,63 @@ func heal(amount: int, p_source_card_id: String, p_source_instance_id: int):
 		battle_instance.add_event(event_data)
 
 
-func die():
-	print("%s dies!" % card_resource.card_name)
+# Updated signature to include the cause of death
+func die(p_cause_source_card_id: String = "unknown_cause", p_cause_source_instance_id: int = -1):
+	print("%s (Instance: %s) dies. Caused by: %s (Instance: %s)" % [card_resource.card_name, instance_id, p_cause_source_card_id, str(p_cause_source_instance_id)])
 
-	battle_instance.add_event({
+	var event_data_defeated = {
 		"event_type": "creature_defeated",
 		"player": owner_combatant.combatant_name,
-		"lane": lane_index + 1, # 1-based for events
-		"instance_id": instance_id,
-		"card_id": card_resource.id
-	})
+		"lane": lane_index + 1,
+		"card_id": card_resource.id,    # Card type of the defeated summon
+		"instance_id": instance_id,     # Instance ID of the defeated summon
+	}
+	# Add source of death if known (and not just "unknown_cause" from a direct test call perhaps)
+	if p_cause_source_card_id != "unknown_cause": # Or a more robust check if needed
+		event_data_defeated["source_card_id"] = p_cause_source_card_id
+	if p_cause_source_instance_id != -1:
+		event_data_defeated["source_instance_id"] = p_cause_source_instance_id
+	
+	battle_instance.add_event(event_data_defeated)
 
-	var prevent_graveyard = false # Flag to check
-	var replaced_in_lane = false # Introduced for CursedSamurai
+	var prevent_graveyard = false 
+	var replaced_in_lane = false 
 
 	if custom_state.has("prevent_graveyard"):
-		prevent_graveyard = custom_state["prevent_graveyard"]
-		custom_state.erase("prevent_graveyard") # Clear the flag
+		prevent_graveyard = custom_state.get("prevent_graveyard", false) # Add default for safety
+		custom_state.erase("prevent_graveyard") 
 
-	# Call _on_death effect script *before* graveyard/removal
+	# Call _on_death effect script (e.g., Recurring Skeleton, Reassembling Legion)
 	if card_resource != null and card_resource.has_method("_on_death"):
+		# _on_death itself doesn't currently take the cause of death, but it could if needed.
 		card_resource._on_death(self, owner_combatant, opponent_combatant, battle_instance)
-		# Re-check flag in case _on_death changed it (unlikely but possible)
-		if custom_state.has("prevent_graveyard"):
-			prevent_graveyard = custom_state["prevent_graveyard"]
+		if custom_state.has("prevent_graveyard"): # Re-check after _on_death
+			prevent_graveyard = custom_state.get("prevent_graveyard", false)
 			custom_state.erase("prevent_graveyard")
 
-	# At present the replaced_in_lane check only refers too Cursed Samurai
-	# Cursed Samurai handles its own lane update, so don't do anything else here.
 	if custom_state.has("replaced_in_lane"):
-		replaced_in_lane = custom_state["replaced_in_lane"]
+		replaced_in_lane = custom_state.get("replaced_in_lane", false)
+	
 	if not replaced_in_lane:
 		owner_combatant.remove_summon_from_lane(lane_index)
-
-	# Add the card to graveyard ONLY if not prevented
+	
 	if not prevent_graveyard:
 		if card_resource != null:
-			# 1. Create a *new* CardInZone for the graveyard representation.
-			#    This new CardInZone gets its own new instance_id.
 			var new_graveyard_instance_id = battle_instance._generate_new_card_instance_id()
 			var card_for_graveyard = CardInZone.new(card_resource, new_graveyard_instance_id)
 
-			# 2. Call add_card_to_graveyard:
-			#    - Pass the new CardInZone object.
-			#    - Pass the original SummonInstance's ID as 'p_instance_id_if_relevant'.
-			#      This tells the 'card_moved' event inside add_card_to_graveyard
-			#      to use *this* summon's instance_id for logging the "from lane" part.
-			owner_combatant.add_card_to_graveyard(card_for_graveyard, "lane", self.instance_id)
+			# Pass the cause of death to add_card_to_graveyard so the card_moved event
+			# can be sourced to what *caused* the creature to go to the graveyard (i.e., its death cause).
+			# Signature: add_card_to_graveyard(ciz, from_zone, origin_id, reason_card_id, reason_instance_id)
+			owner_combatant.add_card_to_graveyard(
+				card_for_graveyard, 
+				"lane",                             # p_from_zone
+				self.instance_id,                   # p_instance_id_from_origin_zone (the summon that was in lane)
+				p_cause_source_card_id,             # p_reason_card_id (what caused the death)
+				p_cause_source_instance_id          # p_reason_instance_id (specific instance that caused death)
+			)
 		else:
-			printerr("SummonInstance.die: card_resource is null. Cannot add to graveyard.")
-
+			printerr("SummonInstance (Instance: %s) .die(): card_resource is null. Cannot add to graveyard." % instance_id)
 # --- Turn Activity Logic ---
 func perform_turn_activity():
 	# ... (uses get_current_power() indirectly via helpers) ...
@@ -208,6 +215,7 @@ func _perform_direct_attack():
 		"attacking_player": owner_combatant.combatant_name,
 		"attacking_lane": lane_index + 1,
 		"attacking_card_id": self.card_resource.id, # Good to add attacker's card type
+		"attacking_instance_id": self.instance_id, # Good to add attacker's card type
 		"instance_id": self.instance_id, # This is the "instance_id" for this event, the attacker.
 		"target_player": opponent_combatant.combatant_name,
 		"amount": damage,
