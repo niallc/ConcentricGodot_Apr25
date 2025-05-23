@@ -6,7 +6,7 @@ class_name BattleReplay
 var battle_events: Array[Dictionary] = []
 var current_event_index: int = -1
 var is_playing: bool = false
-var playback_speed_scale: float = 3.0
+var playback_speed_scale: float = 8.0
 var step_delay: float = 0.5
 
 var active_summon_visuals: Dictionary = {} # instance_id -> SummonVisual node
@@ -276,6 +276,8 @@ func handle_summon_arrives(event):
 			if visual_node.has_method("update_display"):
 				# Pass the correctly typed default if "tags" is missing
 				visual_node.update_display(event.instance_id, card_res, event.power, event.current_hp, event.max_hp, event.get("tags", PackedStringArray()))
+				if visual_node.has_method("animate_fade_in"):
+					visual_node.animate_fade_in(0.7)
 			else:
 				printerr("SummonVisual node is missing update_display method.")
 		else:

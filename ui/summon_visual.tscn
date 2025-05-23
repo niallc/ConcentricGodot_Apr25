@@ -1,11 +1,12 @@
-[gd_scene load_steps=2 format=3 uid="uid://dfsa2vfghkuqc"]
+[gd_scene load_steps=3 format=3 uid="uid://dfsa2vfghkuqc"]
 
 [ext_resource type="Script" path="res://ui/summon_visual.gd" id="1_hfr8p"]
+[ext_resource type="Texture2D" uid="uid://bjv8ukhnbcmqe" path="res://art/RoundedCardBorderWithTransparency_v9.png" id="2_2afo0"]
 
 [node name="SummonVisual" type="Control"]
 clip_children = 2
 clip_contents = true
-custom_minimum_size = Vector2(100, 99.9)
+custom_minimum_size = Vector2(250, 350)
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,6 +24,13 @@ grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 3
 stretch_mode = 5
+
+[node name="CardFrameTextureRect" type="TextureRect" parent="."]
+z_index = 1
+layout_mode = 0
+offset_right = 1024.0
+offset_bottom = 1024.0
+texture = ExtResource("2_2afo0")
 
 [node name="StatsContainer" type="HBoxContainer" parent="."]
 layout_mode = 1

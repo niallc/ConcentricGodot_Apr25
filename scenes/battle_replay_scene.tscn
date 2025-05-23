@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://dm4f6sfd6oksw"]
+[gd_scene load_steps=9 format=3 uid="uid://dm4f6sfd6oksw"]
 
 [ext_resource type="Script" path="res://scenes/battle_replay.gd" id="1_03sn8"]
 
@@ -37,7 +37,15 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 5
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_su2kl"]
+bg_color = Color(0.237408, 0.220295, 0.20106, 1)
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c3u0l"]
+bg_color = Color(0.127736, 0.127736, 0.127736, 1)
 corner_radius_top_left = 45
 corner_radius_top_right = 45
 corner_radius_bottom_right = 45
@@ -137,6 +145,7 @@ size_flags_vertical = 3
 custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_su2kl")
 
 [node name="TopPlayerVBox" type="VBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea"]
 layout_mode = 1
@@ -246,11 +255,13 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_c3u0l")
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_c3u0l")
 
 [node name="Lane3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LaneContainer"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_c3u0l")
 
 [node name="VerticalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
 custom_minimum_size = Vector2(0, 120)
@@ -260,6 +271,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_su2kl")
 
 [node name="BottomPlayerVBox" type="VBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea"]
 layout_mode = 1
@@ -277,16 +289,19 @@ size_flags_vertical = 3
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_c3u0l")
 
 [node name="Lane2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LaneContainer"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_c3u0l")
 
 [node name="Lane3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LaneContainer"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_c3u0l")
 
 [node name="VerticalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
 custom_minimum_size = Vector2(0, 40)

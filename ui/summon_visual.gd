@@ -1,6 +1,9 @@
 # res://ui/summon_visual.gd
 extends Control
 
+# --- Constants ---
+const CARD_FRAME_TEXTURE = preload("res://art/RoundedCardBorderWithTransparency_v9.png")
+
 # --- Properties ---
 var instance_id: int = -1
 var card_id: String = ""
@@ -14,6 +17,7 @@ var current_max_hp_val: int = 0
 @onready var power_label: Label = $StatsContainer/PowerLabel
 @onready var hp_label: Label = $StatsContainer/HPLabel
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var card_frame_texture: TextureRect = $CardFrameTextureRect
 
 
 # Called by BattleReplay to initialize/update the visual display
@@ -81,6 +85,11 @@ func set_max_hp(new_max_hp: int):
 	current_hp_val = min(current_hp_val, current_max_hp_val)
 	update_hp_label()
 
+func animate_fade_in(duration: float):
+	modulate.a = 0.0 # Start fully transparent
+	var tween = create_tween()
+	tween.tween_property(self, "modulate:a", 1.0, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
 func play_animation(anim_name: String):
 	if animation_player and animation_player.has_animation(anim_name):
 		print("Playing animation '%s' for instance %d (%s)" % [anim_name, instance_id, card_id])
@@ -91,4 +100,14 @@ func play_animation(anim_name: String):
 
 
 func _ready():
-	pass
+	if card_frame_texture:
+		card_frame_texture.texture = CARD_FRAME_TEXTURE
+	card_frame_texture.modulate.a = 0.5
+	card_art_texture.modulate.a = 0.5
+	# Ensure CardArtTextureRect is drawn under the frame
+	# This can also be done by node order in the scene tree.
+	# If CardFrameTextureRect is later in the tree, it draws on top.
+	# Otherwise, you could explicitly set z_index if they were at the same level
+	# in a more complex hierarchy, but tree order is simplest here.
+	# e.g., card_art_texture.z_index = 0
+	#       card_frame_texture.z_index = 1
