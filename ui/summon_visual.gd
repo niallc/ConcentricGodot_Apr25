@@ -2,7 +2,7 @@
 extends Control
 
 # --- Constants ---
-const CARD_FRAME_TEXTURE = preload("res://art/RoundedCardBorderWithTransparency_v9.png")
+const CARD_FRAME_TEXTURE = preload("res://art/CardFramev10_RoundedCorners_TransparentCentre.png")
 
 # --- Properties ---
 var instance_id: int = -1

@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://dfsa2vfghkuqc"]
 
 [ext_resource type="Script" path="res://ui/summon_visual.gd" id="1_hfr8p"]
-[ext_resource type="Texture2D" uid="uid://bjv8ukhnbcmqe" path="res://art/RoundedCardBorderWithTransparency_v9.png" id="2_2afo0"]
+[ext_resource type="Texture2D" uid="uid://d0el1armwradj" path="res://art/CardFramev10_RoundedCorners_TransparentCentre.png" id="2_jgu0a"]
 
 [node name="SummonVisual" type="Control"]
 clip_children = 2
@@ -29,24 +29,22 @@ anchor_bottom = 1.0
 offset_left = 15.0
 offset_top = 15.0
 offset_right = -15.0
-offset_bottom = -15.0
+offset_bottom = -5.0
 grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 1
-stretch_mode = 5
 metadata/_edit_use_anchors_ = true
 
 [node name="CardFrameTextureRect" type="TextureRect" parent="."]
-z_index = 1
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = 7.0
-offset_bottom = 7.0
+offset_right = -2.0
+offset_bottom = -2.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_2afo0")
+texture = ExtResource("2_jgu0a")
 expand_mode = 1
 stretch_mode = 5
 
