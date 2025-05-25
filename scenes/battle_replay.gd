@@ -231,20 +231,38 @@ func get_player_prefix(player_name_from_event: String) -> String:
 		printerr("Unknown player name '%s' for layout. Defaulting to Bottom." % player_name_from_event)
 		return "Bottom"
 
-func get_lane_node(player_name_from_event: String, lane_number_from_event: int) -> Node: # lane_number is 1-based
-	var prefix = get_player_prefix(player_name_from_event)
-	var container_node = null
+func get_lane_node(player_name_from_event: String, lane_number_from_event: int) -> Panel: # lane_number is 1-based
+	var prefix = get_player_prefix(player_name_from_event) # [cite: 10]
+	var lane_hbox_container: HBoxContainer = null # Changed type hint for clarity
 	if prefix == "Bottom":
-		container_node = bottom_lane_container
+		lane_hbox_container = bottom_lane_container # [cite: 1]
 	elif prefix == "Top":
-		container_node = top_lane_container
+		lane_hbox_container = top_lane_container # [cite: 1]
 
-	if container_node and lane_number_from_event >= 1 and lane_number_from_event <= container_node.get_child_count():
-		return container_node.get_child(lane_number_from_event - 1)
-	else:
-		printerr("Could not find lane node for %s lane %d" % [player_name_from_event, lane_number_from_event])
+	if not is_instance_valid(lane_hbox_container):
+		printerr("get_lane_node: Invalid HBoxContainer for player prefix '%s'" % prefix)
 		return null
 
+	# Construct the expected name, e.g., "Lane1", "Lane2"
+	var target_lane_name = "Lane" + str(lane_number_from_event)
+	
+	var found_node = lane_hbox_container.get_node_or_null(target_lane_name)
+
+	if not is_instance_valid(found_node):
+		printerr("get_lane_node: Node named '%s' not found under '%s'." % [target_lane_name, lane_hbox_container.name])
+		return null
+	
+	# Optional but recommended: Check if the found node is of the expected type (Panel)
+	if not found_node is Panel:
+		printerr("get_lane_node: Node '%s' was found, but it's not a Panel. It's a '%s'." % [target_lane_name, found_node.get_class()])
+		return null
+		
+	# TODO: Consider a more  specific check using a custom type for summon lanes.
+	# if not found_node.is_in_group("game_lane_panel"): # Requires adding "game_lane_panel" to your LaneX nodes' groups
+	# 	printerr("get_lane_node: Node '%s' is not in the 'game_lane_panel' group." % target_lane_name)
+	# 	return null
+
+	return found_node as Panel # Cast to Panel if you are sure or have checked type
 
 # --- Event Handler Functions ---
 
@@ -261,6 +279,10 @@ func handle_summon_arrives(event):
 	])
 
 	var target_lane_node = get_lane_node(event.player, event.lane)
+	if not is_instance_valid(target_lane_node):
+		printerr("Summon Arrives (Event %d): target_lane_node is NOT VALID. Player: %s, Lane: %d. Event data: %s" % [current_event_index, event.player, event.lane, event])
+	else:
+		print("Summon Arrives (Event %d): target_lane_node is valid: %s. Name: %s" % [current_event_index, target_lane_node.get_path(), target_lane_node.name])
 	if target_lane_node and SummonVisualScene:
 		for child in target_lane_node.get_children():
 			child.queue_free()
