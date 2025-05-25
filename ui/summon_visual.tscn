@@ -1,22 +1,23 @@
 [gd_scene load_steps=3 format=3 uid="uid://dfsa2vfghkuqc"]
 
 [ext_resource type="Script" path="res://ui/summon_visual.gd" id="1_hfr8p"]
-[ext_resource type="Texture2D" uid="uid://d0el1armwradj" path="res://art/CardFramev10_RoundedCorners_TransparentCentre.png" id="2_jgu0a"]
+[ext_resource type="Texture2D" uid="uid://bkbfcpqmibrvh" path="res://art/CardFramev10_RoundedCorners_TransparentCentre.png" id="2_jgu0a"]
 
 [node name="SummonVisual" type="Control"]
 clip_children = 2
+z_index = 1
 clip_contents = true
-custom_minimum_size = Vector2(457, 457)
+custom_minimum_size = Vector2(64, 64)
 layout_mode = 3
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -225.0
-offset_top = -225.0
-offset_right = 225.0
-offset_bottom = 225.0
+offset_left = -900.0
+offset_top = -750.0
+offset_right = -836.0
+offset_bottom = -686.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_hfr8p")
@@ -28,8 +29,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 15.0
 offset_top = 15.0
-offset_right = -15.0
-offset_bottom = -5.0
+offset_right = -371.0
+offset_bottom = -371.0
 grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 1
@@ -40,8 +41,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = -2.0
-offset_bottom = -2.0
+offset_right = -386.0
+offset_bottom = -386.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("2_jgu0a")

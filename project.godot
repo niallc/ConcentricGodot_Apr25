@@ -22,8 +22,8 @@ CardDB="*res://logic/tools/CardDB.gd"
 
 [display]
 
-window/size/viewport_width=1500
-window/size/viewport_height=1800
+window/size/viewport_width=1380
+window/size/viewport_height=1780
 
 [dotnet]
 
