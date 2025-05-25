@@ -85,8 +85,8 @@ func set_max_hp(new_max_hp: int):
 	current_hp_val = min(current_hp_val, current_max_hp_val)
 	update_hp_label()
 
-func animate_fade_in(duration: float):
-	modulate.a = 0.0 # Start fully transparent
+func animate_fade_in(duration: float, initial_transparency = 0.0):
+	modulate.a = initial_transparency # Start fully transparent
 	var tween = create_tween()
 	tween.tween_property(self, "modulate:a", 1.0, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
