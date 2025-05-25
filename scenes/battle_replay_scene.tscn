@@ -155,10 +155,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HorizontalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
-custom_minimum_size = Vector2(0, 10)
-layout_mode = 2
-
 [node name="LifeAndMana" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
 layout_mode = 2
 
@@ -246,7 +242,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="Lane1" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LaneContainer"]
-custom_minimum_size = Vector2(80, 100)
+custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_c3u0l")
@@ -264,7 +260,7 @@ size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_c3u0l")
 
 [node name="VerticalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 270)
 layout_mode = 2
 
 [node name="BottomPlayerArea" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox"]

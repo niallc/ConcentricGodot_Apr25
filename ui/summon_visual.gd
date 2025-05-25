@@ -102,9 +102,9 @@ func play_animation(anim_name: String):
 func _ready():
 	if card_frame_texture:
 		card_frame_texture.texture = CARD_FRAME_TEXTURE
-	card_frame_texture.modulate.a = 0.5
-	card_art_texture.modulate.a = 0.5
-	# Ensure CardArtTextureRect is drawn under the frame
+		card_frame_texture.modulate.a = 1 # Make frame semi-transparent
+	if card_art_texture:
+		card_art_texture.modulate.a = 1   # Make art semi-transparent	# Ensure CardArtTextureRect is drawn under the frame
 	# This can also be done by node order in the scene tree.
 	# If CardFrameTextureRect is later in the tree, it draws on top.
 	# Otherwise, you could explicitly set z_index if they were at the same level

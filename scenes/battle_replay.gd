@@ -623,7 +623,7 @@ func _update_zone_display(container_node: HBoxContainer, card_ids: Array[String]
 				icon.add_child(color_rect_fallback)
 
 
-			icon.custom_minimum_size = Vector2(90, 100) # Adjust size as needed
+			icon.custom_minimum_size = Vector2(90, 90) # Adjust size as needed
 			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			container_node.add_child(icon)
