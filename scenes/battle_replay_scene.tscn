@@ -434,7 +434,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
-[node name="Spacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard"]
+[node name="HorizontalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard"]
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -666,7 +666,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
-[node name="Spacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard"]
+[node name="HorizontalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard"]
 layout_mode = 2
 size_flags_horizontal = 3
 

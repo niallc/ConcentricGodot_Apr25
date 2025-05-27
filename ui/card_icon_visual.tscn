@@ -1,0 +1,39 @@
+[gd_scene load_steps=3 format=3 uid="uid://cv3uf0jrjmrwd"]
+
+[ext_resource type="Script" path="res://ui/card_icon_visual.gd" id="1_u6vvp"]
+[ext_resource type="Texture2D" uid="uid://bkbfcpqmibrvh" path="res://art/CardFramev10_RoundedCorners_TransparentCentre.png" id="2_lce1s"]
+
+[node name="CardIconVisual" type="Control"]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_u6vvp")
+
+[node name="CardArtTextureRect" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CardFrameTextureRect" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(20, 20)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_lce1s")
+expand_mode = 1
+stretch_mode = 5

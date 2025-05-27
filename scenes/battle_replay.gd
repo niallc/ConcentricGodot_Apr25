@@ -12,6 +12,7 @@ var step_delay: float = 0.5
 var active_summon_visuals: Dictionary = {} # instance_id -> SummonVisual node
 
 const SummonVisualScene = preload("res://ui/summon_visual.tscn")
+const CardIconVisualScene = preload("res://ui/card_icon_visual.tscn")
 
 # Store player names to map to Top/Bottom layout
 var player1_name: String = "" # Typically "Player"
@@ -703,41 +704,30 @@ func _update_zone_display(container_node: HBoxContainer, card_ids: Array[String]
 		printerr("_update_zone_display: Invalid container node.")
 		return
 
-	# Clear existing card icons
 	for child in container_node.get_children():
 		child.queue_free()
 
-	# Add new card icons
 	for card_id_str in card_ids:
-		if not CardDB:
+		if not CardDB: 
 			printerr("CardDB not available in _update_zone_display")
 			continue
 		var card_res = CardDB.get_card_resource(card_id_str)
 		if card_res and is_instance_valid(card_res):
-			var icon = TextureRect.new()
-			var tex = load(card_res.artwork_path) if ResourceLoader.exists(card_res.artwork_path) else null
-			if tex:
-				icon.texture = tex
-			else: # Fallback: use a ColorRect if art fails
-				icon.texture = null # Or a default "unknown card" texture
-				printerr("Missing art for %s at %s" % [card_id_str, card_res.artwork_path])
-				var color_rect_fallback = ColorRect.new()
-				color_rect_fallback.color = Color.DARK_SLATE_GRAY
-				color_rect_fallback.custom_minimum_size = Vector2(20,30) # Match your desired icon size
-				icon.add_child(color_rect_fallback)
+			var icon_visual = CardIconVisualScene.instantiate()
+			
+			# Add the visual to the tree FIRST
+			container_node.add_child(icon_visual)
+			
+			# Now that it's in the tree, _ready() will be called on it.
+			icon_visual.call_deferred("update_display", card_res) # Call update_display on the next idle frame
 
-
-			icon.custom_minimum_size = Vector2(90, 90) # Adjust size as needed
-			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			container_node.add_child(icon)
+			icon_visual.custom_minimum_size = Vector2(60, 80) 
+			
 		else:
 			printerr("Could not get CardResource for ID: ", card_id_str)
 
 	if is_instance_valid(count_label):
 		count_label.text = str(card_ids.size())
-	# else:
-		# print("No count label provided for zone: ", container_node.name)
 
 func handle_initial_library_state(event):
 	print("  -> Initial Library for %s: %s cards" % [event.player, event.card_ids.size()])
