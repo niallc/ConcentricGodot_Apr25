@@ -175,26 +175,40 @@ func die(p_cause_source_card_id: String = "unknown_cause", p_cause_source_instan
 			printerr("SummonInstance (Instance: %s) .die(): card_resource is null. Cannot add to graveyard." % instance_id)
 # --- Turn Activity Logic ---
 func perform_turn_activity():
-	# ... (uses get_current_power() indirectly via helpers) ...
-	var activity_type = "none"
+	var activity_type = "none" # Determine this first
 	var opposing_instance = opponent_combatant.lanes[lane_index]
+
+	# Determine activity_type based on script_override, relentless, or opposing_instance
+	var handled_by_override = false
 	if script_instance != null and script_instance.has_method("perform_turn_activity_override"):
-		if script_instance.perform_turn_activity_override(self, owner_combatant, opponent_combatant, battle_instance):
-			return
+		# The override itself should generate the summon_turn_activity event if it takes over
+		handled_by_override = script_instance.perform_turn_activity_override(self, owner_combatant, opponent_combatant, battle_instance)
+		if handled_by_override:
+			# Assuming the override added its own 'summon_turn_activity' or similar event.
+			return 
+
 	if is_relentless or opposing_instance == null:
 		activity_type = "direct_attack"
-		_perform_direct_attack()
 	else:
 		activity_type = "attack"
-		_perform_combat(opposing_instance)
+
+	# ADD THE EVENT *BEFORE* THE ACTION THAT CAUSES DAMAGE/DEATH
 	if activity_type != "none":
 		battle_instance.add_event({
 			"event_type": "summon_turn_activity",
 			"player": owner_combatant.combatant_name,
 			"lane": lane_index + 1,
 			"instance_id": instance_id,
+			"card_id": card_resource.id, # Good to have for the replay
 			"activity_type": activity_type
 		})
+
+	# NOW PERFORM THE ACTION
+	if activity_type == "direct_attack":
+		_perform_direct_attack()
+	elif activity_type == "attack":
+		# We already got opposing_instance
+		_perform_combat(opposing_instance)
 
 func _perform_direct_attack():
 	var bonus_damage = 0

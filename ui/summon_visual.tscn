@@ -1,7 +1,8 @@
-[gd_scene load_steps=7 format=3 uid="uid://dfsa2vfghkuqc"]
+[gd_scene load_steps=8 format=3 uid="uid://dfsa2vfghkuqc"]
 
 [ext_resource type="Script" path="res://ui/summon_visual.gd" id="1_hfr8p"]
 [ext_resource type="Texture2D" uid="uid://bkbfcpqmibrvh" path="res://art/CardFramev10_RoundedCorners_TransparentCentre.png" id="2_jgu0a"]
+[ext_resource type="FontFile" uid="uid://66eenj1vt4kd" path="res://data/fonts/LibreBaskerville-Bold.ttf" id="3_nebua"]
 
 [sub_resource type="Animation" id="Animation_4lwnb"]
 length = 0.001
@@ -101,14 +102,36 @@ offset_right = 38.0
 grow_vertical = 0
 alignment = 1
 
+[node name="HorizontalSpacer" type="Control" parent="StatsContainer"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+
 [node name="PowerLabel" type="Label" parent="StatsContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.999965, 0.665475, 0.613196, 0.823529)
+theme_override_colors/font_shadow_color = Color(0.247059, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0.662745, 0, 0.345098, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("3_nebua")
+theme_override_font_sizes/font_size = 25
 text = "P: 0"
+
+[node name="HorizontalSpacer2" type="Control" parent="StatsContainer"]
+custom_minimum_size = Vector2(76, 0)
+layout_mode = 2
 
 [node name="HPLabel" type="Label" parent="StatsContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.599972, 0.731475, 1, 0.823529)
+theme_override_colors/font_shadow_color = Color(0, 0, 0.431373, 1)
+theme_override_colors/font_outline_color = Color(0, 0.439216, 0.34902, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("3_nebua")
+theme_override_font_sizes/font_size = 25
 text = "0/0"
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]

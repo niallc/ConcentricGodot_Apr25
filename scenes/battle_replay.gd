@@ -39,10 +39,10 @@ const MANA_PIP_FULL_STYLE = preload("res://ui/styles/mana_pip_full_style.tres")
 @onready var bottom_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard
 @onready var top_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library
 @onready var top_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard
-@onready var top_player_library_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/LibraryCountLabel # Add this node in scene
-@onready var top_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
-@onready var bottom_player_library_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/LibraryCountLabel # Add this node in scene
-@onready var bottom_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
+#@onready var top_player_library_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/LibraryCountLabel # Add this node in scene
+#@onready var top_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
+#@onready var bottom_player_library_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/LibraryCountLabel # Add this node in scene
+#@onready var bottom_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
 
 # --- Store Graveyard and Library Card Names ---
 var player1_library_card_ids: Array[String] = []
@@ -134,10 +134,10 @@ func _initialize_player_stat_bars() -> void:
 
 func _initialize_card_zones_display() -> void:
 	# Clear initial display of library/graveyard counts and visuals
-	_update_zone_display(top_player_library_hbox, player1_library_card_ids, top_player_library_count_label)
-	_update_zone_display(top_player_graveyard_hbox, player1_graveyard_card_ids, top_player_graveyard_count_label)
-	_update_zone_display(bottom_player_library_hbox, player2_library_card_ids, bottom_player_library_count_label)
-	_update_zone_display(bottom_player_graveyard_hbox, player2_graveyard_card_ids, bottom_player_graveyard_count_label)
+	_update_zone_display(top_player_library_hbox, player1_library_card_ids)
+	_update_zone_display(top_player_graveyard_hbox, player1_graveyard_card_ids)
+	_update_zone_display(bottom_player_library_hbox, player2_library_card_ids)
+	_update_zone_display(bottom_player_graveyard_hbox, player2_graveyard_card_ids)
 	print("Card zones display initialized (empty).")
 
 func _process_initial_setup_events(initial_events: Array[Dictionary]) -> void:
@@ -148,23 +148,23 @@ func _process_initial_setup_events(initial_events: Array[Dictionary]) -> void:
 			# Inlined version of handle_initial_library_state for setup (as you had)
 			var target_library_arr_ref: Array = []
 			var target_library_display_node: HBoxContainer = null
-			var target_library_count_label: Label = null
+			#var target_library_count_label: Label = null
 
 			if event.player == player1_name:
 				target_library_arr_ref = player1_library_card_ids
 				target_library_display_node = bottom_player_library_hbox
-				target_library_count_label = bottom_player_library_count_label
+				#target_library_count_label = bottom_player_library_count_label
 			elif event.player == player2_name:
 				target_library_arr_ref = player2_library_card_ids
 				target_library_display_node = top_player_library_hbox
-				target_library_count_label = top_player_library_count_label
+				#target_library_count_label = top_player_library_count_label
 			
 			if target_library_arr_ref != null: # Should always be true if player name matched
 				target_library_arr_ref.clear() # Should already be clear from _reset_internal_battle_state
 				for card_id_str in event.card_ids:
 					target_library_arr_ref.append(card_id_str)
 				if target_library_display_node: # Should be valid
-					_update_zone_display(target_library_display_node, target_library_arr_ref, target_library_count_label)
+					_update_zone_display(target_library_display_node, target_library_arr_ref)
 			initial_events_processed_count += 1
 		elif event.get("event_type") == "turn_start": # Stop after initial library, before first turn starts
 			break 
@@ -452,8 +452,8 @@ func handle_card_moved(event):
 	var target_graveyard_arr: Array = []
 	var target_library_display_node: HBoxContainer = null
 	var target_graveyard_display_node: HBoxContainer = null
-	var target_library_count_label: Label = null
-	var target_graveyard_count_label: Label = null
+	#var target_library_count_label: Label = null
+	#var target_graveyard_count_label: Label = null
 
 	var card_id_to_move = event.card_id
 
@@ -462,15 +462,11 @@ func handle_card_moved(event):
 		target_graveyard_arr = player1_graveyard_card_ids
 		target_library_display_node = bottom_player_library_hbox
 		target_graveyard_display_node = bottom_player_graveyard_hbox
-		# target_library_count_label = bottom_player_library_count_label # Assign if you added these
-		# target_graveyard_count_label = bottom_player_graveyard_count_label
 	elif event.player == player2_name: # Assuming player2_name is top player
 		target_library_arr = player2_library_card_ids
 		target_graveyard_arr = player2_graveyard_card_ids
 		target_library_display_node = top_player_library_hbox
 		target_graveyard_display_node = top_player_graveyard_hbox
-		# target_library_count_label = top_player_library_count_label
-		# target_graveyard_count_label = top_player_graveyard_count_label
 	else:
 		printerr("Card Moved: Unknown player %s" % event.player)
 		await get_tree().create_timer(0.1 / playback_speed_scale).timeout
@@ -512,9 +508,9 @@ func handle_card_moved(event):
 
 	# Update displays
 	if target_library_display_node:
-		_update_zone_display(target_library_display_node, target_library_arr, target_library_count_label)
+		_update_zone_display(target_library_display_node, target_library_arr)
 	if target_graveyard_display_node:
-		_update_zone_display(target_graveyard_display_node, target_graveyard_arr, target_graveyard_count_label)
+		_update_zone_display(target_graveyard_display_node, target_graveyard_arr)
 
 	await get_tree().create_timer(0.3 / playback_speed_scale).timeout
 
@@ -528,7 +524,7 @@ func handle_card_removed(event):
 
 	var target_array_ref: Array
 	var target_display_node: HBoxContainer = null
-	var target_count_label: Label = null
+	#var target_count_label: Label = null
 	#var was_library_event = false
 
 	if player_name_from_event == self.player1_name: # Bottom player
@@ -536,11 +532,11 @@ func handle_card_removed(event):
 			"graveyard":
 				target_array_ref = player1_graveyard_card_ids
 				target_display_node = bottom_player_graveyard_hbox
-				target_count_label = bottom_player_graveyard_count_label
+				#target_count_label = bottom_player_graveyard_count_label
 			"library":
 				target_array_ref = player1_library_card_ids
 				target_display_node = bottom_player_library_hbox
-				target_count_label = bottom_player_library_count_label
+				#target_count_label = bottom_player_library_count_label
 				#was_library_event = true
 			_:
 				printerr("handle_card_removed: Unknown from_zone '%s' for player %s" % [from_zone_str, player_name_from_event])
@@ -550,11 +546,11 @@ func handle_card_removed(event):
 			"graveyard":
 				target_array_ref = player2_graveyard_card_ids
 				target_display_node = top_player_graveyard_hbox
-				target_count_label = top_player_graveyard_count_label
+				#target_count_label = top_player_graveyard_count_label
 			"library":
 				target_array_ref = player2_library_card_ids
 				target_display_node = top_player_library_hbox
-				target_count_label = top_player_library_count_label
+				#target_count_label = top_player_library_count_label
 				#was_library_event = true
 			_:
 				printerr("handle_card_removed: Unknown from_zone '%s' for player %s" % [from_zone_str, player_name_from_event])
@@ -573,7 +569,7 @@ func handle_card_removed(event):
 		if card_idx != -1:
 			target_array_ref.remove_at(card_idx)
 			if is_instance_valid(target_display_node):
-				_update_zone_display(target_display_node, target_array_ref, target_count_label)
+				_update_zone_display(target_display_node, target_array_ref)
 		else:
 			printerr("handle_card_removed: Card '%s' not found in %s's %s to remove." % [card_id_str, player_name_from_event, from_zone_str])
 	
@@ -699,7 +695,7 @@ func handle_battle_end(event):
 	is_playing = false
 	if playback_timer: playback_timer.stop()
 
-func _update_zone_display(container_node: HBoxContainer, card_ids: Array[String], count_label: Label):
+func _update_zone_display(container_node: HBoxContainer, card_ids: Array[String]):
 	if not is_instance_valid(container_node):
 		printerr("_update_zone_display: Invalid container node.")
 		return
@@ -726,14 +722,11 @@ func _update_zone_display(container_node: HBoxContainer, card_ids: Array[String]
 		else:
 			printerr("Could not get CardResource for ID: ", card_id_str)
 
-	if is_instance_valid(count_label):
-		count_label.text = str(card_ids.size())
-
 func handle_initial_library_state(event):
 	print("  -> Initial Library for %s: %s cards" % [event.player, event.card_ids.size()])
 	var target_library_arr_ref: Array # Use a reference to the array
 	var target_library_display_node: HBoxContainer = null
-	var target_library_count_label: Label = null # Add if you have count labels
+	#var target_library_count_label: Label = null # Add if you have count labels
 
 	if event.player == player1_name: # Bottom player (assuming player1 is bottom)
 		target_library_arr_ref = player1_library_card_ids
@@ -753,7 +746,7 @@ func handle_initial_library_state(event):
 			target_library_arr_ref.append(card_id_str)
 
 		if target_library_display_node:
-			_update_zone_display(target_library_display_node, target_library_arr_ref, target_library_count_label)
+			_update_zone_display(target_library_display_node, target_library_arr_ref)
 
 	# No specific await needed here unless _update_zone_display adds one or you want a pause
 	await get_tree().create_timer(0.1 / playback_speed_scale).timeout # Small delay for pacing if desired

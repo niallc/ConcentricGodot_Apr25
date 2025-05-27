@@ -53,7 +53,7 @@ func update_display(new_instance_id: int, new_card_res: SummonCardResource, powe
 
 	# TODO: Update status icons based on tags array
 
-	print("Updated visual for instance %d (%s): P:%d HP:%d/%d" % [instance_id, card_id, current_power_val, current_hp_val, current_max_hp_val])
+	print("Updated visual for instance %d (%s): %d HP:%d/%d" % [instance_id, card_id, current_power_val, current_hp_val, current_max_hp_val])
 
 	# --- MODIFIED: Call debug print from here if needed ---
 	# if get_tree().get_root().get_node_or_null("Placeholder_Root_Node2D/BattleReplayScene"):
@@ -66,7 +66,7 @@ func update_display(new_instance_id: int, new_card_res: SummonCardResource, powe
 
 func update_power_label():
 	if power_label:
-		power_label.text = "P: " + str(current_power_val)
+		power_label.text = "" + str(current_power_val)
 
 func update_hp_label():
 	if hp_label:
