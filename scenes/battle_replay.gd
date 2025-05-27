@@ -6,7 +6,7 @@ class_name BattleReplay
 var battle_events: Array[Dictionary] = []
 var current_event_index: int = -1
 var is_playing: bool = false
-var playback_speed_scale: float = 8.0
+var playback_speed_scale: float = 3.0
 var step_delay: float = 0.5
 
 var active_summon_visuals: Dictionary = {} # instance_id -> SummonVisual node
@@ -183,8 +183,9 @@ func _update_pip_bar(pips_container: HBoxContainer, current_value: int, _max_val
 	# Or, ensure pips_container always has 'max_value' pips from the scene setup.
 
 	for i in range(num_pips):
-		var pip_node = pips_container.get_child(i) as ColorRect
+		var pip_node = pips_container.get_child(i) as Panel
 		if not is_instance_valid(pip_node): # Should not happen if setup correctly
+			printerr("Failed to find a valid node when updating mana visual display.")
 			continue 
 
 		if i < current_value:

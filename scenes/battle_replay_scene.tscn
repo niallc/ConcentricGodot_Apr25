@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://dm4f6sfd6oksw"]
+[gd_scene load_steps=14 format=3 uid="uid://dm4f6sfd6oksw"]
 
 [ext_resource type="Script" path="res://scenes/battle_replay.gd" id="1_03sn8"]
 [ext_resource type="Texture2D" uid="uid://dsr8chb3emoqt" path="res://art/PhotoOfRockySurface2.jpeg" id="2_8rgtr"]
@@ -47,12 +47,26 @@ corner_radius_top_right = 30
 corner_radius_bottom_right = 30
 corner_radius_bottom_left = 30
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gbxq4"]
+bg_color = Color(0.13, 0.13, 0.13, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6n4jn"]
+bg_color = Color(0.129412, 0.129412, 0.129412, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c3u0l"]
 bg_color = Color(0.127736, 0.127736, 0.127736, 1)
-corner_radius_top_left = 45
-corner_radius_top_right = 45
-corner_radius_bottom_right = 45
-corner_radius_bottom_left = 45
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
 
 [node name="BattleReplayScene" type="Control"]
 layout_mode = 3
@@ -400,21 +414,25 @@ size_flags_horizontal = 3
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
 [node name="Deck2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
 [node name="Deck3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
 [node name="Deck4" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
 [node name="Spacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard"]
 layout_mode = 2
@@ -431,21 +449,25 @@ size_flags_horizontal = 3
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_6n4jn")
 
 [node name="Graveyard2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_6n4jn")
 
 [node name="Graveyard3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_6n4jn")
 
 [node name="Graveyard4" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_6n4jn")
 
 [node name="VerticalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
 custom_minimum_size = Vector2(0, 40)
@@ -518,7 +540,7 @@ custom_minimum_size = Vector2(0, 15)
 layout_mode = 2
 
 [node name="VerticalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
-custom_minimum_size = Vector2(0, 170)
+custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 
 [node name="BottomPlayerArea" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
@@ -624,21 +646,25 @@ size_flags_horizontal = 3
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
 [node name="Deck2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
 [node name="Deck3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
 [node name="Deck4" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_gbxq4")
 
 [node name="Spacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard"]
 layout_mode = 2
@@ -655,21 +681,25 @@ size_flags_horizontal = 3
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_6n4jn")
 
 [node name="Graveyard2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_6n4jn")
 
 [node name="Graveyard3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_6n4jn")
 
 [node name="Graveyard4" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard"]
 custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_6n4jn")
 
 [node name="VerticalSpacer2" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
 custom_minimum_size = Vector2(0, 10)
