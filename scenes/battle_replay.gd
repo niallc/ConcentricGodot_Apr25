@@ -85,15 +85,7 @@ func load_and_start_simple_replay(initial_events: Array[Dictionary]):
 	if top_player_hp_label: top_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
 	if top_player_mana_label: top_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
 
-	for visual in active_summon_visuals.values():
-		if is_instance_valid(visual): visual.queue_free()
-	active_summon_visuals.clear()
-	if is_instance_valid(bottom_lane_container):
-		for lane in bottom_lane_container.get_children():
-			for child in lane.get_children(): child.queue_free()
-	if is_instance_valid(top_lane_container):
-		for lane in top_lane_container.get_children():
-			for child in lane.get_children(): child.queue_free()
+	_clear_lane_visuals() # Clears visuals from the CardSlotSquares
 
 	# --- Process initial library state events immediately ---
 	var initial_events_processed_count = 0
@@ -135,6 +127,22 @@ func load_and_start_simple_replay(initial_events: Array[Dictionary]):
 	# call_deferred("_on_step_button_pressed") # Or let user press play/step
 
 	call_deferred("_on_step_button_pressed")
+
+func _clear_lane_visuals() -> void:
+	var lane_containers_to_process: Array[HBoxContainer] = []
+	if is_instance_valid(top_lane_container):
+		lane_containers_to_process.append(top_lane_container)
+	if is_instance_valid(bottom_lane_container):
+		lane_containers_to_process.append(bottom_lane_container)
+
+	for lane_hbox in lane_containers_to_process:
+		for lane_panel in lane_hbox.get_children():
+			if lane_panel is Panel:
+				var card_slot = lane_panel.get_node_or_null("CardSlotSquare")
+				if card_slot is AspectRatioContainer: # Check type
+					for child_node in card_slot.get_children():
+						if child_node == SummonVisual:
+							child_node.queue_free()
 
 func _on_play_button_pressed():
 	print("Replay: Play pressed")
@@ -231,41 +239,46 @@ func get_player_prefix(player_name_from_event: String) -> String:
 		printerr("Unknown player name '%s' for layout. Defaulting to Bottom." % player_name_from_event)
 		return "Bottom"
 
-func get_lane_node(player_name_from_event: String, lane_number_from_event: int) -> Panel: # lane_number is 1-based
-	var prefix = get_player_prefix(player_name_from_event) # [cite: 10]
-	var lane_hbox_container: HBoxContainer = null # Changed type hint for clarity
+func get_lane_node(player_name_from_event: String, lane_number_from_event: int) -> AspectRatioContainer:
+	var prefix = get_player_prefix(player_name_from_event)
+	var lane_hbox_container: HBoxContainer = null
 	if prefix == "Bottom":
-		lane_hbox_container = bottom_lane_container # [cite: 1]
+		lane_hbox_container = bottom_lane_container
 	elif prefix == "Top":
-		lane_hbox_container = top_lane_container # [cite: 1]
+		lane_hbox_container = top_lane_container
 
 	if not is_instance_valid(lane_hbox_container):
 		printerr("get_lane_node: Invalid HBoxContainer for player prefix '%s'" % prefix)
 		return null
 
-	# Construct the expected name, e.g., "Lane1", "Lane2"
-	var target_lane_name = "Lane" + str(lane_number_from_event)
-	
-	var found_node = lane_hbox_container.get_node_or_null(target_lane_name)
+	var target_lane_panel_name = "Lane" + str(lane_number_from_event)
+	var lane_panel_node = lane_hbox_container.get_node_or_null(target_lane_panel_name) # Gets the Panel [cite: 20]
 
-	if not is_instance_valid(found_node):
-		printerr("get_lane_node: Node named '%s' not found under '%s'." % [target_lane_name, lane_hbox_container.name])
+	if not is_instance_valid(lane_panel_node):
+		printerr("get_lane_node: Panel node named '%s' not found under '%s'." % [target_lane_panel_name, lane_hbox_container.name]) # [cite: 20]
 		return null
 	
-	# Optional but recommended: Check if the found node is of the expected type (Panel)
-	if not found_node is Panel:
-		printerr("get_lane_node: Node '%s' was found, but it's not a Panel. It's a '%s'." % [target_lane_name, found_node.get_class()])
+	if not lane_panel_node is Panel:
+		printerr("get_lane_node: Node '%s' was found, but it's not a Panel. It's a '%s'." % [target_lane_panel_name, lane_panel_node.get_class()]) # [cite: 21, 22]
+		return null
+	
+	var aspect_ratio_container_node = lane_panel_node.get_node_or_null("CardSlotSquare") 
+
+	if not is_instance_valid(aspect_ratio_container_node):
+		printerr("get_lane_node: AspectRatioContainer named 'CardSlotSquare' not found under '%s'." % lane_panel_node.get_path())
+		return null
+
+	if not aspect_ratio_container_node is AspectRatioContainer:
+		printerr("get_lane_node: Node 'CardSlotSquare' under '%s' is not an AspectRatioContainer. It's a '%s'." % [lane_panel_node.get_path(), aspect_ratio_container_node.get_class()])
 		return null
 		
 	# TODO: Consider a more  specific check using a custom type for summon lanes.
 	# if not found_node.is_in_group("game_lane_panel"): # Requires adding "game_lane_panel" to your LaneX nodes' groups
 	# 	printerr("get_lane_node: Node '%s' is not in the 'game_lane_panel' group." % target_lane_name)
 	# 	return null
-
-	return found_node as Panel # Cast to Panel if you are sure or have checked type
+	return aspect_ratio_container_node as AspectRatioContainer
 
 # --- Event Handler Functions ---
-
 func handle_turn_start(event):
 	print("  -> Turn %d starts for %s" % [event.turn, event.player])
 	if turn_label: turn_label.text = "Turn: %d (%s)" % [event.turn, event.player]
@@ -309,25 +322,6 @@ func handle_summon_arrives(event):
 			print("\n--- SummonVisual Layout Debug (Event %d, Instance %d, Card %s) ---" % [current_event_index, event.instance_id, event.card_id])
 			print("  Target Lane Path: %s, Name: %s, Size: %s" % [target_lane_node.get_path(), target_lane_node.name, target_lane_node.size])
 			
-		############ Enhanced Debugging Lines ##############
-		#print("  SummonVisual Details:")
-		#print("    Path: %s" % visual_node.get_path())
-		#print("    Custom Min Size: %s" % visual_node.custom_minimum_size)
-		#print("    Anchors L/T/R/B: %.1f, %.1f, %.1f, %.1f" % [visual_node.anchor_left, visual_node.anchor_top, visual_node.anchor_right, visual_node.anchor_bottom])
-		#print("    Offsets L/T/R/B: %.1f, %.1f, %.1f, %.1f" % [visual_node.offset_left, visual_node.offset_top, visual_node.offset_right, visual_node.offset_bottom])
-		#
-		#var expected_local_pos_x = (target_lane_node.size.x * visual_node.anchor_left) + visual_node.offset_left
-		#var expected_local_pos_y = (target_lane_node.size.y * visual_node.anchor_top) + visual_node.offset_top
-		#print("    Calculated Local Position based on parent & anchors/offsets: (%s, %s)" % [expected_local_pos_x, expected_local_pos_y])
-		#
-		#print("    Actual Local Position (visual_node.position): %s" % visual_node.position)
-		#print("    Actual Size (visual_node.size): %s" % visual_node.size)
-		#print("    Global Position: %s" % visual_node.global_position)
-		#print("    Visible: %s, Is Visible in Tree: %s" % [visual_node.visible, visual_node.is_visible_in_tree()])
-		#print("    Modulate: %s" % visual_node.modulate)
-		#print("--- End SummonVisual Layout Debug ---\n")
-		############ End Enhanced Debugging Lines ##############
-
 		if visual_node.has_method("play_animation"):
 			visual_node.play_animation("arrive")
 	else:
