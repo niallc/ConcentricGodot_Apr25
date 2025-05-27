@@ -540,9 +540,21 @@ func handle_summon_turn_activity(event):
 		var visual_node = active_summon_visuals[event.instance_id]
 		if is_instance_valid(visual_node) and visual_node.has_method("play_animation"): # Check valid
 			match event.activity_type:
-				"attack", "direct_attack": visual_node.play_animation("attack")
-				"ability_mana_gen": visual_node.play_animation("ability")
-				_: visual_node.play_animation("ability") # Default
+				"attack", "direct_attack":
+					if visual_node.has_method("play_attack_animation"):
+						var player_prefix = get_player_prefix(event.player) # "Top" or "Bottom" [cite: 20, 93]
+						var is_top_card = (player_prefix == "Top")
+
+						visual_node.play_attack_animation(is_top_card) # Pass directionality
+
+						if visual_node.animation_player and visual_node.animation_player.is_playing():
+							await visual_node.animation_player.animation_finished
+				"ability_mana_gen":
+					visual_node.play_animation("ability")
+				_:
+					visual_node.play_animation("ability") # Default	else:
+	else:
+		printerr("Couldn't find an instance_id for this animation event.")
 	await get_tree().create_timer(0.5 / playback_speed_scale).timeout
 
 func handle_combat_damage(event):

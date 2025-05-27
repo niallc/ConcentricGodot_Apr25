@@ -136,14 +136,14 @@ func animate_shake(strength: float = 4.0, duration_per_half_shake: float = 0.04,
 func play_full_arrival_sequence_and_await(p_fade_duration: float = 0.9, 
 							   p_pop_peak: float = 1.1, p_pop_dur_up: float = 0.08, p_pop_dur_down: float = 0.12,
 							   p_shake_strength: float = 2.0, p_shake_dur: float = 0.04, p_shake_count: int = 2) -> void:
-	var fade_tween: Tween = animate_fade_in(p_fade_duration)
+	var _fade_tween: Tween = animate_fade_in(p_fade_duration)
 	# If you want fade to mostly finish before pop:
 	#if fade_tween: await fade_tween.finished 
 	# Or, for overlap, remove the await above and maybe add a small delay before pop
 	# await get_tree().create_timer(0.1).timeout # Tiny delay example
 
-	var pop_tween: Tween = animate_scale_pop(p_pop_peak, p_pop_dur_up, p_pop_dur_down)
-	#if pop_tween: await pop_tween.finished
+	var _pop_tween: Tween = animate_scale_pop(p_pop_peak, p_pop_dur_up, p_pop_dur_down)
+	#if _pop_tween: await pop_tween.finished
 
 	var shake_tween: Tween = animate_shake(p_shake_strength, p_shake_dur, p_shake_count)
 	if shake_tween: await shake_tween.finished
@@ -153,12 +153,20 @@ func play_full_arrival_sequence_and_await(p_fade_duration: float = 0.9,
 #
 	print("SummonVisual (%d): Full arrival sequence awaited and completed." % instance_id)
 
-# May want a specific function for clarity if it becomes more complex
-func play_attack_animation() -> void:
-	play_animation("AttackPunch")
-	# To await animation completion:
-	if animation_player.is_playing():
-		await animation_player.animation_finished
+func play_attack_animation(is_for_top_lane_card: bool) -> void:
+	var anim_name_to_play: String
+	if is_for_top_lane_card:
+		anim_name_to_play = "Attack_Punch_Top"
+	else:
+		anim_name_to_play = "Attack_Punch_Bottom"
+
+	if animation_player and animation_player.has_animation(anim_name_to_play):
+		# Optional: ensure pivot is correct if animation involves scale/rotation from center
+		# pivot_offset = size / 2.0 
+		animation_player.play(anim_name_to_play)
+		print("SummonVisual (%d): Playing %s" % [instance_id, anim_name_to_play])
+	else:
+		printerr("SummonVisual (%d): Animation '%s' not found or no AnimationPlayer." % [instance_id, anim_name_to_play])
 	
 func _ready():
 	if card_frame_texture:
