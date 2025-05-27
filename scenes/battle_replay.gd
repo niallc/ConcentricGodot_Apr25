@@ -298,8 +298,9 @@ func handle_summon_arrives(event):
 			if visual_node.has_method("update_display"):
 				# Pass the correctly typed default if "tags" is missing
 				visual_node.update_display(event.instance_id, card_res, event.power, event.current_hp, event.max_hp, event.get("tags", PackedStringArray()))
-				if visual_node.has_method("animate_fade_in"):
-					visual_node.animate_fade_in(0.7)
+
+				await visual_node.play_full_arrival_sequence_and_await() 
+
 			else:
 				printerr("SummonVisual node is missing update_display method.")
 		else:
@@ -308,24 +309,24 @@ func handle_summon_arrives(event):
 			print("\n--- SummonVisual Layout Debug (Event %d, Instance %d, Card %s) ---" % [current_event_index, event.instance_id, event.card_id])
 			print("  Target Lane Path: %s, Name: %s, Size: %s" % [target_lane_node.get_path(), target_lane_node.name, target_lane_node.size])
 			
-		########### Enhanced Debugging Lines ##############
-		print("  SummonVisual Details:")
-		print("    Path: %s" % visual_node.get_path())
-		print("    Custom Min Size: %s" % visual_node.custom_minimum_size)
-		print("    Anchors L/T/R/B: %.1f, %.1f, %.1f, %.1f" % [visual_node.anchor_left, visual_node.anchor_top, visual_node.anchor_right, visual_node.anchor_bottom])
-		print("    Offsets L/T/R/B: %.1f, %.1f, %.1f, %.1f" % [visual_node.offset_left, visual_node.offset_top, visual_node.offset_right, visual_node.offset_bottom])
-		
-		var expected_local_pos_x = (target_lane_node.size.x * visual_node.anchor_left) + visual_node.offset_left
-		var expected_local_pos_y = (target_lane_node.size.y * visual_node.anchor_top) + visual_node.offset_top
-		print("    Calculated Local Position based on parent & anchors/offsets: (%s, %s)" % [expected_local_pos_x, expected_local_pos_y])
-		
-		print("    Actual Local Position (visual_node.position): %s" % visual_node.position)
-		print("    Actual Size (visual_node.size): %s" % visual_node.size)
-		print("    Global Position: %s" % visual_node.global_position)
-		print("    Visible: %s, Is Visible in Tree: %s" % [visual_node.visible, visual_node.is_visible_in_tree()])
-		print("    Modulate: %s" % visual_node.modulate)
-		print("--- End SummonVisual Layout Debug ---\n")
-		########### End Enhanced Debugging Lines ##############
+		############ Enhanced Debugging Lines ##############
+		#print("  SummonVisual Details:")
+		#print("    Path: %s" % visual_node.get_path())
+		#print("    Custom Min Size: %s" % visual_node.custom_minimum_size)
+		#print("    Anchors L/T/R/B: %.1f, %.1f, %.1f, %.1f" % [visual_node.anchor_left, visual_node.anchor_top, visual_node.anchor_right, visual_node.anchor_bottom])
+		#print("    Offsets L/T/R/B: %.1f, %.1f, %.1f, %.1f" % [visual_node.offset_left, visual_node.offset_top, visual_node.offset_right, visual_node.offset_bottom])
+		#
+		#var expected_local_pos_x = (target_lane_node.size.x * visual_node.anchor_left) + visual_node.offset_left
+		#var expected_local_pos_y = (target_lane_node.size.y * visual_node.anchor_top) + visual_node.offset_top
+		#print("    Calculated Local Position based on parent & anchors/offsets: (%s, %s)" % [expected_local_pos_x, expected_local_pos_y])
+		#
+		#print("    Actual Local Position (visual_node.position): %s" % visual_node.position)
+		#print("    Actual Size (visual_node.size): %s" % visual_node.size)
+		#print("    Global Position: %s" % visual_node.global_position)
+		#print("    Visible: %s, Is Visible in Tree: %s" % [visual_node.visible, visual_node.is_visible_in_tree()])
+		#print("    Modulate: %s" % visual_node.modulate)
+		#print("--- End SummonVisual Layout Debug ---\n")
+		############ End Enhanced Debugging Lines ##############
 
 		if visual_node.has_method("play_animation"):
 			visual_node.play_animation("arrive")

@@ -85,11 +85,13 @@ func set_max_hp(new_max_hp: int):
 	current_hp_val = min(current_hp_val, current_max_hp_val)
 	update_hp_label()
 
-func animate_fade_in(duration: float, initial_transparency = 0.0):
-	modulate.a = initial_transparency # Start fully transparent
+func animate_fade_in(duration: float, initial_transparency: float = 0.0) -> Tween:
+	modulate.a = initial_transparency
 	var tween = create_tween()
 	tween.tween_property(self, "modulate:a", 1.0, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-
+	print("SummonVisual: Starting fade-in animation for instance %d over %s seconds" % [instance_id, duration])
+	return tween
+	
 func play_animation(anim_name: String):
 	if animation_player and animation_player.has_animation(anim_name):
 		print("Playing animation '%s' for instance %d (%s)" % [anim_name, instance_id, card_id])
@@ -98,7 +100,66 @@ func play_animation(anim_name: String):
 		# Don't treat as error if common anims like "arrive" are missing initially
 		print("Animation '%s' not found or no AnimationPlayer for instance %d (%s)" % [anim_name, instance_id, card_id])
 
+func animate_scale_pop(peak_scale_factor: float = 1.1, duration_up: float = 0.15, duration_down: float = 0.2) -> Tween:
+	# Ensure pivot is centered right before scaling for accuracy
+	pivot_offset = size / 2.0
+	
+	# Optional: Start slightly smaller to make the pop more pronounced
+	# scale = Vector2(0.95, 0.95) 
 
+	var tween = create_tween()
+	tween.set_parallel(false) # Ensure sequence
+
+	# Scale up
+	tween.tween_property(self, "scale", Vector2(peak_scale_factor, peak_scale_factor), duration_up).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# Scale back to normal
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), duration_down).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	
+	print("SummonVisual (%d): Playing scale pop." % instance_id)
+	return tween
+
+func animate_shake(strength: float = 4.0, duration_per_half_shake: float = 0.04, num_shakes: int = 2) -> Tween:
+	var original_position_x = position.x
+	
+	var tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT_IN) # SINE is good for shakes
+	tween.set_parallel(false)
+
+	for i in range(num_shakes):
+		tween.tween_property(self, "position:x", original_position_x + strength, duration_per_half_shake)
+		tween.tween_property(self, "position:x", original_position_x - strength, duration_per_half_shake)
+	
+	tween.tween_property(self, "position:x", original_position_x, duration_per_half_shake)
+	
+	print("SummonVisual (%d): Playing subtle, faster shake." % instance_id)
+	return tween
+
+func play_full_arrival_sequence_and_await(p_fade_duration: float = 0.9, 
+							   p_pop_peak: float = 1.1, p_pop_dur_up: float = 0.08, p_pop_dur_down: float = 0.12,
+							   p_shake_strength: float = 2.0, p_shake_dur: float = 0.04, p_shake_count: int = 2) -> void:
+	var fade_tween: Tween = animate_fade_in(p_fade_duration)
+	# If you want fade to mostly finish before pop:
+	#if fade_tween: await fade_tween.finished 
+	# Or, for overlap, remove the await above and maybe add a small delay before pop
+	# await get_tree().create_timer(0.1).timeout # Tiny delay example
+
+	var pop_tween: Tween = animate_scale_pop(p_pop_peak, p_pop_dur_up, p_pop_dur_down)
+	#if pop_tween: await pop_tween.finished
+
+	var shake_tween: Tween = animate_shake(p_shake_strength, p_shake_dur, p_shake_count)
+	if shake_tween: await shake_tween.finished
+
+	## Optional: a very brief pause before shake
+	## await get_tree().create_timer(0.05).timeout
+#
+	print("SummonVisual (%d): Full arrival sequence awaited and completed." % instance_id)
+
+# May want a specific function for clarity if it becomes more complex
+func play_attack_animation() -> void:
+	play_animation("AttackPunch")
+	# To await animation completion:
+	if animation_player.is_playing():
+		await animation_player.animation_finished
+	
 func _ready():
 	if card_frame_texture:
 		card_frame_texture.texture = CARD_FRAME_TEXTURE
