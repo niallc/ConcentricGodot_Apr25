@@ -43,90 +43,55 @@ var player2_name: String = "" # Typically "Opponent"
 @onready var bottom_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
 
 # --- Store Graveyard and Library Card Names ---
-#var player1_library_cards: Array[String] = []
-#var player1_graveyard_cards: Array[String] = []
-#var player2_library_cards: Array[String] = []
-#var player2_graveyard_cards: Array[String] = []
 var player1_library_card_ids: Array[String] = []
 var player1_graveyard_card_ids: Array[String] = []
 var player2_library_card_ids: Array[String] = []
 var player2_graveyard_card_ids: Array[String] = []
 
-# --- Public API & Playback Control ---
 func load_and_start_simple_replay(initial_events: Array[Dictionary]):
 	print("BattleReplay: Loading %d events." % initial_events.size())
 	self.battle_events = initial_events
+
+	_reset_internal_battle_state()
+	_clear_all_visuals_for_new_replay()
+	_initialize_ui_labels_and_player_stats()
+	_initialize_card_zones_display() # For library/graveyard counts & visuals
+
+	_determine_player_identities(initial_events)
+	
+	_process_initial_setup_events(initial_events)
+
+	if event_log_label: event_log_label.text = "Press Step or Play"
+	call_deferred("_on_step_button_pressed") # Or let user press play/step
+
+# --- Private Helper Functions for Setup ---
+func _reset_internal_battle_state() -> void:
 	current_event_index = -1
 	is_playing = false
+	# playback_speed_scale = 3.0 # Or keep existing value
+	# step_delay = 0.5           # Or keep existing value
 
-	# --- Clear graveyards and libraries ----
+	active_summon_visuals.clear() # Clear the dictionary
+
+	# Clear card ID arrays for zones
 	player1_library_card_ids.clear()
 	player1_graveyard_card_ids.clear()
 	player2_library_card_ids.clear()
 	player2_graveyard_card_ids.clear()
-	# Clear initial display
-	_update_zone_display(top_player_library_hbox, player1_library_card_ids, top_player_library_count_label)
-	_update_zone_display(top_player_graveyard_hbox, player1_graveyard_card_ids, top_player_graveyard_count_label)
-	_update_zone_display(bottom_player_library_hbox, player2_library_card_ids, bottom_player_library_count_label) # Assuming player1 is bottom
-	_update_zone_display(bottom_player_graveyard_hbox, player2_graveyard_card_ids, bottom_player_graveyard_count_label)
+	print("Internal battle state reset.")
 
-	# --- Determine Player Names ---
-	_determine_player_identities(self.battle_events) # Uses the class member battle_events
-	print("Player 1 (Bottom UI): ", player1_name)
-	print("Player 2 (Top UI): ", player2_name)
+func _clear_all_visuals_for_new_replay() -> void:
+	# Clear any visuals that might be direct children of active_summon_visuals' values
+	# (This loop is a bit redundant if _clear_lane_visuals clears them AND they are removed from dict)
+	# Consider if active_summon_visuals should only store visuals currently in lanes.
+	# For now, ensuring they are freed if the dictionary still holds references from a previous run:
+	for visual_node_path_or_instance in active_summon_visuals.values():
+		if visual_node_path_or_instance is Node and is_instance_valid(visual_node_path_or_instance):
+			visual_node_path_or_instance.queue_free() 
+	active_summon_visuals.clear() # Defensive clear again after freeing
 
-	if not is_node_ready(): await ready
-	if turn_label: turn_label.text = "Turn: -"
-	if event_log_label: event_log_label.text = "Press Step or Play"
-
-	# Initialize Player UI
-	if bottom_player_hp_label: bottom_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
-	if bottom_player_mana_label: bottom_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
-	if top_player_hp_label: top_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
-	if top_player_mana_label: top_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
-
-	_clear_lane_visuals() # Clears visuals from the CardSlotSquares
-
-	# --- Process initial library state events immediately ---
-	var initial_events_processed_count = 0
-	for i in range(initial_events.size()):
-		var event = initial_events[i]
-		if event.get("event_type") == "initial_library_state":
-			# Call directly, don't wait for timer in this initial setup
-			# handle_initial_library_state(event) # This has an await, let's inline a non-await version for setup
-			# --- Inlined version of handle_initial_library_state for setup ---
-			var target_library_arr_ref: Array = []
-			var target_library_display_node: HBoxContainer = null
-			var target_library_count_label: Label = null
-
-			if event.player == player1_name:
-				target_library_arr_ref = player1_library_card_ids
-				target_library_display_node = bottom_player_library_hbox
-				target_library_count_label = bottom_player_library_count_label
-			elif event.player == player2_name:
-				target_library_arr_ref = player2_library_card_ids
-				target_library_display_node = top_player_library_hbox
-				target_library_count_label = top_player_library_count_label
-			
-			if target_library_arr_ref != null:
-				target_library_arr_ref.clear()
-				for card_id_str in event.card_ids:
-					target_library_arr_ref.append(card_id_str)
-				if target_library_display_node:
-					_update_zone_display(target_library_display_node, target_library_arr_ref, target_library_count_label)
-			# --- End Inlined version ---
-			initial_events_processed_count += 1
-		elif event.get("event_type") == "turn_start": # Stop after initial library, before first turn starts
-			break 
-		else: # Should only be initial_library_state events before first turn_start
-			initial_events_processed_count += 1 # Count any other pre-turn_start events too
-
-	current_event_index = initial_events_processed_count - 1 # Start processing from the event AFTER initial ones
-	
-	if event_log_label: event_log_label.text = "Press Step or Play"
-	# call_deferred("_on_step_button_pressed") # Or let user press play/step
-
-	call_deferred("_on_step_button_pressed")
+	_clear_lane_visuals() # Your existing refactored function
+	print("All visuals cleared for new replay.")
 
 func _clear_lane_visuals() -> void:
 	var lane_containers_to_process: Array[HBoxContainer] = []
@@ -143,6 +108,62 @@ func _clear_lane_visuals() -> void:
 					for child_node in card_slot.get_children():
 						if child_node == SummonVisual:
 							child_node.queue_free()
+
+func _initialize_ui_labels_and_player_stats() -> void:
+	if not is_node_ready(): await ready # Ensure @onready vars are set
+	
+	if turn_label: turn_label.text = "Turn: -"
+	if event_log_label: event_log_label.text = "Press Step or Play" # Initial message
+
+	# Initialize Player UI stats
+	if bottom_player_hp_label: bottom_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
+	if bottom_player_mana_label: bottom_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
+	if top_player_hp_label: top_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
+	if top_player_mana_label: top_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
+	print("UI labels and player stats initialized.")
+
+func _initialize_card_zones_display() -> void:
+	# Clear initial display of library/graveyard counts and visuals
+	_update_zone_display(top_player_library_hbox, player1_library_card_ids, top_player_library_count_label)
+	_update_zone_display(top_player_graveyard_hbox, player1_graveyard_card_ids, top_player_graveyard_count_label)
+	_update_zone_display(bottom_player_library_hbox, player2_library_card_ids, bottom_player_library_count_label)
+	_update_zone_display(bottom_player_graveyard_hbox, player2_graveyard_card_ids, bottom_player_graveyard_count_label)
+	print("Card zones display initialized (empty).")
+
+func _process_initial_setup_events(initial_events: Array[Dictionary]) -> void:
+	var initial_events_processed_count = 0
+	for i in range(initial_events.size()):
+		var event = initial_events[i]
+		if event.get("event_type") == "initial_library_state":
+			# Inlined version of handle_initial_library_state for setup (as you had)
+			var target_library_arr_ref: Array = []
+			var target_library_display_node: HBoxContainer = null
+			var target_library_count_label: Label = null
+
+			if event.player == player1_name:
+				target_library_arr_ref = player1_library_card_ids
+				target_library_display_node = bottom_player_library_hbox
+				target_library_count_label = bottom_player_library_count_label
+			elif event.player == player2_name:
+				target_library_arr_ref = player2_library_card_ids
+				target_library_display_node = top_player_library_hbox
+				target_library_count_label = top_player_library_count_label
+			
+			if target_library_arr_ref != null: # Should always be true if player name matched
+				target_library_arr_ref.clear() # Should already be clear from _reset_internal_battle_state
+				for card_id_str in event.card_ids:
+					target_library_arr_ref.append(card_id_str)
+				if target_library_display_node: # Should be valid
+					_update_zone_display(target_library_display_node, target_library_arr_ref, target_library_count_label)
+			initial_events_processed_count += 1
+		elif event.get("event_type") == "turn_start": # Stop after initial library, before first turn starts
+			break 
+		else: # Should only be initial_library_state events before first turn_start
+			initial_events_processed_count += 1 # Count any other pre-turn_start events too
+	
+	current_event_index = initial_events_processed_count - 1 
+	print("Initial setup events processed. current_event_index set to: %d" % current_event_index)
+
 
 func _on_play_button_pressed():
 	print("Replay: Play pressed")
@@ -196,7 +217,6 @@ func process_next_event():
 
 	match event.event_type:
 		"initial_library_state": await handle_initial_library_state(event) # Add this
-		"turn_start": await handle_turn_start(event)
 		"turn_start": await handle_turn_start(event)
 		"mana_change": await handle_mana_change(event)
 		"card_played": await handle_card_played(event)
@@ -322,8 +342,6 @@ func handle_summon_arrives(event):
 			print("\n--- SummonVisual Layout Debug (Event %d, Instance %d, Card %s) ---" % [current_event_index, event.instance_id, event.card_id])
 			print("  Target Lane Path: %s, Name: %s, Size: %s" % [target_lane_node.get_path(), target_lane_node.name, target_lane_node.size])
 			
-		if visual_node.has_method("play_animation"):
-			visual_node.play_animation("arrive")
 	else:
 		printerr("Could not place summon visual for event: ", event)
 
