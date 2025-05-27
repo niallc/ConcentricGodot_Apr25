@@ -1,7 +1,9 @@
-[gd_scene load_steps=10 format=3 uid="uid://dm4f6sfd6oksw"]
+[gd_scene load_steps=12 format=3 uid="uid://dm4f6sfd6oksw"]
 
 [ext_resource type="Script" path="res://scenes/battle_replay.gd" id="1_03sn8"]
 [ext_resource type="Texture2D" uid="uid://dsr8chb3emoqt" path="res://art/PhotoOfRockySurface2.jpeg" id="2_8rgtr"]
+[ext_resource type="StyleBox" uid="uid://u26d5sahed1j" path="res://ui/styles/mana_pip_empty_style.tres" id="2_apaeq"]
+[ext_resource type="StyleBox" uid="uid://brf7a8v2scdby" path="res://ui/styles/hp_pip_empty_style.tres" id="3_gbyq0"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rg62t"]
 bg_color = Color(0.184314, 0.356863, 0.898039, 1)
@@ -153,18 +155,232 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="LifeAndMana" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
+[node name="VerticalSpacer4" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
-[node name="PlayerHPLabel" type="Label" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana"]
-custom_minimum_size = Vector2(100, 0)
+[node name="LifeAndMana" type="VBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="ManaPipsContainer" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="ManaPip1" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip4" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip5" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip6" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip7" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip8" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip9" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip10" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip11" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip12" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip13" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip14" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip15" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip16" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip17" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip18" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip19" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip20" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="Control" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana"]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
-[node name="PlayerManaLabel" type="Label" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana"]
-custom_minimum_size = Vector2(100, 0)
+[node name="HPPipsContainer" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana"]
+custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
 
-[node name="HorizontalSpacer2" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
+[node name="HPPip" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip4" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip5" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip6" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip7" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip8" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip9" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip10" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip11" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip12" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip13" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip14" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip15" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip16" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip17" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip18" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip19" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip20" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="VerticalSpacer2" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
 [node name="LibraryAndGraveyard" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
@@ -297,12 +513,12 @@ grow_vertical = 2
 custom_minimum_size = Vector2(15, 10)
 layout_mode = 2
 
-[node name="HorizontalSpacer3" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
+[node name="VerticalSpacer3" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox"]
 custom_minimum_size = Vector2(0, 15)
 layout_mode = 2
 
 [node name="VerticalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
-custom_minimum_size = Vector2(0, 270)
+custom_minimum_size = Vector2(0, 170)
 layout_mode = 2
 
 [node name="BottomPlayerArea" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox"]
@@ -321,11 +537,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="HorizontalSpacer3" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
+[node name="VerticalSpacer3" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
 custom_minimum_size = Vector2(0, 15)
-layout_mode = 2
-
-[node name="HorizontalSpacer2" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
 layout_mode = 2
 
 [node name="LaneContainer" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
@@ -458,15 +671,232 @@ custom_minimum_size = Vector2(80, 100)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="LifeAndMana" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
+[node name="VerticalSpacer2" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
-[node name="PlayerHPLabel" type="Label" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana"]
-custom_minimum_size = Vector2(100, 0)
+[node name="LifeAndMana" type="VBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="ManaPipsContainer" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="ManaPip1" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip4" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip5" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip6" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip7" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip8" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip9" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip10" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip11" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip12" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip13" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip14" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip15" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip16" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip17" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip18" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip19" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="ManaPip20" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer"]
+custom_minimum_size = Vector2(63, 20)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("2_apaeq")
+
+[node name="Control" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana"]
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
-[node name="PlayerManaLabel" type="Label" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana"]
-custom_minimum_size = Vector2(100, 0)
+[node name="HPPipsContainer" type="HBoxContainer" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="HPPip" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip2" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip3" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip4" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip5" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip6" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip7" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip8" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip9" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip10" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip11" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip12" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip13" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip14" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip15" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip16" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip17" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip18" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip19" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="HPPip20" type="Panel" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer"]
+custom_minimum_size = Vector2(63, 0)
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_gbyq0")
+
+[node name="VerticalSpacer" type="Control" parent="MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana"]
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="StonyBackgroundTextureRect" type="TextureRect" parent="MainMarginContainer"]

@@ -24,15 +24,16 @@ var player2_name: String = "" # Typically "Opponent"
 @onready var top_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LaneContainer
 @onready var playback_timer: Timer = $MainMarginContainer/PlaybackTimer
 # --- Player UI References ---
-@onready var bottom_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/PlayerHPLabel
-@onready var bottom_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/PlayerManaLabel
-@onready var top_player_hp_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/PlayerHPLabel
-@onready var top_player_mana_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/PlayerManaLabel
-# --- Player Graveyard and Library References ---
-#@onready var bottom_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library
-#@onready var bottom_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard
-#@onready var top_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library
-#@onready var top_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard
+@onready var bottom_player_hp_pips_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer 
+@onready var bottom_player_mana_pips_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer
+@onready var top_player_hp_pips_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/HPPipsContainer 
+@onready var top_player_mana_pips_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LifeAndMana/ManaPipsContainer
+const HP_PIP_EMPTY_STYLE = preload("res://ui/styles/hp_pip_empty_style.tres") # Adjust path
+const HP_PIP_FULL_STYLE = preload("res://ui/styles/hp_pip_full_style.tres")
+const MANA_PIP_EMPTY_STYLE = preload("res://ui/styles/mana_pip_empty_style.tres")
+const MANA_PIP_FULL_STYLE = preload("res://ui/styles/mana_pip_full_style.tres")
+
+# ... and similar for top player# --- Player Graveyard and Library References ---
 @onready var bottom_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library
 @onready var bottom_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard
 @onready var top_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library
@@ -54,7 +55,7 @@ func load_and_start_simple_replay(initial_events: Array[Dictionary]):
 
 	_reset_internal_battle_state()
 	_clear_all_visuals_for_new_replay()
-	_initialize_ui_labels_and_player_stats()
+	#_initialize_ui_labels_and_player_stats()
 	_initialize_card_zones_display() # For library/graveyard counts & visuals
 
 	_determine_player_identities(initial_events)
@@ -78,6 +79,8 @@ func _reset_internal_battle_state() -> void:
 	player1_graveyard_card_ids.clear()
 	player2_library_card_ids.clear()
 	player2_graveyard_card_ids.clear()
+	
+	_initialize_player_stat_bars()
 	print("Internal battle state reset.")
 
 func _clear_all_visuals_for_new_replay() -> void:
@@ -109,18 +112,24 @@ func _clear_lane_visuals() -> void:
 						if child_node == SummonVisual:
 							child_node.queue_free()
 
-func _initialize_ui_labels_and_player_stats() -> void:
-	if not is_node_ready(): await ready # Ensure @onready vars are set
-	
-	if turn_label: turn_label.text = "Turn: -"
-	if event_log_label: event_log_label.text = "Press Step or Play" # Initial message
+func _initialize_player_stat_bars() -> void:
+	if not is_node_ready(): await ready
 
-	# Initialize Player UI stats
-	if bottom_player_hp_label: bottom_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
-	if bottom_player_mana_label: bottom_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
-	if top_player_hp_label: top_player_hp_label.text = "HP: %d" % Constants.STARTING_HP
-	if top_player_mana_label: top_player_mana_label.text = "Mana: %d" % Constants.STARTING_MANA
-	print("UI labels and player stats initialized.")
+	# Assuming Constants.STARTING_HP and Constants.MAX_MANA represent the total number of pips created for HP and Mana respectively.
+	# And Constants.STARTING_MANA is the initial filled mana.
+	# HP starts full by default in Constants.
+
+	if bottom_player_hp_pips_container:
+		_update_pip_bar(bottom_player_hp_pips_container, Constants.STARTING_HP, Constants.STARTING_HP, HP_PIP_FULL_STYLE, HP_PIP_EMPTY_STYLE)
+	if bottom_player_mana_pips_container:
+		_update_pip_bar(bottom_player_mana_pips_container, Constants.STARTING_MANA, Constants.MAX_MANA, MANA_PIP_FULL_STYLE, MANA_PIP_EMPTY_STYLE)
+
+	if top_player_hp_pips_container:
+		_update_pip_bar(top_player_hp_pips_container, Constants.STARTING_HP, Constants.STARTING_HP, HP_PIP_FULL_STYLE, HP_PIP_EMPTY_STYLE)
+	if top_player_mana_pips_container:
+		_update_pip_bar(top_player_mana_pips_container, Constants.STARTING_MANA, Constants.MAX_MANA, MANA_PIP_FULL_STYLE, MANA_PIP_EMPTY_STYLE)
+
+	print("Player stat bars initialized.")
 
 func _initialize_card_zones_display() -> void:
 	# Clear initial display of library/graveyard counts and visuals
@@ -164,6 +173,24 @@ func _process_initial_setup_events(initial_events: Array[Dictionary]) -> void:
 	current_event_index = initial_events_processed_count - 1 
 	print("Initial setup events processed. current_event_index set to: %d" % current_event_index)
 
+func _update_pip_bar(pips_container: HBoxContainer, current_value: int, _max_value: int, full_style: StyleBox, empty_style: StyleBox):
+	if not is_instance_valid(pips_container):
+		printerr("Invalid pips container provided to _update_pip_bar")
+		return
+
+	var num_pips = pips_container.get_child_count()
+	# Ensure we don't try to update more pips than exist (e.g., if max_value from event differs from setup)
+	# Or, ensure pips_container always has 'max_value' pips from the scene setup.
+
+	for i in range(num_pips):
+		var pip_node = pips_container.get_child(i) as ColorRect
+		if not is_instance_valid(pip_node): # Should not happen if setup correctly
+			continue 
+
+		if i < current_value:
+			pip_node.set("theme_override_styles/panel", full_style)
+		else:
+			pip_node.set("theme_override_styles/panel", empty_style)
 
 func _on_play_button_pressed():
 	print("Replay: Play pressed")
@@ -392,21 +419,25 @@ func handle_summon_leaves_lane(event):
 # --- MODIFIED BLOCK END ---
 
 
-# --- Other handlers (mostly print for now, with await for pacing) ---
 func handle_mana_change(event):
-	print("  -> %s mana changes by %d. New total: %d (Source: %s)" % [event.player, event.amount, event.new_total, event.get("source", "N/A")])
-	var target_mana_label: Label = null
+	print("  -> %s mana changes by %d. New total: %d (Source: %s)" % [event.player, event.amount, event.new_total, event.get("source", "N/A")]) # [cite: 36]
+
+	var target_mana_pips_container: HBoxContainer = null
+	# Assuming Constants.MAX_MANA represents the total number of pips for Mana.
+	var max_mana_for_bar = Constants.MAX_MANA
+
 	if event.player == player1_name: # Bottom player
-		target_mana_label = bottom_player_mana_label
+		target_mana_pips_container = bottom_player_mana_pips_container
 	elif event.player == player2_name: # Top player
-		target_mana_label = top_player_mana_label
-	
-	if is_instance_valid(target_mana_label):
-		target_mana_label.text = "Mana: %d" % event.new_total
+		target_mana_pips_container = top_player_mana_pips_container
+
+	if is_instance_valid(target_mana_pips_container):
+		_update_pip_bar(target_mana_pips_container, event.new_total, max_mana_for_bar, MANA_PIP_FULL_STYLE, MANA_PIP_EMPTY_STYLE)
 	else:
-		printerr("Could not find mana label for player: ", event.player)
-	# TODO: Visual update for mana crystals/bar
+		printerr("Could not find mana pips container for player: ", event.player)
+
 	await get_tree().create_timer(0.2 / playback_speed_scale).timeout
+
 
 func handle_card_played(event):
 	print("  -> %s played %s (%s). Mana left: %d" % [event.player, event.card_id, event.card_type, event.remaining_mana])
@@ -591,19 +622,22 @@ func handle_effect_damage(event):
 	])
 	await get_tree().create_timer(0.5 / playback_speed_scale).timeout
 
-func handle_hp_change(event): # Player HP
-	print("  -> Player HP Change: %s amount %d. New total: %d (Source: %s)" % [event.player, event.amount, event.new_total, event.get("source", "N/A")])
-	var target_hp_label: Label = null
+func handle_hp_change(event):
+	print("  -> Player HP Change: %s amount %d. New total: %d (Source: %s)" % [event.player, event.amount, event.new_total, event.get("source", "N/A")]) # [cite: 49]
+
+	var target_hp_pips_container: HBoxContainer = null
+	var max_hp_for_bar = Constants.STARTING_HP # Assuming HP bar max is fixed at starting HP
+
 	if event.player == player1_name: # Bottom player
-		target_hp_label = bottom_player_hp_label
+		target_hp_pips_container = bottom_player_hp_pips_container
 	elif event.player == player2_name: # Top player
-		target_hp_label = top_player_hp_label
-	
-	if is_instance_valid(target_hp_label):
-		target_hp_label.text = "HP: %d" % event.new_total
+		target_hp_pips_container = top_player_hp_pips_container
+
+	if is_instance_valid(target_hp_pips_container):
+		_update_pip_bar(target_hp_pips_container, event.new_total, max_hp_for_bar, HP_PIP_FULL_STYLE, HP_PIP_EMPTY_STYLE)
 	else:
-		printerr("Could not find HP label for player: ", event.player)
-	# TODO: Update player HP bar visual
+		printerr("Could not find HP pips container for player: ", event.player)
+
 	await get_tree().create_timer(0.3 / playback_speed_scale).timeout
 
 func handle_creature_hp_change(event):

@@ -1,5 +1,6 @@
 # res://ui/summon_visual.gd
 extends Control
+class_name SummonVisual
 
 # --- Constants ---
 const CARD_FRAME_TEXTURE = preload("res://art/CardFramev11_RoundedCorners_TransparentCentre.png")
