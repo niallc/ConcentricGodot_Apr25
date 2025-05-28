@@ -709,10 +709,8 @@ func handle_visual_effect(event):
 					spell_popup_anchor.add_child(spell_card_icon_node)
 					print("Unmake: Added spell_card_icon_node to spell_popup_anchor.") # [cite: 39]
 
-					# ---- MODIFIED SECTION FOR READINESS ----
 					await get_tree().process_frame # Allow one frame for _ready() to be called on spell_card_icon_node
 					print("Unmake: After process_frame. spell_card_icon_node is_inside_tree: ", spell_card_icon_node.is_inside_tree())
-					# ---- END MODIFIED SECTION ----
 					
 					# Now check if its internal @onready var is valid (for debugging)
 					if spell_card_icon_node.has_node("CardArtTextureRect"):
@@ -782,7 +780,7 @@ func handle_visual_effect(event):
 			print("Unmake: Attempting to fade out spell_card_icon_node. Is valid? ", is_instance_valid(spell_card_icon_node))
 			if is_instance_valid(spell_card_icon_node):
 				var card_fade_out_tween = create_tween()
-				card_fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.0, 0.3 / playback_speed_scale)
+				card_fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.3, 0.3 / playback_speed_scale)
 				await card_fade_out_tween.finished
 				spell_card_icon_node.queue_free()
 				print("Unmake: Spell card icon faded out and freed.")
