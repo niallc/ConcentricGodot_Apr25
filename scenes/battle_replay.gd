@@ -6,7 +6,7 @@ class_name BattleReplay
 var battle_events: Array[Dictionary] = []
 var current_event_index: int = -1
 var is_playing: bool = false
-var playback_speed_scale: float = 2.0
+var playback_speed_scale: float = 1.4
 var step_delay: float = 0.5
 
 var active_summon_visuals: Dictionary = {} # instance_id -> SummonVisual node
@@ -723,15 +723,27 @@ func handle_visual_effect(event):
 					spell_card_icon_node.update_display(spell_card_res) # Call update_display now [cite: 37]
 					print("Unmake: Called update_display on spell_card_icon_node.")
 					
+					print("Unmake: Called update_display on spell_card_icon_node.") #
+
 					spell_card_icon_node.set_anchors_preset(Control.PRESET_FULL_RECT)
-					print("Unmake: Set anchors_preset on spell_card_icon_node. Size now: ", spell_card_icon_node.size) # [cite: 38]
-					
-					spell_popup_anchor.visible = true # [cite: 38]
-					print("Unmake: spell_popup_anchor.visible SET TO TRUE. Is it? ", spell_popup_anchor.visible)
-					spell_card_icon_node.modulate.a = 0.0 # Start transparent
+					print("Unmake: Set anchors_preset on spell_card_icon_node. Size now: ", spell_card_icon_node.size) #
+
+					# --- SET DIFFERENTIAL ALPHA HERE ---
+					if spell_card_icon_node.has_method("set_component_modulation"):
+						# Frame at 0.9 alpha, Art at 0.7 alpha (colors remain white)
+						spell_card_icon_node.set_component_modulation(Color(1,1,1, 0.92), Color(1,1,1, 0.6)) 
+						print("Unmake: Set component modulation for spell_card_icon_node.") #
+					# --- END SET DIFFERENTIAL ALPHA ---
+
+					spell_popup_anchor.visible = true 
+					print("Unmake: spell_popup_anchor.visible SET TO TRUE. Is it? ", spell_popup_anchor.visible) #
+
+					# The parent node still starts fully transparent for the fade-in effect
+					spell_card_icon_node.modulate.a = 0.0 
 					var card_fade_in_tween = create_tween()
-					card_fade_in_tween.tween_property(spell_card_icon_node, "modulate:a", 0.85, 0.3 / playback_speed_scale)
-					print("Unmake: Spell card fade-in tween started.") # [cite: 38]
+					# Tween the PARENT's alpha to 1.0. The children will appear with their 0.9/0.7 alphas.
+					card_fade_in_tween.tween_property(spell_card_icon_node, "modulate:a", 1.0, 0.3 / playback_speed_scale)
+					print("Unmake: Spell card fade-in tween started (parent to full alpha).") #
 			else:
 				printerr("Unmake: Failed to setup spell card - spell_card_id: %s, spell_popup_anchor valid: %s" % [spell_card_id, is_instance_valid(spell_popup_anchor)]) # [cite: 39]
 
