@@ -762,27 +762,77 @@ func handle_visual_effect(event):
 				await get_tree().create_timer(0.1 / playback_speed_scale).timeout
 
 		# --- Placeholder for other effects we discussed ---
-		"energy_axe_boost": # [cite: 423]
-			print("TODO: Visual for Energy Axe boost on target") 
-			effect_handled = false
-		"focus_mana_gain": # [cite: 410]
-			print("TODO: Visual for Focus mana gain on player")
-			effect_handled = false
-		"inferno_spell_cast": # [cite: 439]
-			print("TODO: Visual for Inferno spell cast (AOE)")
-			effect_handled = false
-		"disarm_debuff_applied": # [cite: 377]
-			print("TODO: Visual for Disarm debuff on target")
-			effect_handled = false
-
-		# Add more cases here as you define more effect_ids in your card logic
-
+		"energy_axe_boost":
+			print("Visual for Energy Axe boost on target...")
+			await _play_generic_spell_effect_visual(event, true) # true = show burst on target
+			# Specific: could also add a temporary "+POW" visual to target_visual_node
+		"focus_mana_gain":
+			print("Visual for Focus mana gain on player...")
+			await _play_generic_spell_effect_visual(event, false)
+			# Specific: could add a glow to player's mana bar area
+		"inferno_spell_cast":
+			print("Visual for Inferno spell cast (AOE)")
+			await _play_generic_spell_effect_visual(event, false)
+		"disarm_debuff_applied":
+			print("Visual for Disarm debuff on target")
+			await _play_generic_spell_effect_visual(event, true)
 		_:
-			effect_handled = false # This event_id is not yet handled by a specific visual
+			print("Visual for ", event.effect_id)
+			await _play_generic_spell_effect_visual(event, false)
 
 	if not effect_handled:
 		print("  -> Unhandled or error in visual_effect ID: ", event.effect_id)
 		await get_tree().create_timer(0.1 / playback_speed_scale).timeout # Minimal delay if not handled
+
+func _play_generic_spell_effect_visual(event: Dictionary, show_burst_on_target: bool = true):
+	var spell_card_icon_node: Control = null
+	var visual_duration = 1.5 # Default duration for generic spell display + effect
+
+	# --- Show Spell Card ---
+	var spell_card_id = event.get("source_card_id")
+	if spell_card_id:
+		var spell_card_res = CardDB.get_card_resource(spell_card_id)
+		if spell_card_res:
+			spell_card_icon_node = CardIconVisualScene.instantiate()
+			if is_instance_valid(top_effects_canvas_layer):
+				top_effects_canvas_layer.add_child(spell_card_icon_node)
+			else:
+				add_child(spell_card_icon_node) # Fallback
+			spell_card_icon_node.call_deferred("update_display", spell_card_res)
+
+			var icon_display_size = Vector2(120, 160) 
+			spell_card_icon_node.custom_minimum_size = icon_display_size
+			spell_card_icon_node.size = icon_display_size
+			var viewport_center = get_viewport_rect().size / 2.0
+			spell_card_icon_node.global_position = viewport_center - (icon_display_size / 2.0)
+			spell_card_icon_node.modulate.a = 0.0 
+			
+			var spell_card_tween = create_tween()
+			spell_card_tween.tween_property(spell_card_icon_node, "modulate:a", 1.0, 0.3 / playback_speed_scale)
+
+	# --- Play Burst at Primary Target (if specified and applicable) ---
+	if show_burst_on_target:
+		var target_instance_id = event.get("instance_id") # Often the primary target of a visual_effect
+		if target_instance_id != -1 and active_summon_visuals.has(target_instance_id):
+			var target_visual_node = active_summon_visuals[target_instance_id]
+			if is_instance_valid(target_visual_node):
+				var burst_node = UnmakeImpactEffectScene.instantiate() # Using the same burst for now
+				add_child(burst_node)
+				burst_node.global_position = target_visual_node.global_position + (target_visual_node.size / 2.0)
+				if burst_node.has_method("play_effect"):
+					burst_node.play_effect()
+					visual_duration = max(visual_duration, 2.0) # If burst is 2s, make sure we wait
+		# else: No specific summon target for burst, or target_instance_id not provided/valid.
+		# Could play burst centrally if spell_card_icon_node exists and no other target.
+
+	await get_tree().create_timer(visual_duration / playback_speed_scale).timeout
+
+	if is_instance_valid(spell_card_icon_node):
+		var spell_card_fade_out_tween = create_tween()
+		spell_card_fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.0, 0.3 / playback_speed_scale)
+		await spell_card_fade_out_tween.finished
+		spell_card_icon_node.queue_free()
+
 
 
 func handle_log_message(event):
