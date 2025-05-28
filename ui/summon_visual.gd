@@ -6,8 +6,9 @@ class_name SummonVisual
 const CARD_FRAME_TEXTURE = preload("res://art/CardFramev11_RoundedCorners_TransparentCentre.png")
 
 # --- Properties ---
-var instance_id: int = -1
-var card_id: String = ""
+@export_group("Summon Properties")
+@export var instance_id: int = -1
+@export var card_id: String = ""
 var card_resource: SummonCardResource = null
 var current_power_val: int = 0
 var current_hp_val: int = 0

@@ -9,8 +9,8 @@ var is_playing: bool = false
 var playback_speed_scale: float = 3.0
 var step_delay: float = 0.5
 var spell_display_size = Vector2(500,500)
-var spell_display_alpha = 0.7
-var spell_card_hold_duration = 0.4
+var spell_display_alpha: float = 0.7
+#var spell_card_hold_duration: float = 0.4
 
 
 var active_summon_visuals: Dictionary = {} # instance_id -> SummonVisual node
@@ -251,11 +251,11 @@ func process_next_event():
 	if event_log_label: event_log_label.text = "      Event %d: %s (%s)" % [current_event_index, event.event_type, event.get("player", "N/A")]
 
 	# Temporary debugging code:
-	#if event.event_id == 35:
-		#print("Checking Goblin Firework going to the graveyard.")
+	if event.event_id == 34:
+		print("Checking Instance IDs")
 
 	match event.event_type:
-		"initial_library_state": await handle_initial_library_state(event) # Add this
+		"initial_library_state": await handle_initial_library_state(event)
 		"turn_start": await handle_turn_start(event)
 		"mana_change": await handle_mana_change(event)
 		"card_played": await handle_card_played(event)
@@ -692,37 +692,47 @@ func handle_status_change(event):
 func handle_visual_effect(event):
 	print("  -> Visual Effect: ID '%s', Targets: %s, Details: %s" % [event.effect_id, str(event.target_locations), str(event.details)]) # [cite: 87]
 
+	# Hacky workaround for String instance_id cases.
+	var temp_ins_id = event.get("instance_id")
+	var target_instance_id: int = -1
+	match typeof(temp_ins_id):
+		TYPE_INT:
+			target_instance_id = temp_ins_id
+		TYPE_STRING:
+			print("Deprecated: Got instance_id of type String: \"", temp_ins_id, "\"")
+		_:
+			print("Warning: Unexpected instance_id type: ", temp_ins_id)
+
 	var effect_handled = true # Assume we'll handle it
 	match event.effect_id:
 		"unmake_targeting_visual":
 			print("--- Handling Unmake Visual (now using generic) ---") #
-			var creature_to_destroy_id = event.get("instance_id")
 
 			await _play_generic_spell_effect_visual(event, 
 												spell_display_size, 
 												spell_display_alpha, 
 												true,
-												creature_to_destroy_id, # Burst on the creature
-												creature_to_destroy_id) # Also fade this creature
+												target_instance_id, # Burst on the creature
+												target_instance_id) # Also fade this creature
 			print("--- Finished Unmake Visual (generic call) ---") #			
 		# --- Placeholder for other effects we discussed ---
 		"energy_axe_boost":
 			print("Visual for Energy Axe boost on target...")
-			await _play_generic_spell_effect_visual(event, spell_display_size, true, event.get("instance_id"), event.get("instance_id"))
+			await _play_generic_spell_effect_visual(event, spell_display_size, spell_display_alpha, true, target_instance_id, target_instance_id)
 			# Specific: could also add a temporary "+POW" visual to target_visual_node
 		"focus_mana_gain":
 			print("Visual for Focus mana gain on player...")
-			await _play_generic_spell_effect_visual(event, spell_display_size, false, event.get("instance_id"), -1)
+			await _play_generic_spell_effect_visual(event, spell_display_size, spell_display_alpha, false, target_instance_id, -1)
 			# Specific: could add a glow to player's mana bar area
 		"inferno_spell_cast":
 			print("Visual for Inferno spell cast (AOE)")
-			await _play_generic_spell_effect_visual(event, spell_display_size, false, event.get("instance_id"), -1)
+			await _play_generic_spell_effect_visual(event, spell_display_size, spell_display_alpha, false, target_instance_id, -1)
 		"disarm_debuff_applied":
 			print("Visual for Disarm debuff on target")
-			await _play_generic_spell_effect_visual(event, spell_display_size, false, event.get("instance_id"), -1)
+			await _play_generic_spell_effect_visual(event, spell_display_size, spell_display_alpha, false, target_instance_id, -1)
 		_:
 			print("Visual for ", event.effect_id)
-			await _play_generic_spell_effect_visual(event, spell_display_size, false, event.get("instance_id"), -1)
+			await _play_generic_spell_effect_visual(event, spell_display_size, spell_display_alpha, false, target_instance_id, -1)
 
 	if not effect_handled:
 		print("  -> Unhandled or error in visual_effect ID: ", event.effect_id)
@@ -835,8 +845,8 @@ func _play_generic_spell_effect_visual(event: Dictionary,
 	if is_instance_valid(spell_card_icon_node):
 		# Check if it actually became visible (alpha > 0.5 after fade-in)
 		if spell_card_icon_node.modulate.a > 0.5: # Ensure it actually faded in before holding
-			print("Generic: Starting spell card hold duration: ", spell_card_hold_duration)
-			await get_tree().create_timer(spell_card_hold_duration).timeout
+			print("Generic: Starting spell card hold duration: ", spell_card_visible_duration)
+			await get_tree().create_timer(spell_card_visible_duration).timeout
 			print("Generic: Hold duration FINISHED.")
 		else:
 			print("Generic: Spell card icon was not sufficiently visible, skipping hold.")
