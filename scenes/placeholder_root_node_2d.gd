@@ -74,6 +74,7 @@ func _ready():
 	var _thought_acquirer_res = load("res://data/cards/instances/thought_acquirer.tres") as SummonCardResource
 	var _troll_res = load("res://data/cards/instances/troll.tres") as SummonCardResource
 	var _unmake_res = load("res://data/cards/instances/unmake.tres") as SpellCardResource
+	var _vampire_swordmaster = load("res://data/cards/instances/vampire_swordmaster.tres") as SummonCardResource
 	var _vengeful_warlord_res = load("res://data/cards/instances/vengeful_warlord.tres") as SummonCardResource
 	var _wall_of_vines_res = load("res://data/cards/instances/wall_of_vines.tres") as SummonCardResource
 	var _walking_sarcophagus_res = load("res://data/cards/instances/walking_sarcophagus.tres") as SummonCardResource
@@ -83,8 +84,8 @@ func _ready():
 	var battle_sim = Battle.new()
 	print("Battle instance created.")
 	print("Loaded Card: %s, Cost: %d" % [card_res.card_name, card_res.cost])
-	var pla_deck: Array[CardResource] = [_goblin_scout_res, _goblin_chieftain_res, _knight_of_opposites_res, _walking_sarcophagus_res]
-	var opp_deck: Array[CardResource] = [_goblin_recruiter_res, _insatiable_devourer_res, _goblin_rally_res, _portal_mage_res]
+	var opp_deck: Array[CardResource] = [_malignant_imp_res, _knight_of_opposites_res, _refined_impersonator_res, _scavenger_ghoul_res]
+	var pla_deck: Array[CardResource] = [_unmake_res, _coffin_traders_res, _superior_intellect_res, _reanimate_res]
 	var events = battle_sim.run_battle(pla_deck, opp_deck, "Player", "Opponent")
 	print("--- Battle Simulation Finished (%d events) ---" % events.size())
 

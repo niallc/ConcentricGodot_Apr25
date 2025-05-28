@@ -34,15 +34,15 @@ const HP_PIP_FULL_STYLE = preload("res://ui/styles/hp_pip_full_style.tres")
 const MANA_PIP_EMPTY_STYLE = preload("res://ui/styles/mana_pip_empty_style.tres")
 const MANA_PIP_FULL_STYLE = preload("res://ui/styles/mana_pip_full_style.tres")
 
-# ... and similar for top player# --- Player Graveyard and Library References ---
+# --- Player Graveyard and Library References ---
 @onready var bottom_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Library
 @onready var bottom_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/Graveyard
 @onready var top_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library
 @onready var top_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard
-#@onready var top_player_library_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/LibraryCountLabel # Add this node in scene
-#@onready var top_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
-#@onready var bottom_player_library_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/LibraryCountLabel # Add this node in scene
-#@onready var bottom_player_graveyard_count_label: Label = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LibraryAndGraveyard/GraveyardCountLabel # Add this node in scene
+
+# --- Spell Animation Effects ---
+const UnmakeImpactEffectScene = preload("res://effects/spell_impact_effect.tscn") # Adjust path
+
 
 # --- Store Graveyard and Library Card Names ---
 var player1_library_card_ids: Array[String] = []
@@ -234,11 +234,11 @@ func process_next_event():
 			event_log_label.text = "Event %d: ERROR - Event missing 'event_type'. Keys: %s" % [current_event_index, event.keys()]
 			printerr("Event %d missing 'event_type': %s" % [current_event_index, event])
 		else:
-			event_log_label.text = "Event %d: %s (%s)" % [current_event_index, event.event_type, event.get("player", "N/A")] # Your original line
+			event_log_label.text = "      Event %d: %s (%s)" % [current_event_index, event.event_type, event.get("player", "N/A")] # Your original line
 
 	print("\nProcessing Event %d: %s" % [current_event_index, event])
 
-	if event_log_label: event_log_label.text = "Event %d: %s (%s)" % [current_event_index, event.event_type, event.get("player", "N/A")]
+	if event_log_label: event_log_label.text = "      Event %d: %s (%s)" % [current_event_index, event.event_type, event.get("player", "N/A")]
 
 	# Temporary debugging code:
 	#if event.event_id == 35:
@@ -330,7 +330,7 @@ func get_lane_node(player_name_from_event: String, lane_number_from_event: int) 
 # --- Event Handler Functions ---
 func handle_turn_start(event):
 	print("  -> Turn %d starts for %s" % [event.turn, event.player])
-	if turn_label: turn_label.text = "Turn: %d (%s)" % [event.turn, event.player]
+	if turn_label: turn_label.text = "     Turn: %d (%s)" % [event.turn, event.player]
 	await get_tree().create_timer(0.5 / playback_speed_scale).timeout
 
 # Fix for tags default
@@ -678,10 +678,66 @@ func handle_status_change(event):
 	# TODO: Find SummonVisual node, update status icons visibility
 	await get_tree().create_timer(0.2 / playback_speed_scale).timeout
 
+# In battle_replay.gd
 func handle_visual_effect(event):
-	print("  -> Visual Effect: ID '%s', Targets: %s, Details: %s" % [event.effect_id, str(event.target_locations), str(event.details)])
-	# TODO: Implement specific visual effects based on effect_id
-	await get_tree().create_timer(0.5 / playback_speed_scale).timeout # Default delay
+	print("  -> Visual Effect: ID '%s', Targets: %s, Details: %s" % [event.effect_id, str(event.target_locations), str(event.details)]) # [cite: 87]
+
+	var effect_handled = true # Assume we'll handle it
+	match event.effect_id:
+		"unmake_targeting_visual": # As defined in unmake_effect.gd [cite: 351]
+			var target_instance_id = event.get("instance_id") # ID of the creature being unmade [cite: 351]
+			if active_summon_visuals.has(target_instance_id):
+				var target_visual_node = active_summon_visuals[target_instance_id]
+				if is_instance_valid(target_visual_node):
+					var effect_node = UnmakeImpactEffectScene.instantiate()
+
+					# Add the effect to a layer that draws above summons, or directly to the replay scene.
+					# Let's add it to self (BattleReplayScene) for now.
+					add_child(effect_node) 
+
+					# Position it over the target
+					effect_node.global_position = target_visual_node.global_position + (target_visual_node.size / 2.0)
+
+					if effect_node.has_method("play_effect"):
+						effect_node.play_effect()
+						# Since the effect scene queue_free()s itself, we might just need a short wait 
+						# for the animation to mostly play out before the target itself disappears
+						# due to a subsequent 'creature_defeated' event.
+						await get_tree().create_timer(0.6 / playback_speed_scale).timeout # Duration of unmake effect
+					else:
+						printerr("SpellImpactEffect node is missing play_effect() method.")
+						effect_node.queue_free() # Clean up
+						await get_tree().create_timer(0.1 / playback_speed_scale).timeout
+				else:
+					printerr("Unmake target visual node (ID: %s) is invalid." % target_instance_id)
+					effect_handled = false
+			else:
+				printerr("Unmake visual effect: Target SummonVisual not found for instance_id: %s" % target_instance_id)
+				effect_handled = false
+
+		# --- Placeholder for other effects we discussed ---
+		"energy_axe_boost": # [cite: 423]
+			print("TODO: Visual for Energy Axe boost on target") 
+			effect_handled = false
+		"focus_mana_gain": # [cite: 410]
+			print("TODO: Visual for Focus mana gain on player")
+			effect_handled = false
+		"inferno_spell_cast": # [cite: 439]
+			print("TODO: Visual for Inferno spell cast (AOE)")
+			effect_handled = false
+		"disarm_debuff_applied": # [cite: 377]
+			print("TODO: Visual for Disarm debuff on target")
+			effect_handled = false
+
+		# Add more cases here as you define more effect_ids in your card logic
+
+		_:
+			effect_handled = false # This event_id is not yet handled by a specific visual
+
+	if not effect_handled:
+		print("  -> Unhandled or error in visual_effect ID: ", event.effect_id)
+		await get_tree().create_timer(0.1 / playback_speed_scale).timeout # Minimal delay if not handled
+
 
 func handle_log_message(event):
 	print("  -> Log Message: %s" % event.message)
