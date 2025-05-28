@@ -40,6 +40,9 @@ const MANA_PIP_FULL_STYLE = preload("res://ui/styles/mana_pip_full_style.tres")
 @onready var top_player_library_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Library
 @onready var top_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard
 
+# --- Spell Animation layer -----
+@onready var top_effects_canvas_layer: CanvasLayer = $TopEffectsCanvasLayer # Adjust path if needed
+
 # --- Spell Animation Effects ---
 const UnmakeImpactEffectScene = preload("res://effects/spell_impact_effect.tscn") # Adjust path
 
@@ -684,36 +687,79 @@ func handle_visual_effect(event):
 
 	var effect_handled = true # Assume we'll handle it
 	match event.effect_id:
-		"unmake_targeting_visual": # As defined in unmake_effect.gd [cite: 351]
-			var target_instance_id = event.get("instance_id") # ID of the creature being unmade [cite: 351]
+		"unmake_targeting_visual":
+			var spell_card_icon_node: Control = null # To hold the spell card visual for later removal
+			var creature_fade_tween: Tween = null
+			var unmake_burst_effect_node = null
+
+			# --- Phase 1: Setup Spell Card Visual (but don't show yet) ---
+			var spell_card_id = event.get("source_card_id") # Should be "Unmake"
+			if spell_card_id:
+				var spell_card_res = CardDB.get_card_resource(spell_card_id)
+				if spell_card_res:
+					spell_card_icon_node = CardIconVisualScene.instantiate()
+
+					# Add to the top effects layer so it draws on top
+					if is_instance_valid(top_effects_canvas_layer):
+						top_effects_canvas_layer.add_child(spell_card_icon_node)
+						# Call update_display deferred as its own @onready vars need to be set
+						spell_card_icon_node.call_deferred("update_display", spell_card_res)
+					else:
+						# Fallback if canvas layer isn't set up, though it's recommended
+						add_child(spell_card_icon_node) 
+						spell_card_icon_node.call_deferred("update_display", spell_card_res)
+						printerr("TopEffectsCanvasLayer not found, adding spell icon to replay root.")
+
+					# Set size & initial state (invisible)
+					var icon_display_size = Vector2(120, 160) # Or a size you prefer for the pop-up
+					spell_card_icon_node.custom_minimum_size = icon_display_size
+					spell_card_icon_node.size = icon_display_size # Explicitly set size
+
+					# Calculate center position (relative to viewport if using CanvasLayer)
+					var viewport_center = get_viewport_rect().size / 2.0
+					spell_card_icon_node.global_position = viewport_center - (icon_display_size / 2.0)
+					spell_card_icon_node.modulate.a = 0.0 # Start invisible
+
+			# --- Phase 2: Setup Unmake Burst and Target Creature Fade ---
+			var target_instance_id = event.get("instance_id") # Creature being unmade
 			if active_summon_visuals.has(target_instance_id):
 				var target_visual_node = active_summon_visuals[target_instance_id]
 				if is_instance_valid(target_visual_node):
-					var effect_node = UnmakeImpactEffectScene.instantiate()
+					# Instantiate burst effect
+					unmake_burst_effect_node = UnmakeImpactEffectScene.instantiate()
+					add_child(unmake_burst_effect_node) # Add to replay scene (or an effects sub-layer)
+					unmake_burst_effect_node.global_position = target_visual_node.global_position + (target_visual_node.size / 2.0)
 
-					# Add the effect to a layer that draws above summons, or directly to the replay scene.
-					# Let's add it to self (BattleReplayScene) for now.
-					add_child(effect_node) 
+					# Prepare creature fade
+					creature_fade_tween = create_tween()
+					creature_fade_tween.tween_property(target_visual_node, "modulate:a", 0.0, 0.7 / playback_speed_scale).set_delay(0.1 / playback_speed_scale)
 
-					# Position it over the target
-					effect_node.global_position = target_visual_node.global_position + (target_visual_node.size / 2.0)
+			# --- Phase 3: Play Animations Concurrently ---
+			if is_instance_valid(spell_card_icon_node):
+				var spell_card_fade_in_tween = create_tween()
+				spell_card_fade_in_tween.tween_property(spell_card_icon_node, "modulate:a", 1.0, 0.3 / playback_speed_scale)
 
-					if effect_node.has_method("play_effect"):
-						effect_node.play_effect()
-						# Since the effect scene queue_free()s itself, we might just need a short wait 
-						# for the animation to mostly play out before the target itself disappears
-						# due to a subsequent 'creature_defeated' event.
-						await get_tree().create_timer(0.6 / playback_speed_scale).timeout # Duration of unmake effect
-					else:
-						printerr("SpellImpactEffect node is missing play_effect() method.")
-						effect_node.queue_free() # Clean up
-						await get_tree().create_timer(0.1 / playback_speed_scale).timeout
-				else:
-					printerr("Unmake target visual node (ID: %s) is invalid." % target_instance_id)
-					effect_handled = false
-			else:
-				printerr("Unmake visual effect: Target SummonVisual not found for instance_id: %s" % target_instance_id)
-				effect_handled = false
+			if is_instance_valid(unmake_burst_effect_node) and unmake_burst_effect_node.has_method("play_effect"):
+				unmake_burst_effect_node.play_effect()
+
+			if creature_fade_tween: # This implies target_visual_node was valid
+				# Tween plays automatically once properties are added
+				pass
+
+			# Wait for the longest part of this initial combined effect (e.g., the burst duration)
+			# Burst is 2s base, fade-in of card is 0.3s. So, wait for burst.
+			await get_tree().create_timer(2.0 / playback_speed_scale).timeout 
+
+			# --- Phase 4: Fade Out Spell Card ---
+			if is_instance_valid(spell_card_icon_node):
+				var spell_card_fade_out_tween = create_tween()
+				spell_card_fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.0, 0.3 / playback_speed_scale)
+				await spell_card_fade_out_tween.finished
+				spell_card_icon_node.queue_free()
+
+			# If any part failed, ensure a small default delay
+			if not (is_instance_valid(spell_card_icon_node) or is_instance_valid(unmake_burst_effect_node)):
+				await get_tree().create_timer(0.1 / playback_speed_scale).timeout
 
 		# --- Placeholder for other effects we discussed ---
 		"energy_axe_boost": # [cite: 423]
