@@ -90,7 +90,7 @@ func animate_fade_in(duration: float, initial_transparency: float = 0.0) -> Twee
 	modulate.a = initial_transparency
 	var tween = create_tween()
 	tween.tween_property(self, "modulate:a", 1.0, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	print("SummonVisual: Starting fade-in animation for instance %d over %s seconds" % [instance_id, duration])
+	#print("SummonVisual: Starting fade-in animation for instance %d over %s seconds" % [instance_id, duration])
 	return tween
 	
 func play_animation(anim_name: String):
@@ -116,7 +116,7 @@ func animate_scale_pop(peak_scale_factor: float = 1.1, duration_up: float = 0.15
 	# Scale back to normal
 	tween.tween_property(self, "scale", Vector2(1.0, 1.0), duration_down).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 	
-	print("SummonVisual (%d): Playing scale pop." % instance_id)
+	#print("SummonVisual (%d): Playing scale pop." % instance_id)
 	return tween
 
 func animate_shake(strength: float = 4.0, duration_per_half_shake: float = 0.04, num_shakes: int = 2) -> Tween:
@@ -131,7 +131,7 @@ func animate_shake(strength: float = 4.0, duration_per_half_shake: float = 0.04,
 	
 	tween.tween_property(self, "position:x", original_position_x, duration_per_half_shake)
 	
-	print("SummonVisual (%d): Playing subtle, faster shake." % instance_id)
+	#print("SummonVisual (%d): Playing subtle, faster shake." % instance_id)
 	return tween
 
 func play_full_arrival_sequence_and_await(p_fade_duration: float = 0.9, 

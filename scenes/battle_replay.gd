@@ -6,7 +6,7 @@ class_name BattleReplay
 var battle_events: Array[Dictionary] = []
 var current_event_index: int = -1
 var is_playing: bool = false
-var playback_speed_scale: float = 3.0
+var playback_speed_scale: float = 2.0
 var step_delay: float = 0.5
 
 var active_summon_visuals: Dictionary = {} # instance_id -> SummonVisual node
@@ -24,6 +24,8 @@ var player2_name: String = "" # Typically "Opponent"
 @onready var bottom_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LaneContainer
 @onready var top_lane_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LaneContainer
 @onready var playback_timer: Timer = $MainMarginContainer/PlaybackTimer
+@onready var game_area_vbox: VBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox # Used if top_effects_canvas_layer fails
+
 # --- Player UI References ---
 @onready var bottom_player_hp_pips_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/HPPipsContainer 
 @onready var bottom_player_mana_pips_container: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/BottomPlayerArea/BottomPlayerVBox/LifeAndMana/ManaPipsContainer
@@ -42,6 +44,7 @@ const MANA_PIP_FULL_STYLE = preload("res://ui/styles/mana_pip_full_style.tres")
 
 # --- Spell Animation layer -----
 @onready var top_effects_canvas_layer: CanvasLayer = $TopEffectsCanvasLayer # Adjust path if needed
+@onready var spell_popup_anchor: Control = $TopEffectsCanvasLayer/SpellPopupAnchor # Ensure this path is correct
 
 # --- Spell Animation Effects ---
 const UnmakeImpactEffectScene = preload("res://effects/spell_impact_effect.tscn") # Adjust path
@@ -688,79 +691,96 @@ func handle_visual_effect(event):
 	var effect_handled = true # Assume we'll handle it
 	match event.effect_id:
 		"unmake_targeting_visual":
-			var spell_card_icon_node: Control = null # To hold the spell card visual for later removal
+			print("--- Handling Unmake Visual ---")
+			var spell_card_icon_node: Control = null
 			var creature_fade_tween: Tween = null
 			var unmake_burst_effect_node = null
+			var overall_effect_duration = 2.0 / playback_speed_scale # For the burst
 
-			# --- Phase 1: Setup Spell Card Visual (but don't show yet) ---
+			# --- Phase 1: Setup and Show Spell Card Visual ---
 			var spell_card_id = event.get("source_card_id") # Should be "Unmake"
-			if spell_card_id:
+			print("Unmake: spell_card_id from event: ", spell_card_id) # [cite: 39]
+			if spell_card_id and is_instance_valid(spell_popup_anchor):
 				var spell_card_res = CardDB.get_card_resource(spell_card_id)
+				print("Unmake: spell_card_res from CardDB: ", spell_card_res) # [cite: 39]
 				if spell_card_res:
 					spell_card_icon_node = CardIconVisualScene.instantiate()
+					print("Unmake: Instantiated spell_card_icon_node: ", spell_card_icon_node) # [cite: 39]
+					spell_popup_anchor.add_child(spell_card_icon_node)
+					print("Unmake: Added spell_card_icon_node to spell_popup_anchor.") # [cite: 39]
 
-					# Add to the top effects layer so it draws on top
-					if is_instance_valid(top_effects_canvas_layer):
-						top_effects_canvas_layer.add_child(spell_card_icon_node)
-						# Call update_display deferred as its own @onready vars need to be set
-						spell_card_icon_node.call_deferred("update_display", spell_card_res)
+					# ---- MODIFIED SECTION FOR READINESS ----
+					await get_tree().process_frame # Allow one frame for _ready() to be called on spell_card_icon_node
+					print("Unmake: After process_frame. spell_card_icon_node is_inside_tree: ", spell_card_icon_node.is_inside_tree())
+					# ---- END MODIFIED SECTION ----
+					
+					# Now check if its internal @onready var is valid (for debugging)
+					if spell_card_icon_node.has_node("CardArtTextureRect"):
+						print("Unmake: spell_card_icon_node has CardArtTextureRect child.")
 					else:
-						# Fallback if canvas layer isn't set up, though it's recommended
-						add_child(spell_card_icon_node) 
-						spell_card_icon_node.call_deferred("update_display", spell_card_res)
-						printerr("TopEffectsCanvasLayer not found, adding spell icon to replay root.")
-
-					# Set size & initial state (invisible)
-					var icon_display_size = Vector2(120, 160) # Or a size you prefer for the pop-up
-					spell_card_icon_node.custom_minimum_size = icon_display_size
-					spell_card_icon_node.size = icon_display_size # Explicitly set size
-
-					# Calculate center position (relative to viewport if using CanvasLayer)
-					var viewport_center = get_viewport_rect().size / 2.0
-					spell_card_icon_node.global_position = viewport_center - (icon_display_size / 2.0)
-					spell_card_icon_node.modulate.a = 0.0 # Start invisible
+						printerr("Unmake: spell_card_icon_node MISSING CardArtTextureRect child after ready!")
+					
+					spell_card_icon_node.update_display(spell_card_res) # Call update_display now [cite: 37]
+					print("Unmake: Called update_display on spell_card_icon_node.")
+					
+					spell_card_icon_node.set_anchors_preset(Control.PRESET_FULL_RECT)
+					print("Unmake: Set anchors_preset on spell_card_icon_node. Size now: ", spell_card_icon_node.size) # [cite: 38]
+					
+					spell_popup_anchor.visible = true # [cite: 38]
+					print("Unmake: spell_popup_anchor.visible SET TO TRUE. Is it? ", spell_popup_anchor.visible)
+					spell_card_icon_node.modulate.a = 0.0 # Start transparent
+					var card_fade_in_tween = create_tween()
+					card_fade_in_tween.tween_property(spell_card_icon_node, "modulate:a", 0.85, 0.3 / playback_speed_scale)
+					print("Unmake: Spell card fade-in tween started.") # [cite: 38]
+			else:
+				printerr("Unmake: Failed to setup spell card - spell_card_id: %s, spell_popup_anchor valid: %s" % [spell_card_id, is_instance_valid(spell_popup_anchor)]) # [cite: 39]
 
 			# --- Phase 2: Setup Unmake Burst and Target Creature Fade ---
-			var target_instance_id = event.get("instance_id") # Creature being unmade
+			var target_instance_id = event.get("instance_id")
+			print("Unmake: target_instance_id for creature: ", target_instance_id)
 			if active_summon_visuals.has(target_instance_id):
 				var target_visual_node = active_summon_visuals[target_instance_id]
+				print("Unmake: Found target_visual_node: ", target_visual_node)
 				if is_instance_valid(target_visual_node):
-					# Instantiate burst effect
 					unmake_burst_effect_node = UnmakeImpactEffectScene.instantiate()
-					add_child(unmake_burst_effect_node) # Add to replay scene (or an effects sub-layer)
+					print("Unmake: Instantiated unmake_burst_effect_node: ", unmake_burst_effect_node)
+					add_child(unmake_burst_effect_node) 
 					unmake_burst_effect_node.global_position = target_visual_node.global_position + (target_visual_node.size / 2.0)
-
-					# Prepare creature fade
+					
+					if unmake_burst_effect_node.has_method("play_effect"):
+						print("Unmake: Playing burst effect.")
+						unmake_burst_effect_node.play_effect()
+					else:
+						printerr("Unmake: unmake_burst_effect_node has no play_effect method!")
+						if is_instance_valid(unmake_burst_effect_node): unmake_burst_effect_node.queue_free()
+						
 					creature_fade_tween = create_tween()
-					creature_fade_tween.tween_property(target_visual_node, "modulate:a", 0.0, 0.7 / playback_speed_scale).set_delay(0.1 / playback_speed_scale)
+					creature_fade_tween.tween_property(target_visual_node, "modulate:a", 0.0, 0.7 / playback_speed_scale).set_delay(0.2 / playback_speed_scale)
+					print("Unmake: Creature fade tween started for target_visual_node.")
+				else:
+					printerr("Unmake: target_visual_node is invalid.")
+			else:
+				printerr("Unmake: No active summon visual found for target_instance_id: ", target_instance_id)
 
-			# --- Phase 3: Play Animations Concurrently ---
+			# --- Phase 3: Wait for main effects ---
+			print("Unmake: Awaiting main effect duration: ", overall_effect_duration)
+			await get_tree().create_timer(overall_effect_duration).timeout 
+
+			# --- Phase 4: Fade Out and Remove Spell Card ---
+			print("Unmake: Attempting to fade out spell_card_icon_node. Is valid? ", is_instance_valid(spell_card_icon_node))
 			if is_instance_valid(spell_card_icon_node):
-				var spell_card_fade_in_tween = create_tween()
-				spell_card_fade_in_tween.tween_property(spell_card_icon_node, "modulate:a", 1.0, 0.3 / playback_speed_scale)
-
-			if is_instance_valid(unmake_burst_effect_node) and unmake_burst_effect_node.has_method("play_effect"):
-				unmake_burst_effect_node.play_effect()
-
-			if creature_fade_tween: # This implies target_visual_node was valid
-				# Tween plays automatically once properties are added
-				pass
-
-			# Wait for the longest part of this initial combined effect (e.g., the burst duration)
-			# Burst is 2s base, fade-in of card is 0.3s. So, wait for burst.
-			await get_tree().create_timer(2.0 / playback_speed_scale).timeout 
-
-			# --- Phase 4: Fade Out Spell Card ---
-			if is_instance_valid(spell_card_icon_node):
-				var spell_card_fade_out_tween = create_tween()
-				spell_card_fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.0, 0.3 / playback_speed_scale)
-				await spell_card_fade_out_tween.finished
+				var card_fade_out_tween = create_tween()
+				card_fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.0, 0.3 / playback_speed_scale)
+				await card_fade_out_tween.finished
 				spell_card_icon_node.queue_free()
-
-			# If any part failed, ensure a small default delay
-			if not (is_instance_valid(spell_card_icon_node) or is_instance_valid(unmake_burst_effect_node)):
-				await get_tree().create_timer(0.1 / playback_speed_scale).timeout
-
+				print("Unmake: Spell card icon faded out and freed.")
+			
+			if is_instance_valid(spell_popup_anchor):
+				spell_popup_anchor.visible = false
+				print("Unmake: SpellPopupAnchor hidden.")
+			
+			print("--- Finished Unmake Visual ---")
+			
 		# --- Placeholder for other effects we discussed ---
 		"energy_axe_boost":
 			print("Visual for Energy Axe boost on target...")
@@ -786,54 +806,60 @@ func handle_visual_effect(event):
 
 func _play_generic_spell_effect_visual(event: Dictionary, show_burst_on_target: bool = true):
 	var spell_card_icon_node: Control = null
-	var visual_duration = 1.5 # Default duration for generic spell display + effect
+	var spell_card_fade_duration = 0.3 / playback_speed_scale
+	# Default base duration for spell card display; burst may extend this.
+	var accumulated_wait_time = (spell_card_fade_duration * 2) + (0.5 / playback_speed_scale) # fade_in + hold + fade_out
 
-	# --- Show Spell Card ---
+	# --- 1. Prepare and Fade In Spell Card ---
 	var spell_card_id = event.get("source_card_id")
-	if spell_card_id:
+	if spell_card_id and is_instance_valid(spell_popup_anchor):
 		var spell_card_res = CardDB.get_card_resource(spell_card_id)
 		if spell_card_res:
 			spell_card_icon_node = CardIconVisualScene.instantiate()
-			if is_instance_valid(top_effects_canvas_layer):
-				top_effects_canvas_layer.add_child(spell_card_icon_node)
-			else:
-				add_child(spell_card_icon_node) # Fallback
-			spell_card_icon_node.call_deferred("update_display", spell_card_res)
+			spell_popup_anchor.add_child(spell_card_icon_node)
 
-			var icon_display_size = Vector2(120, 160) 
-			spell_card_icon_node.custom_minimum_size = icon_display_size
-			spell_card_icon_node.size = icon_display_size
-			var viewport_center = get_viewport_rect().size / 2.0
-			spell_card_icon_node.global_position = viewport_center - (icon_display_size / 2.0)
-			spell_card_icon_node.modulate.a = 0.0 
+			await spell_card_icon_node.ready
+			spell_card_icon_node.update_display(spell_card_res)
 			
-			var spell_card_tween = create_tween()
-			spell_card_tween.tween_property(spell_card_icon_node, "modulate:a", 1.0, 0.3 / playback_speed_scale)
+			spell_card_icon_node.set_anchors_preset(Control.PRESET_FULL_RECT)
+			
+			spell_popup_anchor.visible = true
+			spell_card_icon_node.modulate.a = 0.0
+			var fade_in_tween = create_tween()
+			fade_in_tween.tween_property(spell_card_icon_node, "modulate:a", 0.7, spell_card_fade_duration)
+			# Don't await here if burst plays concurrently
 
-	# --- Play Burst at Primary Target (if specified and applicable) ---
+	# --- 2. Play Burst at Primary Target (if applicable) ---
+	var burst_played = false
 	if show_burst_on_target:
-		var target_instance_id = event.get("instance_id") # Often the primary target of a visual_effect
+		var target_instance_id = event.get("instance_id") 
 		if target_instance_id != -1 and active_summon_visuals.has(target_instance_id):
-			var target_visual_node = active_summon_visuals[target_instance_id]
-			if is_instance_valid(target_visual_node):
-				var burst_node = UnmakeImpactEffectScene.instantiate() # Using the same burst for now
-				add_child(burst_node)
-				burst_node.global_position = target_visual_node.global_position + (target_visual_node.size / 2.0)
+			var target_visual = active_summon_visuals[target_instance_id]
+			if is_instance_valid(target_visual):
+				var burst_node = UnmakeImpactEffectScene.instantiate() 
+				add_child(burst_node) 
+				burst_node.global_position = target_visual.global_position + (target_visual.size / 2.0)
 				if burst_node.has_method("play_effect"):
 					burst_node.play_effect()
-					visual_duration = max(visual_duration, 2.0) # If burst is 2s, make sure we wait
-		# else: No specific summon target for burst, or target_instance_id not provided/valid.
-		# Could play burst centrally if spell_card_icon_node exists and no other target.
+					burst_played = true
+					# The burst is 2s base. Ensure main await covers it if it's the longest.
+					accumulated_wait_time = max(accumulated_wait_time, 2.0 / playback_speed_scale)
+	
+	# --- 3. Wait for concurrent effects to play out ---
+	if accumulated_wait_time > 0:
+		await get_tree().create_timer(accumulated_wait_time).timeout
+	elif not is_instance_valid(spell_card_icon_node) and not burst_played: # If nothing happened
+		await get_tree().create_timer(0.1 / playback_speed_scale).timeout
 
-	await get_tree().create_timer(visual_duration / playback_speed_scale).timeout
-
+	# --- 4. Fade Out and Remove Spell Card Icon ---
 	if is_instance_valid(spell_card_icon_node):
-		var spell_card_fade_out_tween = create_tween()
-		spell_card_fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.0, 0.3 / playback_speed_scale)
-		await spell_card_fade_out_tween.finished
+		var fade_out_tween = create_tween()
+		fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.0, spell_card_fade_duration)
+		await fade_out_tween.finished
 		spell_card_icon_node.queue_free()
-
-
+	
+	if is_instance_valid(spell_popup_anchor):
+		spell_popup_anchor.visible = false
 
 func handle_log_message(event):
 	print("  -> Log Message: %s" % event.message)
@@ -1041,3 +1067,20 @@ func _ready():
 			print("CardDB Test: RecurringSkeleton not found.")
 	else:
 		print("CardDB not available.")
+
+	if is_instance_valid(spell_popup_anchor):
+		var desired_popup_container_size = Vector2(400, 400) 
+		spell_popup_anchor.size = desired_popup_container_size
+		var viewport_rect_size = get_viewport_rect().size 
+		spell_popup_anchor.position = (viewport_rect_size / 2.0) - (desired_popup_container_size / 2.0)
+		spell_popup_anchor.visible = false # Start hidden
+		print("BattleReplay _ready: SpellPopupAnchor configured. Size: ", spell_popup_anchor.size, " Pos: ", spell_popup_anchor.position)
+	else:
+		var errMsg = "BattleReplay _ready: SpellPopupAnchor node NOT FOUND or invalid. Path was: "
+		if spell_popup_anchor:
+			errMsg += spell_popup_anchor.get_path()  
+		else:
+			errMsg+= "Path not available"
+		printerr(errMsg)
+
+	print("BattleReplay _ready: Finished.") # General ready confirmation
