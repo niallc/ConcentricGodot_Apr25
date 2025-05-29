@@ -1,8 +1,8 @@
 [gd_scene load_steps=14 format=3 uid="uid://dm4f6sfd6oksw"]
 
-[ext_resource type="Script" uid="uid://cjno41j5h16wr" path="res://scenes/battle_replay.gd" id="1_03sn8"]
+[ext_resource type="Script" uid="uid://clv4knat6l0lq" path="res://scenes/battle_replay.gd" id="1_03sn8"]
 [ext_resource type="StyleBox" uid="uid://u26d5sahed1j" path="res://ui/styles/mana_pip_empty_style.tres" id="2_apaeq"]
-[ext_resource type="FontFile" uid="uid://66eenj1vt4kd" path="res://data/fonts/LibreBaskerville-Bold.ttf" id="2_w635i"]
+[ext_resource type="FontFile" uid="uid://d4m345y2kxxe8" path="res://data/fonts/LibreBaskerville-Bold.ttf" id="2_w635i"]
 [ext_resource type="StyleBox" uid="uid://brf7a8v2scdby" path="res://ui/styles/hp_pip_empty_style.tres" id="3_gbyq0"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rg62t"]
