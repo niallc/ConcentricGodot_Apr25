@@ -11,6 +11,7 @@
 /addons/
 /archive/
 /data/sprite_sheets/
+/TEMP/
 
 logic/tools/all_code_combined.txt
 logic/tools/make_big_code_file.py

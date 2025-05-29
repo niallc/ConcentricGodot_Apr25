@@ -3,7 +3,9 @@ extends Control
 class_name SummonVisual
 
 # --- Constants ---
-const CARD_FRAME_TEXTURE = preload("res://art/CardFramev11_RoundedCorners_TransparentCentre.png")
+const DEFAULT_ART_TEXTURE = preload("res://art/DefaultArt_Small.png")
+const CARD_FRAME_LOW_RES_PATH = "res://art/cardFrame_lowRes.png"
+const CARD_FRAME_TEXTURE = preload(CARD_FRAME_LOW_RES_PATH)
 
 # --- Properties ---
 @export_group("Summon Properties")
