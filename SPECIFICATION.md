@@ -62,6 +62,7 @@ A simplified textual representation of this flow:
 
 ### 3.1. GDScript Style
 * **Indentation:** Use Tabs only for indentation in `.gd` files.
+* **LLM Bot Instructions** Avoid any instructions to the user in code blocks, such as "you might need to update this path", such instructions are easy to miss and confusing in code, put those instructions outside the code block. It's ok if this produces an error (though avoid run time errors if possible) as those are easy to fix. Specifically, avoid any suffixes to lines such as `[cite: 1]`, these are harmful in code blocks. Also avoid `//` at the ends of lines in GDScript.
 * **Naming Conventions:** Observe existing patterns (e.g., `_private_method_or_variable`, `ClassName`, `variable_name`, `CONSTANT_NAME`).
 * **Type Hinting:** Use static typing and type hints where practical to improve code clarity and maintainability.
 
