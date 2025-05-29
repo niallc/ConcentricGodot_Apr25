@@ -6,7 +6,14 @@
 
 #project.godot
 
-/art/
+# Art based ignores
+/art/cards/
+/art/hiddenImages/
+/art/*.import
+/art/Stone*
+/art/Photo*
+/art/CardFrame*
+
 /build/
 /addons/
 /archive/
