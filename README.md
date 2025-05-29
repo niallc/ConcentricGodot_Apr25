@@ -7,7 +7,6 @@ The core gameplay involves the player building a small deck of cards for automat
 The current primary focus is on the robust **battle simulation logic** and the **visual battle replay system**. While these core components are largely functional, development is ongoing to expand features and refine the overall game.
 
 ![Gameplay Screenshot of Concentric in Godot](art/GameplayScreenshot_small.png)
-*Note: Ensure `GameplayScreenshot_small.png` is located at `art/GameplayScreenshot_small.png` relative to this README for display on GitHub.*
 
 ## Current Status
 * In active development.
@@ -17,7 +16,7 @@ The current primary focus is on the robust **battle simulation logic** and the *
 * The project is evolving beyond a direct re-implementation towards a standalone game, with plans for broader features.
 
 ## Technology Stack
-* **Engine:** Godot Engine 4.x (developed with v4.2.1, targeting general 4.x compatibility)
+* **Engine:** Godot Engine 4.x (currently v4.4.1, targeting general 4.x compatibility)
 * **Language:** GDScript
 * **Testing:** GUT (Godot Unit Test) for core logic.
 
@@ -51,7 +50,7 @@ The primary areas of code are:
 * **UI Components for Replay:** `res://ui/` (e.g., `SummonVisual.tscn`, `CardIconVisual.tscn`).
 
 ## Contributing
-This project is, in theory, open to contributions. If you are interested in contributing, please consider reaching out to Niall C at `niallc+concentric@gmail.com` first to discuss potential ideas or areas of focus.
+This project is, in theory, open to contributions. If you are interested in contributing, it's probably easiest to reach out to Niall C at `niallc+concentric@gmail.com` first, and I'd like to get the email anyway.
 
 ## Future Ideas
 While the current focus is on the battle and replay systems, envisioned future developments include:
@@ -63,6 +62,6 @@ While the current focus is on the battle and replay systems, envisioned future d
 ## License
 This project is licensed under the MIT License. Please see the `LICENSE` file (which you should create in the root of the repository) for full details.
 
-It is our hope that any parties interested in commercial applications of this work or its derivatives would reach out to discuss with Piato and Niall C.
+In the unlikely vent of parties interested in commercial applications of this work or its derivatives, please reach out to discuss with Piato and Niall C.
 
 ---
