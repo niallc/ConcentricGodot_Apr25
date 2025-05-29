@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://bwifrqyvhdtmi"]
 
-[ext_resource type="Script" uid="uid://byf7hf2ij8o8r" path="res://effects/spell_impact_effect.gd" id="1_p3r8w"]
-[ext_resource type="Texture2D" uid="uid://buwbkbmmctmdo" path="res://art/effects/placeholder_burst_frame.png" id="2_u3pnn"]
+[ext_resource type="Script" uid="uid://bxgnwtmaterpn" path="res://effects/spell_impact_effect.gd" id="1_p3r8w"]
+[ext_resource type="Texture2D" uid="uid://6aoxpjcuq33s" path="res://art/effects/placeholder_burst_frame.png" id="2_u3pnn"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_x1k67"]
 animations = [{

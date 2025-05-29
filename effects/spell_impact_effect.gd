@@ -31,7 +31,7 @@ func _try_upgrade_animation_to_full_sequence():
 
 	# Attempt to load the full sequence
 	for i in range(FRAME_COUNT):
-		var frame_path: String = "%s%.4d.png" % [FRAME_BASE_PATH, i]
+		var frame_path: String = "%s%04d.png" % [FRAME_BASE_PATH, i]
 		if ResourceLoader.exists(frame_path):
 			var tex_resource = load(frame_path)
 			if tex_resource is Texture2D:
@@ -49,12 +49,18 @@ func _try_upgrade_animation_to_full_sequence():
 			
 	if all_full_frames_found_and_valid and loaded_full_sequence_textures.size() == FRAME_COUNT:
 		# Successfully loaded all frames for the full sequence, so replace the placeholder(s)
-		sprite_frames_res.clear_frames(ANIMATION_NAME) # Remove placeholder frame(s)
+		
+		# --- CORRECTED SECTION START ---
+		if sprite_frames_res.has_animation(ANIMATION_NAME): # Should be true if placeholder was set up
+			sprite_frames_res.remove_animation(ANIMATION_NAME) 
+		sprite_frames_res.add_animation(ANIMATION_NAME) # Add it back, now empty
+		# --- CORRECTED SECTION END ---
+
 		for tex in loaded_full_sequence_textures:
 			sprite_frames_res.add_frame(ANIMATION_NAME, tex)
 		
 		sprite_frames_res.set_animation_speed(ANIMATION_NAME, ANIMATION_FPS)
-		# animated_sprite.animation is already "burst" from the scene setup
+		animated_sprite.animation = ANIMATION_NAME 
 		print("SpellImpactEffect: Successfully upgraded '%s' to full burst animation." % ANIMATION_NAME)
 	# else: The placeholder animation set up in the .tscn file will be used.
 		# The print message about missing frames (if any) serves as notification.
