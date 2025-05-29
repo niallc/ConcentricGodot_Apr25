@@ -16,7 +16,7 @@ The current primary focus is on the robust **battle simulation logic** and the *
 * The project is evolving beyond a direct re-implementation towards a standalone game, with plans for broader features.
 
 ## Technology Stack
-* **Engine:** Godot Engine 4.x (currently v4.4.1, targeting general 4.x compatibility)
+* **Engine:** Godot Engine 4.x (currently v4.2.1, targeting general 4.x compatibility)
 * **Language:** GDScript
 * **Testing:** GUT (Godot Unit Test) for core logic.
 
@@ -30,12 +30,20 @@ The current primary focus is on the robust **battle simulation logic** and the *
     *(Repository URL: `https://github.com/niallc/ConcentricGodot_Apr25` or your fork's URL).*
 2.  Open the project in the Godot Engine editor.
 3.  To see a sample battle replay, run the scene: `scenes/placeholder_root_node_2d.tscn`. This scene is set up to demonstrate the replay system with a predefined battle.
+    * *For full card artwork, please see the "Important Note on Art Assets" section below.*
 
 ### Important Note on Art Assets
-* The game logic and card data (`.tres` files) reference card artwork and other visual assets using `res://art/...` paths (e.g., `res://art/cards/my_card.webp`).
-* **These art assets are not currently included in this Git repository** to keep the repository lightweight.
-* **Consequence:** If you clone this repository and run the project without the art assets, cards will likely appear with default placeholder art (if available and included in the repo) or might cause errors if the game attempts to load missing `res://` paths.
-* **For Development:** If you are interested in developing or contributing to this project and require the full art assets, please contact Niall C at `niallc+concentric@gmail.com` to discuss obtaining them and the correct local setup.
+* The game logic and card data (`.tres` files) reference card artwork and other visual assets using `res://art/...` paths (e.g., `res://art/cards/my_card.webp`). This repository includes a basic placeholder image for cards at `art/DefaultArt_Small.png`.
+* For the full, intended artwork:
+    1.  Visit: **[https://niallcardin.com/ConcentricArt/](https://niallcardin.com/ConcentricArt/)**
+    2.  Download either the `.zip` or `.tar.gz` archive.
+    3.  Extract the downloaded archive. This will likely create a new folder (e.g., named `ConcentricArt`, `artCopy`, or similar, depending on the archive and your operating system's extraction tool).
+    4.  **Open this newly created folder.**
+    5.  Inside, you will find the actual art asset subfolders (e.g., `cards/`, `ui_elements/`, etc.). **Copy all of these folders and files.**
+    6.  Navigate to the root directory of your cloned "Concentric (Godot Version)" project (the one containing `project.godot`).
+    7.  **Paste the copied items into the existing `art/` directory** located here. Your operating system should allow you to merge these folders with the existing `art/` folder (which contains `DefaultArt_Small.png`), effectively adding all the full art files.
+* **Consequence of not adding full art:** If you run the project without the full art assets, cards will appear with the default placeholder art. If the placeholder is also missing or paths are incorrect, errors related to loading resources may occur.
+* **For Development:** If you are interested in developing or contributing to this project and have questions about the art assets or setup, please contact Niall C at `niallc+concentric@gmail.com`.
 
 ## For Developers
 
@@ -62,6 +70,6 @@ While the current focus is on the battle and replay systems, envisioned future d
 ## License
 This project is licensed under the MIT License. Please see the `LICENSE` file (which you should create in the root of the repository) for full details.
 
-In the unlikely vent of parties interested in commercial applications of this work or its derivatives, please reach out to discuss with Piato and Niall C.
+In the unlikely event of parties interested in commercial applications of this work or its derivatives, please reach out to discuss with Piato and Niall C.
 
 ---
