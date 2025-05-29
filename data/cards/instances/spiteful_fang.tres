@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://dhhxavl42ln2f"]
 
-[ext_resource type="Script" path="res://logic/card_effects/spiteful_fang_effect.gd" id="1_aea81"]
+[ext_resource type="Script" uid="uid://bdcit6qnwcjoj" path="res://logic/card_effects/spiteful_fang_effect.gd" id="1_aea81"]
 
 [resource]
 script = ExtResource("1_aea81")

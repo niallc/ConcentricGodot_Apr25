@@ -761,7 +761,6 @@ func _play_generic_spell_effect_visual(event: Dictionary,
 
 	# --- Phase 1: Prepare and Start Fade In Spell Card ---
 	var spell_card_id = event.get("source_card_id")
-	print("Generic: Got spell_card_id: '", spell_card_id, "'")
 	if spell_card_id and is_instance_valid(spell_popup_anchor): # spell_popup_anchor is @onready 
 		var spell_card_res = CardDB.get_card_resource(spell_card_id)
 		if spell_card_res:
@@ -783,15 +782,15 @@ func _play_generic_spell_effect_visual(event: Dictionary,
 			
 			var fade_in_tween = create_tween()
 			fade_in_tween.tween_property(spell_card_icon_node, "modulate:a", 1.0, spell_card_fade_duration)
-			print("Generic: Spell card fade-in tween started.")
 			parallel_tweens_finished_signals.append(fade_in_tween.finished) # Add its finished signal
 	else:
-		printerr("Generic: Skipped spell card display. spell_card_id: %s, spell_popup_anchor valid: %s" % [spell_card_id, is_instance_valid(spell_popup_anchor)])
+		printerr("Generic: Skipped visual effect display. card_id: %s, spell_popup_anchor valid: %s" % [spell_card_id, is_instance_valid(spell_popup_anchor)])
+		print("  Failed to find a visual to display. If this is a creature that's a missing feature.")
+		print("  If this is a spell though maybe add a missing source_instance_id to event generation.")
 
 	# --- Phase 2a: Play Burst (if applicable) ---
 	var actual_burst_duration_to_wait = 0.0
 	if show_burst_effect:
-		print("Generic: show_burst_effect is TRUE. Burst target_id: ", burst_target_instance_id)
 		var burst_target_pos: Vector2
 		var burst_target_found = false
 		if burst_target_instance_id != -1 and active_summon_visuals.has(burst_target_instance_id):
@@ -808,7 +807,6 @@ func _play_generic_spell_effect_visual(event: Dictionary,
 			add_child(burst_node) 
 			burst_node.global_position = burst_target_pos
 			if burst_node.has_method("play_effect"):
-				print("Generic: Playing burst effect at: ", burst_target_pos)
 				burst_node.play_effect() # Burst scene self-destructs
 				actual_burst_duration_to_wait = burst_animation_duration # We'll wait for this long
 			else:
@@ -821,7 +819,6 @@ func _play_generic_spell_effect_visual(event: Dictionary,
 	if creature_to_fade_instance_id != -1 and active_summon_visuals.has(creature_to_fade_instance_id):
 		var creature_visual = active_summon_visuals[creature_to_fade_instance_id]
 		if is_instance_valid(creature_visual):
-			print("Generic: Fading creature: ", creature_visual.name if creature_visual else "N/A")
 			var creature_fade_tween = create_tween()
 			creature_fade_tween.tween_property(creature_visual, "modulate:a", 0.0, creature_fade_anim_duration).set_delay(creature_fade_anim_delay)
 			parallel_tweens_finished_signals.append(creature_fade_tween.finished) # Add its signal
@@ -829,7 +826,6 @@ func _play_generic_spell_effect_visual(event: Dictionary,
 			
 	# --- Phase 3: Wait for all started parallel effects OR the longest expected duration ---
 	if not parallel_tweens_finished_signals.is_empty():
-		print("Generic: Awaiting parallel tweens/effects...")
 		# This await will wait for ALL signals in the array to be emitted
 		# However, this is complex if tweens are not part of the same sequence.
 		# Simpler for now: wait for the longest calculated duration of the effects we started.
@@ -839,36 +835,29 @@ func _play_generic_spell_effect_visual(event: Dictionary,
 
 		if longest_concurrent_effect > 0:
 			await get_tree().create_timer(longest_concurrent_effect).timeout
-		print("Generic: Parallel effects phase finished.")
 	
 	# --- Phase 3b: Hold Spell Card (if it was shown) ---
 	if is_instance_valid(spell_card_icon_node):
 		# Check if it actually became visible (alpha > 0.5 after fade-in)
 		if spell_card_icon_node.modulate.a > 0.5: # Ensure it actually faded in before holding
-			print("Generic: Starting spell card hold duration: ", spell_card_visible_duration)
 			await get_tree().create_timer(spell_card_visible_duration).timeout
-			print("Generic: Hold duration FINISHED.")
 		else:
 			print("Generic: Spell card icon was not sufficiently visible, skipping hold.")
 
 	# --- Phase 4: Fade Out and Remove Spell Card Icon ---
-	print("Generic: Attempting fade-out. spell_card_icon_node valid? ", is_instance_valid(spell_card_icon_node))
 	if is_instance_valid(spell_card_icon_node):
 		var fade_out_tween = create_tween()
 		fade_out_tween.tween_property(spell_card_icon_node, "modulate:a", 0.0, spell_card_fade_duration)
 		await fade_out_tween.finished
-		print("Generic: Fade-out tween FINISHED. Freeing spell_card_icon_node.")
 		spell_card_icon_node.queue_free()
 	
 	if is_instance_valid(spell_popup_anchor):
 		spell_popup_anchor.visible = false
-		print("Generic: SpellPopupAnchor made INVISIBLE.")
 		
 	if not spell_card_id and not show_burst_effect and creature_to_fade_instance_id == -1: # If nothing was done
 		print("Generic: No actions taken, minimal await.")
 		await get_tree().create_timer(0.1 / playback_speed_scale).timeout
 
-	print("--- GENERIC SPELL VISUAL END for: '", event.get("effect_id"), "' ---")
 	
 func handle_log_message(event):
 	print("  -> Log Message: %s" % event.message)

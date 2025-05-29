@@ -1,6 +1,6 @@
 [gd_scene load_steps=37 format=3 uid="uid://bwifrqyvhdtmi"]
 
-[ext_resource type="Script" path="res://effects/spell_impact_effect.gd" id="1_p3r8w"]
+[ext_resource type="Script" uid="uid://bxgnwtmaterpn" path="res://effects/spell_impact_effect.gd" id="1_p3r8w"]
 [ext_resource type="Texture2D" uid="uid://ch4m15t8howbw" path="res://data/sprite_sheets/burst_fx/new0000.png" id="2_p1ag0"]
 [ext_resource type="Texture2D" uid="uid://de875ybf0jo3u" path="res://data/sprite_sheets/burst_fx/new0001.png" id="3_kpp8n"]
 [ext_resource type="Texture2D" uid="uid://8pfieiqsnk6d" path="res://data/sprite_sheets/burst_fx/new0002.png" id="4_y65e4"]
@@ -172,7 +172,7 @@ tracks/1/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_46kxf"]
 _data = {
-"lifecycle": SubResource("Animation_gfdod")
+&"lifecycle": SubResource("Animation_gfdod")
 }
 
 [node name="SpellImpactEffect" type="Node2D"]
@@ -184,5 +184,5 @@ animation = &"burst"
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_46kxf")
+&"": SubResource("AnimationLibrary_46kxf")
 }

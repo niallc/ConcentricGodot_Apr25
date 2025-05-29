@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://b084bo2o6vmfd"]
 
-[ext_resource type="Script" path="res://logic/card_effects/knight_of_opposites_effect.gd" id="1_naxf4"]
+[ext_resource type="Script" uid="uid://dce1ci1kkrg27" path="res://logic/card_effects/knight_of_opposites_effect.gd" id="1_naxf4"]
 
 [resource]
 script = ExtResource("1_naxf4")

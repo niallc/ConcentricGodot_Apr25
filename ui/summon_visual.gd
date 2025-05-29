@@ -52,18 +52,7 @@ func update_display(new_instance_id: int, new_card_res: SummonCardResource, powe
 	update_power_label()
 	update_hp_label()
 
-	# TODO: Update status icons based on tags array
-
-	print("Updated visual for instance %d (%s): %d HP:%d/%d" % [instance_id, card_id, current_power_val, current_hp_val, current_max_hp_val])
-
-	# --- MODIFIED: Call debug print from here if needed ---
-	# if get_tree().get_root().get_node_or_null("Placeholder_Root_Node2D/BattleReplayScene"):
-	# 	var battle_replay_node = get_tree().get_root().get_node("Placeholder_Root_Node2D/BattleReplayScene")
-	# 	if battle_replay_node.has_method("debug_print_node_layout_info"):
-	# 		battle_replay_node.debug_print_node_layout_info(card_art_texture, "CardArtTextureRect (Child of SummonVisual)")
-	# 		battle_replay_node.debug_print_node_layout_info(self, "SummonVisual (Self)")
-	# 		if get_parent() is Control:
-	# 			battle_replay_node.debug_print_node_layout_info(get_parent(), "Parent Lane Panel")
+	#print("Updated visual for instance %d (%s): %d HP:%d/%d" % [instance_id, card_id, current_power_val, current_hp_val, current_max_hp_val])
 
 func update_power_label():
 	if power_label:
@@ -96,7 +85,7 @@ func animate_fade_in(duration: float, initial_transparency: float = 0.0) -> Twee
 	
 func play_animation(anim_name: String):
 	if animation_player and animation_player.has_animation(anim_name):
-		print("Playing animation '%s' for instance %d (%s)" % [anim_name, instance_id, card_id])
+		#print("Playing animation '%s' for instance %d (%s)" % [anim_name, instance_id, card_id])
 		animation_player.play(anim_name)
 	else:
 		# Don't treat as error if common anims like "arrive" are missing initially

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://dnkk5fakkerj"]
 
-[ext_resource type="Script" path="res://logic/card_effects/corpsecraft_titan_effect.gd" id="1_0fpa5"]
+[ext_resource type="Script" uid="uid://bcv54p882dk8v" path="res://logic/card_effects/corpsecraft_titan_effect.gd" id="1_0fpa5"]
 
 [resource]
 script = ExtResource("1_0fpa5")

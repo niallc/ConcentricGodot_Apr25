@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://cafxcomvhrra8"]
 
-[ext_resource type="Script" path="res://logic/card_effects/flamewielder_effect.gd" id="1_iifuf"]
+[ext_resource type="Script" uid="uid://caxeioqocvcl2" path="res://logic/card_effects/flamewielder_effect.gd" id="1_iifuf"]
 
 [resource]
 script = ExtResource("1_iifuf")

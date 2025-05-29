@@ -1,6 +1,6 @@
 [gd_scene load_steps=8 format=3 uid="uid://dfsa2vfghkuqc"]
 
-[ext_resource type="Script" path="res://ui/summon_visual.gd" id="1_hfr8p"]
+[ext_resource type="Script" uid="uid://cpgm277ueult3" path="res://ui/summon_visual.gd" id="1_hfr8p"]
 [ext_resource type="Texture2D" uid="uid://bkbfcpqmibrvh" path="res://art/CardFramev10_RoundedCorners_TransparentCentre.png" id="2_jgu0a"]
 [ext_resource type="FontFile" uid="uid://66eenj1vt4kd" path="res://data/fonts/LibreBaskerville-Bold.ttf" id="3_nebua"]
 
@@ -51,9 +51,9 @@ tracks/0/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_qjjke"]
 _data = {
-"Attack_Punch_Bottom": SubResource("Animation_grvvk"),
-"Attack_Punch_Top": SubResource("Animation_thycy"),
-"RESET": SubResource("Animation_4lwnb")
+&"Attack_Punch_Bottom": SubResource("Animation_grvvk"),
+&"Attack_Punch_Top": SubResource("Animation_thycy"),
+&"RESET": SubResource("Animation_4lwnb")
 }
 
 [node name="SummonVisual" type="Control"]
@@ -136,5 +136,5 @@ text = "0/0"
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_qjjke")
+&"": SubResource("AnimationLibrary_qjjke")
 }

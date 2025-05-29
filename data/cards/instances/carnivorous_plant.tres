@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://c055sds8nf0ka"]
 
-[ext_resource type="Script" path="res://logic/card_effects/carnivorous_plant_effect.gd" id="1_g12um"]
+[ext_resource type="Script" uid="uid://m2v2sfsrl002" path="res://logic/card_effects/carnivorous_plant_effect.gd" id="1_g12um"]
 
 [resource]
 script = ExtResource("1_g12um")

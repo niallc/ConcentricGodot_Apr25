@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://b2smvnjiv8w44"]
 
-[ext_resource type="Script" path="res://logic/card_effects/rampaging_cyclops_effect.gd" id="1_rya26"]
+[ext_resource type="Script" uid="uid://cbrupgoorp5ul" path="res://logic/card_effects/rampaging_cyclops_effect.gd" id="1_rya26"]
 
 [resource]
 script = ExtResource("1_rya26")

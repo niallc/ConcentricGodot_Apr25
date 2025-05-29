@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://dws6ho5sv1ysb"]
 
-[ext_resource type="Script" path="res://logic/card_effects/totem_of_champions_effect.gd" id="1_cth8d"]
+[ext_resource type="Script" uid="uid://6qf0iq0kmnsw" path="res://logic/card_effects/totem_of_champions_effect.gd" id="1_cth8d"]
 
 [resource]
 script = ExtResource("1_cth8d")

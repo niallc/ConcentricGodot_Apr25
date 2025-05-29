@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://cptuwlpbq6g3x"]
 
-[ext_resource type="Script" path="res://logic/card_effects/energy_axe_effect.gd" id="1_42pml"]
+[ext_resource type="Script" uid="uid://dyqmnalesvxqb" path="res://logic/card_effects/energy_axe_effect.gd" id="1_42pml"]
 
 [resource]
 script = ExtResource("1_42pml")

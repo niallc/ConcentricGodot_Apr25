@@ -35,6 +35,7 @@ func apply_effect(p_overconcentrate_card_in_zone: CardInZone, _active_combatant,
 				"event_type": "visual_effect",
 				"effect_id": "overconcentrate_status_gain",
 				"instance_id": target_instance.instance_id,
+				"source_card_id": overconcentrate_spell_card_id,
 				"source_instance_id": overconcentrate_spell_instance_id,
 				"target_locations": ["%s lane %d" % [opponent_combatant.combatant_name, target_lane_index + 1]],
 				"details": {"status_gained": "Relentless"}

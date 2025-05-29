@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://u5q1hjy7cm8i"]
 
-[ext_resource type="Script" path="res://logic/card_effects/goblin_scout_effect.gd" id="1_nuaf4"]
+[ext_resource type="Script" uid="uid://cjciqhwd0brhb" path="res://logic/card_effects/goblin_scout_effect.gd" id="1_nuaf4"]
 
 [resource]
 script = ExtResource("1_nuaf4")

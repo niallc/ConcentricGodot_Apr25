@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://cf4fqym7chobn"]
 
-[ext_resource type="Script" path="res://logic/card_effects/vengeful_warlord_effect.gd" id="1_kwt4w"]
+[ext_resource type="Script" uid="uid://d1fnxxte6niry" path="res://logic/card_effects/vengeful_warlord_effect.gd" id="1_kwt4w"]
 
 [resource]
 script = ExtResource("1_kwt4w")

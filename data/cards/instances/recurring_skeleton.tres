@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://dptb4y4vrmaq4"]
 
-[ext_resource type="Script" path="res://logic/card_effects/recurring_skeleton_effect.gd" id="1_8fksb"]
+[ext_resource type="Script" uid="uid://cnh6gq5lioieg" path="res://logic/card_effects/recurring_skeleton_effect.gd" id="1_8fksb"]
 
 [resource]
 script = ExtResource("1_8fksb")

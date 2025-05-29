@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://cvh5tiikqpo7s"]
 
-[ext_resource type="Script" path="res://logic/card_effects/coffin_traders_effect.gd" id="1_6d2de"]
+[ext_resource type="Script" uid="uid://cc08m0rqyrq3e" path="res://logic/card_effects/coffin_traders_effect.gd" id="1_6d2de"]
 
 [resource]
 script = ExtResource("1_6d2de")

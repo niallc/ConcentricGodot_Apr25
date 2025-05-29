@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://dw17soo7qi61g"]
 
-[ext_resource type="Script" path="res://logic/card_effects/insatiable_devourer_effect.gd" id="1_1lw0c"]
+[ext_resource type="Script" uid="uid://chsqlre3w4pby" path="res://logic/card_effects/insatiable_devourer_effect.gd" id="1_1lw0c"]
 
 [resource]
 script = ExtResource("1_1lw0c")

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://i47brwtgtgm3"]
 
-[ext_resource type="Script" path="res://logic/card_effects/songs_of_the_lost_effect.gd" id="1_ukokt"]
+[ext_resource type="Script" uid="uid://gujyg656cdq7" path="res://logic/card_effects/songs_of_the_lost_effect.gd" id="1_ukokt"]
 
 [resource]
 script = ExtResource("1_ukokt")

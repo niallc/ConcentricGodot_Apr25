@@ -1,6 +1,6 @@
 [gd_resource type="Resource" load_steps=2 format=3 uid="uid://bkkrfdgsxfym5"]
 
-[ext_resource type="Script" path="res://logic/card_effects/pikemen_effect.gd" id="1_mvavy"]
+[ext_resource type="Script" uid="uid://jkgrltamn3mq" path="res://logic/card_effects/pikemen_effect.gd" id="1_mvavy"]
 
 [resource]
 script = ExtResource("1_mvavy")
