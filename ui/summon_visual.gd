@@ -4,8 +4,11 @@ class_name SummonVisual
 
 # --- Constants ---
 const DEFAULT_ART_TEXTURE = preload("res://art/DefaultArt_Small.png")
-const CARD_FRAME_LOW_RES_PATH = "res://art/cardFrame_lowRes.png"
-const CARD_FRAME_TEXTURE = preload(CARD_FRAME_LOW_RES_PATH)
+const CARD_FRAME_LOW_RES_PATH = "res://art/cardFrame_lowRes.png" 
+# CARD_FRAME_TEXTURE is preloaded in _ready now to ensure it uses the updated path from the .tscn if changed,
+# or this path if instantiated from script before being added to scene.
+var CARD_FRAME_TEXTURE = preload(CARD_FRAME_LOW_RES_PATH)
+
 
 # --- Properties ---
 @export_group("Summon Properties")
@@ -28,7 +31,7 @@ var current_max_hp_val: int = 0
 func update_display(new_instance_id: int, new_card_res: SummonCardResource, power: int, hp: int, max_hp: int, _tags: Array[String]):
 	self.instance_id = new_instance_id
 	self.card_resource = new_card_res
-	self.card_id = new_card_res.id if new_card_res else "UNKNOWN"
+	self.card_id = new_card_res.id if new_card_res else "UNKNOWN_SUMMON_ID"
 
 	# --- Store stats ---
 	self.current_power_val = power
@@ -37,28 +40,51 @@ func update_display(new_instance_id: int, new_card_res: SummonCardResource, powe
 	# --- End Store stats ---
 
 	# Update Artwork
-	if card_art_texture and card_resource and not card_resource.artwork_path.is_empty():
-		var loaded_texture = load(card_resource.artwork_path)
-		if loaded_texture is Texture2D:
-			card_art_texture.texture = loaded_texture
-			# print("Successfully loaded art for %s from %s" % [card_id, card_resource.artwork_path]) # Less verbose
-		else:
-			card_art_texture.texture = null
-			printerr("Failed to load art for %s. Path: %s. Loaded type: %s" % [card_id, card_resource.artwork_path, typeof(loaded_texture)])
-	elif card_art_texture:
-		card_art_texture.texture = null
-		if card_resource: print("Warning: No artwork path for ", card_id)
-		else: print("Warning: Card resource is null for instance ", instance_id)
+	if not is_instance_valid(card_art_texture):
+		printerr("SummonVisual: card_art_texture is NOT VALID in update_display for card: ", self.card_id)
+		return
+
+	var loaded_specific_art_texture: Texture2D = null
+	var attempted_art_path: String = "N/A"
+
+	if card_resource and card_resource.artwork_path != null and not card_resource.artwork_path.is_empty():
+		attempted_art_path = card_resource.artwork_path
+		if ResourceLoader.exists(attempted_art_path):
+			var res = load(attempted_art_path)
+			if res is Texture2D:
+				loaded_specific_art_texture = res
+			else:
+				printerr("SummonVisual: Loaded resource from card art path '%s' is not Texture2D, type: %s" % [attempted_art_path, typeof(res)])
+		# else: # Path doesn't exist, will fallback
+			# print("SummonVisual: Card art path does not exist: ", attempted_art_path) # Optional debug
+			
+	if loaded_specific_art_texture is Texture2D:
+		card_art_texture.texture = loaded_specific_art_texture
+		# print("SummonVisual: Successfully loaded art for %s from %s" % [card_id, attempted_art_path]) # Optional debug
+	else:
+		var reason_for_fallback = "specific art path not found or failed to load"
+		if not card_resource:
+			reason_for_fallback = "card_resource was null"
+		elif card_resource.artwork_path == null or card_resource.artwork_path.is_empty():
+			reason_for_fallback = "artwork_path was empty in CardResource"
+		
+		# Only print an error if a card_resource was provided and specific art was expected but failed.
+		# Don't print an error if card_resource was null from the start (that's a different issue).
+		if card_resource: 
+			printerr("SummonVisual: Failed to load art for %s. Path: '%s' (%s). Using fallback." % [card_id, attempted_art_path, reason_for_fallback])
+		
+		card_art_texture.texture = DEFAULT_ART_TEXTURE # Assign the preloaded fallback
+		
+		if not is_instance_valid(card_art_texture.texture): # Should not happen if DEFAULT_ART_TEXTURE is valid
+			printerr("SummonVisual: CRITICAL - FALLBACK_CARD_ART_TEXTURE also failed to apply for card %s." % card_id)
 
 	# Update Stats Labels
 	update_power_label()
 	update_hp_label()
 
-	#print("Updated visual for instance %d (%s): %d HP:%d/%d" % [instance_id, card_id, current_power_val, current_hp_val, current_max_hp_val])
-
 func update_power_label():
 	if power_label:
-		power_label.text = "" + str(current_power_val)
+		power_label.text = str(current_power_val)
 
 func update_hp_label():
 	if hp_label:
@@ -70,11 +96,10 @@ func set_current_power(new_power: int):
 
 func set_current_hp(new_hp: int):
 	current_hp_val = new_hp
-	update_hp_label() # Max HP hasn't changed, just current
+	update_hp_label()
 
 func set_max_hp(new_max_hp: int):
 	current_max_hp_val = new_max_hp
-	# current_hp_val might need clamping if max_hp decreased below current_hp
 	current_hp_val = min(current_hp_val, current_max_hp_val)
 	update_hp_label()
 
@@ -82,68 +107,39 @@ func animate_fade_in(duration: float, initial_transparency: float = 0.0) -> Twee
 	modulate.a = initial_transparency
 	var tween = create_tween()
 	tween.tween_property(self, "modulate:a", 1.0, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	#print("SummonVisual: Starting fade-in animation for instance %d over %s seconds" % [instance_id, duration])
 	return tween
 	
 func play_animation(anim_name: String):
 	if animation_player and animation_player.has_animation(anim_name):
-		#print("Playing animation '%s' for instance %d (%s)" % [anim_name, instance_id, card_id])
 		animation_player.play(anim_name)
 	else:
-		# Don't treat as error if common anims like "arrive" are missing initially
 		print("Animation '%s' not found or no AnimationPlayer for instance %d (%s)" % [anim_name, instance_id, card_id])
 
 func animate_scale_pop(peak_scale_factor: float = 1.1, duration_up: float = 0.15, duration_down: float = 0.2) -> Tween:
-	# Ensure pivot is centered right before scaling for accuracy
 	pivot_offset = size / 2.0
-	
-	# Optional: Start slightly smaller to make the pop more pronounced
-	# scale = Vector2(0.95, 0.95) 
-
 	var tween = create_tween()
-	tween.set_parallel(false) # Ensure sequence
-
-	# Scale up
+	tween.set_parallel(false)
 	tween.tween_property(self, "scale", Vector2(peak_scale_factor, peak_scale_factor), duration_up).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	# Scale back to normal
 	tween.tween_property(self, "scale", Vector2(1.0, 1.0), duration_down).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
-	
-	#print("SummonVisual (%d): Playing scale pop." % instance_id)
 	return tween
 
 func animate_shake(strength: float = 4.0, duration_per_half_shake: float = 0.04, num_shakes: int = 2) -> Tween:
 	var original_position_x = position.x
-	
-	var tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT_IN) # SINE is good for shakes
+	var tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT_IN)
 	tween.set_parallel(false)
-
 	for i in range(num_shakes):
 		tween.tween_property(self, "position:x", original_position_x + strength, duration_per_half_shake)
 		tween.tween_property(self, "position:x", original_position_x - strength, duration_per_half_shake)
-	
 	tween.tween_property(self, "position:x", original_position_x, duration_per_half_shake)
-	
-	#print("SummonVisual (%d): Playing subtle, faster shake." % instance_id)
 	return tween
 
 func play_full_arrival_sequence_and_await(p_fade_duration: float = 0.9, 
 							   p_pop_peak: float = 1.1, p_pop_dur_up: float = 0.08, p_pop_dur_down: float = 0.12,
 							   p_shake_strength: float = 2.0, p_shake_dur: float = 0.04, p_shake_count: int = 2) -> void:
 	var _fade_tween: Tween = animate_fade_in(p_fade_duration)
-	# If you want fade to mostly finish before pop:
-	#if fade_tween: await fade_tween.finished 
-	# Or, for overlap, remove the await above and maybe add a small delay before pop
-	# await get_tree().create_timer(0.1).timeout # Tiny delay example
-
 	var _pop_tween: Tween = animate_scale_pop(p_pop_peak, p_pop_dur_up, p_pop_dur_down)
-	#if _pop_tween: await pop_tween.finished
-
 	var shake_tween: Tween = animate_shake(p_shake_strength, p_shake_dur, p_shake_count)
 	if shake_tween: await shake_tween.finished
-
-	## Optional: a very brief pause before shake
-	## await get_tree().create_timer(0.05).timeout
-#
 	print("SummonVisual (%d): Full arrival sequence awaited and completed." % instance_id)
 
 func play_attack_animation(is_for_top_lane_card: bool) -> void:
@@ -154,22 +150,23 @@ func play_attack_animation(is_for_top_lane_card: bool) -> void:
 		anim_name_to_play = "Attack_Punch_Bottom"
 
 	if animation_player and animation_player.has_animation(anim_name_to_play):
-		# Optional: ensure pivot is correct if animation involves scale/rotation from center
-		# pivot_offset = size / 2.0 
 		animation_player.play(anim_name_to_play)
 		print("SummonVisual (%d): Playing %s" % [instance_id, anim_name_to_play])
 	else:
 		printerr("SummonVisual (%d): Animation '%s' not found or no AnimationPlayer." % [instance_id, anim_name_to_play])
 	
 func _ready():
-	if card_frame_texture:
+	if not is_instance_valid(card_frame_texture):
+		printerr("SummonVisual _ready: card_frame_texture node is not valid!")
+		return
+
+	# CARD_FRAME_TEXTURE is preloaded. If the .tscn file has a different texture set in the inspector,
+	# that one will take precedence for instances created from the scene.
+	# For instances created purely from script, this preloaded texture will be used.
+	if card_frame_texture.texture == null: # Only set if not already set by the scene
 		card_frame_texture.texture = CARD_FRAME_TEXTURE
-		card_frame_texture.modulate.a = 1 # Make frame semi-transparent
-	if card_art_texture:
-		card_art_texture.modulate.a = 1   # Make art semi-transparent	# Ensure CardArtTextureRect is drawn under the frame
-	# This can also be done by node order in the scene tree.
-	# If CardFrameTextureRect is later in the tree, it draws on top.
-	# Otherwise, you could explicitly set z_index if they were at the same level
-	# in a more complex hierarchy, but tree order is simplest here.
-	# e.g., card_art_texture.z_index = 0
-	#       card_frame_texture.z_index = 1
+	
+	# Ensure CardArtTextureRect is drawn under the frame by node order in scene or Z-index.
+	# Node order is: CardArtTextureRect, then CardFrameTextureRect, then StatsContainer.
+	# This means CardFrameTextureRect will draw on top of CardArtTextureRect.
+	# StatsContainer will draw on top of both.
