@@ -1,0 +1,22 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+*.import
+*.uid
+
+#project.godot
+
+/art/
+/build/
+/addons/
+/archive/
+/data/sprite_sheets/
+
+logic/tools/all_code_combined.txt
+logic/tools/make_big_code_file.py
+print_project_tree.py
+tempFindString.py
+icon.svg
+icon.svg.import
+.DS_Store
+logic/.DS_Store
