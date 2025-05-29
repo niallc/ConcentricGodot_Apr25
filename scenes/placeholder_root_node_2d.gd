@@ -84,7 +84,7 @@ func _ready():
 	var battle_sim = Battle.new()
 	print("Battle instance created.")
 	print("Loaded Card: %s, Cost: %d" % [card_res.card_name, card_res.cost])
-	var opp_deck: Array[CardResource] = [_amnesia_mage_res, _taunting_elf_res, _scavenger_ghoul_res, _unmake_res]
+	var opp_deck: Array[CardResource] = [_unmake_res, _taunting_elf_res, _scavenger_ghoul_res, _unmake_res]
 	var pla_deck: Array[CardResource] = [_amnesia_mage_res, _coffin_traders_res, _superior_intellect_res, _reanimate_res]
 	var events = battle_sim.run_battle(pla_deck, opp_deck, "Player", "Opponent")
 	print("--- Battle Simulation Finished (%d events) ---" % events.size())
