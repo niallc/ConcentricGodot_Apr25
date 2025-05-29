@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://dfsa2vfghkuqc"]
 
 [ext_resource type="Script" uid="uid://cpgm277ueult3" path="res://ui/summon_visual.gd" id="1_hfr8p"]
-[ext_resource type="Texture2D" uid="uid://bkbfcpqmibrvh" path="res://art/cardFrame_lowRes.png" id="2_jgu0a"]
+[ext_resource type="Texture2D" uid="uid://d02c24xqthsy5" path="res://art/cardFrame_lowRes.png" id="2_lkxfo"]
 [ext_resource type="FontFile" uid="uid://66eenj1vt4kd" path="res://data/fonts/LibreBaskerville-Bold.ttf" id="3_nebua"]
 
 [sub_resource type="Animation" id="Animation_grvvk"]
@@ -88,7 +88,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_jgu0a")
+texture = ExtResource("2_lkxfo")
 expand_mode = 1
 stretch_mode = 5
 
