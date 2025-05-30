@@ -5,7 +5,7 @@ class_name CardResource # Make this type globally recognizable
 @export var id: String = "UNKNOWN_CARD" # Unique identifier string
 @export var card_name: String = "Unnamed Card" # Display name
 @export var cost: int = 0
-@export var artwork_path: String = "res://art/default_card.png" # Placeholder art
+@export var artwork_path: String = "res://art/default_card_art_low_res.png" # Placeholder art
 @export var description_template: String = "Card Description Missing."
 # @export var tags: Array[String] = [] # Base tags if any
 

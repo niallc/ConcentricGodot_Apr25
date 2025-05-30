@@ -1,9 +1,10 @@
-[gd_scene load_steps=14 format=3 uid="uid://dm4f6sfd6oksw"]
+[gd_scene load_steps=15 format=3 uid="uid://dm4f6sfd6oksw"]
 
 [ext_resource type="Script" uid="uid://cjno41j5h16wr" path="res://scenes/battle_replay.gd" id="1_03sn8"]
 [ext_resource type="StyleBox" uid="uid://u26d5sahed1j" path="res://ui/styles/mana_pip_empty_style.tres" id="2_apaeq"]
 [ext_resource type="FontFile" uid="uid://66eenj1vt4kd" path="res://data/fonts/LibreBaskerville-Bold.ttf" id="2_w635i"]
 [ext_resource type="StyleBox" uid="uid://brf7a8v2scdby" path="res://ui/styles/hp_pip_empty_style.tres" id="3_gbyq0"]
+[ext_resource type="Texture2D" uid="uid://c0mwfe3joblyw" path="res://art/main_background_low_res.jpg" id="5_hd2pf"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rg62t"]
 bg_color = Color(0.184314, 0.356863, 0.898039, 1)
@@ -961,6 +962,7 @@ modulate = Color(1, 1, 1, 0.113725)
 z_index = -1
 layout_mode = 2
 mouse_filter = 2
+texture = ExtResource("5_hd2pf")
 expand_mode = 1
 
 [node name="HorizontalSpacer" type="Control" parent="."]

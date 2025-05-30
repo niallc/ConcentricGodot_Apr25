@@ -12,6 +12,9 @@ var spell_display_size = Vector2(500,500)
 var spell_display_alpha: float = 0.7
 #var spell_card_hold_duration: float = 0.4
 
+const MAIN_BACKGROUND_HIGH_RES_PATH = "res://art/main_background_high_res.jpg"
+# The low-res path is what the .tscn file should already be pointing to.
+# const MAIN_BACKGROUND_LOW_RES_PATH = "res://art/main_background_low_res.jpg"
 
 var active_summon_visuals: Dictionary = {} # instance_id -> SummonVisual node
 
@@ -1058,7 +1061,7 @@ func debug_print_layout_hierarchy(node: Control, description: String = "Start No
 func _ready():
 	await get_tree().process_frame # Ensure autoloads are ready
 	if CardDB:
-		var test_card = CardDB.get_card_resource("RecurringSkeleton") # Or any valid card ID
+		var test_card = CardDB.get_card_resource("RecurringSkeleton")
 		if test_card:
 			print("CardDB Test: Found ", test_card.card_name)
 		else:
@@ -1066,12 +1069,25 @@ func _ready():
 	else:
 		print("CardDB not available.")
 
+	# Attempt to load high-res background if it exists
+	var background_node = $MainMarginContainer/StonyBackgroundTextureRect as TextureRect
+	if is_instance_valid(background_node):
+		if ResourceLoader.exists(MAIN_BACKGROUND_HIGH_RES_PATH):
+			var high_res_tex = load(MAIN_BACKGROUND_HIGH_RES_PATH)
+			if high_res_tex is Texture2D:
+				background_node.texture = high_res_tex
+				print("BattleReplay: Using high-resolution main background.") # Optional debug
+			else:
+				printerr("BattleReplay: Found high-res background '%s' but it's not a Texture2D. Low-res version will be used (from scene setup)." % MAIN_BACKGROUND_HIGH_RES_PATH)
+		# else: High-res background not found, the low-res one set in the .tscn will be used.
+			# print("BattleReplay: High-resolution main background not found. Low-res version will be used (from scene setup).") # Optional debug
+
 	if is_instance_valid(spell_popup_anchor):
 		var desired_popup_container_size = Vector2(400, 400) 
 		spell_popup_anchor.size = desired_popup_container_size
 		var viewport_rect_size = get_viewport_rect().size 
 		spell_popup_anchor.position = (viewport_rect_size / 2.0) - (desired_popup_container_size / 2.0)
-		spell_popup_anchor.visible = false # Start hidden
+		spell_popup_anchor.visible = false # Start hidden [cite: 58]
 		print("BattleReplay _ready: SpellPopupAnchor configured. Size: ", spell_popup_anchor.size, " Pos: ", spell_popup_anchor.position)
 	else:
 		var errMsg = "BattleReplay _ready: SpellPopupAnchor node NOT FOUND or invalid. Path was: "
@@ -1081,4 +1097,4 @@ func _ready():
 			errMsg+= "Path not available"
 		printerr(errMsg)
 
-	print("BattleReplay _ready: Finished.") # General ready confirmation
+	print("BattleReplay _ready: Finished.") # General ready confirmation [cite: 58]

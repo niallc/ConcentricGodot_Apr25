@@ -7,5 +7,5 @@ script = ExtResource("1_chula")
 id = "UNKNOWN_CARD"
 card_name = "Unnamed Card"
 cost = 0
-artwork_path = "res://art/default_card.png"
+artwork_path = "res://art/default_card_art_low_res.png"
 description_template = "Card Description Missing."

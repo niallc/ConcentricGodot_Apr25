@@ -3,12 +3,12 @@ extends Control
 class_name CardIconVisual
 
 # Guaranteed to be in the repo for basic functionality
-const CARD_FRAME_LOW_RES_PATH = "res://art/cardFrame_lowRes.png"
+const CARD_FRAME_LOW_RES_PATH = "res://art/card_frame_low_res.png"
 # Optional, higher quality version from the art pack
-const CARD_FRAME_HIGH_RES_PATH = "res://art/cardFrame_highRes.png"
+const CARD_FRAME_HIGH_RES_PATH = "res://art/card_frame_high_res.png"
 
 # Guaranteed to be in the repo as a fallback for missing individual card art
-const FALLBACK_CARD_ART_TEXTURE = preload("res://art/DefaultArt_Small.png")
+const FALLBACK_CARD_ART_TEXTURE = preload("res://art/default_card_art_low_res.png")
 
 @onready var card_art_texture: TextureRect = $CardArtTextureRect
 @onready var card_frame_texture: TextureRect = $CardFrameTextureRect
@@ -28,7 +28,8 @@ func _ready():
 		var high_res_tex_attempt = load(CARD_FRAME_HIGH_RES_PATH)
 		if high_res_tex_attempt is Texture2D:
 			frame_texture_to_load_path = CARD_FRAME_HIGH_RES_PATH
-			# print("CardIconVisual: Using high-resolution card frame.") # Optional debug
+			
+			#print("CardIconVisual: Using high-resolution card frame.") # Optional debug
 		else:
 			printerr("CardIconVisual: Found high-res frame path '%s', but failed to load it as Texture2D. Using low-res." % CARD_FRAME_HIGH_RES_PATH)
 	# else: # Optional debug if high-res not found

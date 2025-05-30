@@ -44,6 +44,7 @@ func _on_arrival(_summon_instance: SummonInstance, _active_combatant: Combatant,
 		battle_instance.add_event({
 			"event_type": "log_message",
 			"message": "Ghoul (Instance: %s) found opponent's library empty." % ghoul_instance_id,
+			"instance_id": ghoul_instance_id,
 			"source_card_id": ghoul_card_id,
 			"source_instance_id": ghoul_instance_id
 		})

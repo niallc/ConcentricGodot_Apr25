@@ -4,7 +4,7 @@ extends Node2D
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 
-const FRAME_BASE_PATH: String = "res://data/sprite_sheets/burst_fx/new" # Make sure this matches your actual path
+const FRAME_BASE_PATH: String = "res://art/sprite_sheets/burst_fx/new" # Make sure this matches your actual path
 const FRAME_COUNT: int = 32 # e.g., new0000.png to new0031.png
 const ANIMATION_NAME: String = "burst" # Should match the animation name set up in .tscn with the placeholder
 const ANIMATION_FPS: float = 16.0

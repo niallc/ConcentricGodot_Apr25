@@ -6,7 +6,7 @@ extends EditorScript # Use EditorScript for batch processing
 const JSON_PATH = "res://data/cards/card_data.json"
 const INSTANCE_DIR = "res://data/cards/instances/"
 const EFFECT_SCRIPT_DIR = "res://logic/card_effects/"
-const DEFAULT_ART = "res://art/DefaultArt_Small.png" # Fallback art
+const DEFAULT_ART = "res://art/default_card_art_low_res.png" # Fallback art
 
 # Base resource paths (adjust if needed)
 # Preload the base scripts to check inheritance against

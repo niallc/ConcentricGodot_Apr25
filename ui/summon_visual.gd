@@ -3,11 +3,9 @@ extends Control
 class_name SummonVisual
 
 # --- Constants ---
-const DEFAULT_ART_TEXTURE = preload("res://art/DefaultArt_Small.png")
-const CARD_FRAME_LOW_RES_PATH = "res://art/cardFrame_lowRes.png" 
-# CARD_FRAME_TEXTURE is preloaded in _ready now to ensure it uses the updated path from the .tscn if changed,
-# or this path if instantiated from script before being added to scene.
-var CARD_FRAME_TEXTURE = preload(CARD_FRAME_LOW_RES_PATH)
+const DEFAULT_ART_TEXTURE = preload("res://art/default_card_art_low_res.png") # [cite: 1]
+const CARD_FRAME_LOW_RES_PATH = "res://art/card_frame_low_res.png" # [cite: 1]
+const CARD_FRAME_HIGH_RES_PATH = "res://art/card_frame_high_res.png"
 
 
 # --- Properties ---
@@ -16,8 +14,8 @@ var CARD_FRAME_TEXTURE = preload(CARD_FRAME_LOW_RES_PATH)
 @export var card_id: String = ""
 var card_resource: SummonCardResource = null
 var current_power_val: int = 0
-var current_hp_val: int = 0
-var current_max_hp_val: int = 0
+var current_hp_val: int = 0 # [cite: 3]
+var current_max_hp_val: int = 0 # [cite: 3]
 
 # --- Node References ---
 @onready var card_art_texture: TextureRect = $CardArtTextureRect
@@ -27,6 +25,38 @@ var current_max_hp_val: int = 0
 @onready var card_frame_texture: TextureRect = $CardFrameTextureRect
 
 
+func _ready():
+	if not is_instance_valid(card_frame_texture):
+		printerr("SummonVisual _ready: card_frame_texture node is NOT VALID!")
+		return
+
+	var frame_texture_path_to_load = CARD_FRAME_LOW_RES_PATH # Default to low-res
+
+	if ResourceLoader.exists(CARD_FRAME_HIGH_RES_PATH):
+		var high_res_tex_attempt = load(CARD_FRAME_HIGH_RES_PATH)
+		if high_res_tex_attempt is Texture2D:
+			frame_texture_path_to_load = CARD_FRAME_HIGH_RES_PATH
+			# print("SummonVisual: Using high-resolution card frame.") # Optional debug
+		else:
+			printerr("SummonVisual: Found high-res frame path '%s', but failed to load as Texture2D. Using low-res." % CARD_FRAME_HIGH_RES_PATH)
+	# else:
+		# print("SummonVisual: High-resolution card frame not found at '%s'. Using low-res." % CARD_FRAME_HIGH_RES_PATH) # Optional debug
+
+	var loaded_frame_texture = load(frame_texture_path_to_load)
+	if loaded_frame_texture is Texture2D:
+		card_frame_texture.texture = loaded_frame_texture
+	else:
+		printerr("SummonVisual: CRITICAL - Failed to load card frame texture from path: %s." % frame_texture_path_to_load)
+		# As an ultimate fallback, try to load the low-res path directly if the above failed for some reason
+		var fallback_low_res_tex = load(CARD_FRAME_LOW_RES_PATH)
+		if fallback_low_res_tex is Texture2D:
+			card_frame_texture.texture = fallback_low_res_tex
+			printerr("SummonVisual: Used preloaded low-res frame as a last resort.")
+		# else: already printed critical error
+
+	# Ensure CardArtTextureRect is drawn under the frame by node order in scene or Z-index. [cite: 12]
+	# StatsContainer will draw on top of both. [cite: 13]
+
 # Called by BattleReplay to initialize/update the visual display
 func update_display(new_instance_id: int, new_card_res: SummonCardResource, power: int, hp: int, max_hp: int, _tags: Array[String]):
 	self.instance_id = new_instance_id
@@ -35,8 +65,8 @@ func update_display(new_instance_id: int, new_card_res: SummonCardResource, powe
 
 	# --- Store stats ---
 	self.current_power_val = power
-	self.current_hp_val = hp
-	self.current_max_hp_val = max_hp
+	self.current_hp_val = hp # [cite: 3]
+	self.current_max_hp_val = max_hp # [cite: 3]
 	# --- End Store stats ---
 
 	# Update Artwork
@@ -60,18 +90,16 @@ func update_display(new_instance_id: int, new_card_res: SummonCardResource, powe
 			
 	if loaded_specific_art_texture is Texture2D:
 		card_art_texture.texture = loaded_specific_art_texture
-		# print("SummonVisual: Successfully loaded art for %s from %s" % [card_id, attempted_art_path]) # Optional debug
+		# print("SummonVisual: Successfully loaded art for %s from %s" % [card_id, attempted_art_path]) # Optional debug [cite: 4]
 	else:
-		var reason_for_fallback = "specific art path not found or failed to load"
-		if not card_resource:
-			reason_for_fallback = "card_resource was null"
-		elif card_resource.artwork_path == null or card_resource.artwork_path.is_empty():
-			reason_for_fallback = "artwork_path was empty in CardResource"
+		var reason_for_fallback = "specific art path not found or failed to load" # [cite: 5]
+		if not card_resource: # [cite: 5]
+			reason_for_fallback = "card_resource was null" # [cite: 5]
+		elif card_resource.artwork_path == null or card_resource.artwork_path.is_empty(): # [cite: 5]
+			reason_for_fallback = "artwork_path was empty in CardResource" # [cite: 5]
 		
-		# Only print an error if a card_resource was provided and specific art was expected but failed.
-		# Don't print an error if card_resource was null from the start (that's a different issue).
-		if card_resource: 
-			printerr("SummonVisual: Failed to load art for %s. Path: '%s' (%s). Using fallback." % [card_id, attempted_art_path, reason_for_fallback])
+		if card_resource:  # [cite: 6]
+			printerr("SummonVisual: Failed to load art for %s. Path: '%s' (%s). Using fallback." % [card_id, attempted_art_path, reason_for_fallback]) # [cite: 6]
 		
 		card_art_texture.texture = DEFAULT_ART_TEXTURE # Assign the preloaded fallback
 		
@@ -113,7 +141,7 @@ func play_animation(anim_name: String):
 	if animation_player and animation_player.has_animation(anim_name):
 		animation_player.play(anim_name)
 	else:
-		print("Animation '%s' not found or no AnimationPlayer for instance %d (%s)" % [anim_name, instance_id, card_id])
+		print("Animation '%s' not found or no AnimationPlayer for instance %d (%s)" % [anim_name, instance_id, card_id]) # [cite: 7]
 
 func animate_scale_pop(peak_scale_factor: float = 1.1, duration_up: float = 0.15, duration_down: float = 0.2) -> Tween:
 	pivot_offset = size / 2.0
@@ -135,7 +163,7 @@ func animate_shake(strength: float = 4.0, duration_per_half_shake: float = 0.04,
 
 func play_full_arrival_sequence_and_await(p_fade_duration: float = 0.9, 
 							   p_pop_peak: float = 1.1, p_pop_dur_up: float = 0.08, p_pop_dur_down: float = 0.12,
-							   p_shake_strength: float = 2.0, p_shake_dur: float = 0.04, p_shake_count: int = 2) -> void:
+							   p_shake_strength: float = 2.0, p_shake_dur: float = 0.04, p_shake_count: int = 2) -> void: # [cite: 8]
 	var _fade_tween: Tween = animate_fade_in(p_fade_duration)
 	var _pop_tween: Tween = animate_scale_pop(p_pop_peak, p_pop_dur_up, p_pop_dur_down)
 	var shake_tween: Tween = animate_shake(p_shake_strength, p_shake_dur, p_shake_count)
@@ -154,19 +182,3 @@ func play_attack_animation(is_for_top_lane_card: bool) -> void:
 		print("SummonVisual (%d): Playing %s" % [instance_id, anim_name_to_play])
 	else:
 		printerr("SummonVisual (%d): Animation '%s' not found or no AnimationPlayer." % [instance_id, anim_name_to_play])
-	
-func _ready():
-	if not is_instance_valid(card_frame_texture):
-		printerr("SummonVisual _ready: card_frame_texture node is not valid!")
-		return
-
-	# CARD_FRAME_TEXTURE is preloaded. If the .tscn file has a different texture set in the inspector,
-	# that one will take precedence for instances created from the scene.
-	# For instances created purely from script, this preloaded texture will be used.
-	if card_frame_texture.texture == null: # Only set if not already set by the scene
-		card_frame_texture.texture = CARD_FRAME_TEXTURE
-	
-	# Ensure CardArtTextureRect is drawn under the frame by node order in scene or Z-index.
-	# Node order is: CardArtTextureRect, then CardFrameTextureRect, then StatsContainer.
-	# This means CardFrameTextureRect will draw on top of CardArtTextureRect.
-	# StatsContainer will draw on top of both.

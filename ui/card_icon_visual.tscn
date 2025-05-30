@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://cv3uf0jrjmrwd"]
 
 [ext_resource type="Script" uid="uid://duvv84s01exbg" path="res://ui/card_icon_visual.gd" id="1_u6vvp"]
-[ext_resource type="Texture2D" uid="uid://d02c24xqthsy5" path="res://art/cardFrame_lowRes.png" id="2_lce1s"]
+[ext_resource type="Texture2D" uid="uid://b7epbimfw2j4e" path="res://art/card_frame_low_res.png" id="2_bqeyq"]
 
 [node name="CardIconVisual" type="Control"]
 custom_minimum_size = Vector2(20, 20)
@@ -32,6 +32,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_lce1s")
+texture = ExtResource("2_bqeyq")
 expand_mode = 1
 stretch_mode = 5
