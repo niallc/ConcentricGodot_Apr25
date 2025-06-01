@@ -1,0 +1,6 @@
+[gd_resource type="Theme" load_steps=2 format=3 uid="uid://brjv1j5k88muy"]
+
+[ext_resource type="FontFile" uid="uid://66eenj1vt4kd" path="res://data/fonts/LibreBaskerville-Bold.ttf" id="1_adxm3"]
+
+[resource]
+Label/fonts/font = ExtResource("1_adxm3")

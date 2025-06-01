@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://0dxv03pmmb00"]
+
+[ext_resource type="Script" uid="uid://b4srd7xv6qci" path="res://scenes/battle_launcher.gd" id="1_lsgmv"]
+
+[node name="Placeholder_Root_Node2D" type="Node2D"]
+script = ExtResource("1_lsgmv")

@@ -1,8 +1,29 @@
-[gd_scene load_steps=4 format=3 uid="uid://bayqkmkju7pln"]
+[gd_scene load_steps=7 format=3 uid="uid://bayqkmkju7pln"]
 
 [ext_resource type="Script" uid="uid://bffwbxk3n1m5w" path="res://scenes/splash_screen.gd" id="1_n4g2v"]
 [ext_resource type="Texture2D" uid="uid://stg1r5l7upds" path="res://art/main_menu_background_med_res.png" id="2_4gp4q"]
 [ext_resource type="FontFile" uid="uid://66eenj1vt4kd" path="res://data/fonts/LibreBaskerville-Bold.ttf" id="3_3mj2l"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4gp4q"]
+bg_color = Color(0.529469, 0.74207, 0.741578, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3mj2l"]
+bg_color = Color(0.350664, 0.548975, 0.549068, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vbcv6"]
+bg_color = Color(0.392157, 0.6, 0.6, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [node name="SplashScreen" type="Control"]
 layout_mode = 3
@@ -13,24 +34,21 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_n4g2v")
 
-[node name="Background" type="TextureRect" parent="."]
-modulate = Color(1, 1, 1, 0.780392)
+[node name="MainVBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_4gp4q")
-expand_mode = 1
+theme_override_constants/separation = 0
 
-[node name="TitleLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_top = 50.0
-offset_bottom = 174.0
-grow_horizontal = 2
+[node name="VerticalSpacer" type="Control" parent="MainVBoxContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MainVBoxContainer"]
+layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.654902, 0.65098, 1)
 theme_override_colors/font_shadow_color = Color(0, 0.509804, 0.509804, 1)
 theme_override_colors/font_outline_color = Color(0, 0.745098, 0.745098, 1)
@@ -42,36 +60,60 @@ theme_override_font_sizes/font_size = 100
 text = "Concentric"
 horizontal_alignment = 1
 
-[node name="VersionLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -45.0
-offset_top = -23.0
-grow_horizontal = 0
-grow_vertical = 0
-theme_override_fonts/font = ExtResource("3_3mj2l")
-theme_override_font_sizes/font_size = 20
-text = "v0.1.0"
+[node name="CenterContainer" type="CenterContainer" parent="MainVBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="MenuContainer" type="VBoxContainer" parent="MainVBoxContainer/CenterContainer"]
+layout_mode = 2
+
+[node name="ExampleBattleButton" type="Button" parent="MainVBoxContainer/CenterContainer/MenuContainer"]
+custom_minimum_size = Vector2(300, 150)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_fonts/font = ExtResource("3_3mj2l")
+theme_override_font_sizes/font_size = 40
+theme_override_styles/hover = SubResource("StyleBoxFlat_4gp4q")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_3mj2l")
+theme_override_styles/normal = SubResource("StyleBoxFlat_vbcv6")
+text = "Example
+Battle"
+
+[node name="VerticalSpacer" type="Control" parent="MainVBoxContainer/CenterContainer/MenuContainer"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+
+[node name="Background" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0.780392)
+z_index = -1
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_4gp4q")
+expand_mode = 1
 
-[node name="MenuContainer" type="VBoxContainer" parent="CenterContainer"]
-layout_mode = 2
+[node name="VersionLabelContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -61.0
+offset_top = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 5
 
-[node name="ExampleBattleButton" type="Button" parent="CenterContainer/MenuContainer"]
-custom_minimum_size = Vector2(300, 150)
+[node name="VersionLabel" type="Label" parent="VersionLabelContainer"]
 layout_mode = 2
-size_flags_vertical = 3
 theme_override_fonts/font = ExtResource("3_3mj2l")
-theme_override_font_sizes/font_size = 40
-text = "Example"
+theme_override_font_sizes/font_size = 20
+text = "v0.1.0"
+
+[connection signal="pressed" from="MainVBoxContainer/CenterContainer/MenuContainer/ExampleBattleButton" to="." method="_on_example_battle_button_pressed"]

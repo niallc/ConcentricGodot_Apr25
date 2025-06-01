@@ -80,7 +80,7 @@ func set_component_modulation(p_frame_modulate: Color = Color(1,1,1,1), p_art_mo
 	if is_instance_valid(card_art_texture):
 		card_art_texture.modulate = p_art_modulate
 
-func update_display(card_res: CardResource, verbose: int = 0):
+func update_display(card_res: CardResource, verbose: int = 1):
 	if verbose > 0:
 		print("CardIconVisual update_display: Called for card_res: ", card_res.id if card_res else "null_card_res")
 		print("CardIconVisual update_display: self.name is '", name, "', card_art_texture is valid? ", is_instance_valid(card_art_texture))
