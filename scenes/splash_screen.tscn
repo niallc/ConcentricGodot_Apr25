@@ -67,6 +67,22 @@ size_flags_vertical = 3
 [node name="MenuContainer" type="VBoxContainer" parent="MainVBoxContainer/CenterContainer"]
 layout_mode = 2
 
+[node name="DeckPickerButton" type="Button" parent="MainVBoxContainer/CenterContainer/MenuContainer"]
+custom_minimum_size = Vector2(300, 150)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_fonts/font = ExtResource("3_3mj2l")
+theme_override_font_sizes/font_size = 40
+theme_override_styles/hover = SubResource("StyleBoxFlat_4gp4q")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_3mj2l")
+theme_override_styles/normal = SubResource("StyleBoxFlat_vbcv6")
+text = "Choose Your
+Decks!"
+
+[node name="VerticalSpacer" type="Control" parent="MainVBoxContainer/CenterContainer/MenuContainer"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+
 [node name="ExampleBattleButton" type="Button" parent="MainVBoxContainer/CenterContainer/MenuContainer"]
 custom_minimum_size = Vector2(300, 150)
 layout_mode = 2
@@ -78,10 +94,6 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_3mj2l")
 theme_override_styles/normal = SubResource("StyleBoxFlat_vbcv6")
 text = "Example
 Battle"
-
-[node name="VerticalSpacer" type="Control" parent="MainVBoxContainer/CenterContainer/MenuContainer"]
-custom_minimum_size = Vector2(0, 170)
-layout_mode = 2
 
 [node name="Background" type="TextureRect" parent="."]
 modulate = Color(1, 1, 1, 0.780392)
@@ -116,4 +128,5 @@ theme_override_fonts/font = ExtResource("3_3mj2l")
 theme_override_font_sizes/font_size = 20
 text = "v0.1.0"
 
+[connection signal="pressed" from="MainVBoxContainer/CenterContainer/MenuContainer/DeckPickerButton" to="." method="_on_deck_picker_button_pressed"]
 [connection signal="pressed" from="MainVBoxContainer/CenterContainer/MenuContainer/ExampleBattleButton" to="." method="_on_example_battle_button_pressed"]

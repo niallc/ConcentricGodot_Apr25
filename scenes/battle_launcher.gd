@@ -177,9 +177,8 @@ func _ready():
 func _load_default_decks_for_testing():
 	printerr("BattleLauncher: LOADING DEFAULT DECKS as a fallback.")
 	# Re-add your old hardcoded deck loading here, e.g.:
-	# var _unmake_res = CardDB.get_card_resource("Unmake") 
-	# var _taunting_elf_res = CardDB.get_card_resource("TauntingElf")
-	# ... etc. for all default cards ...
-	# opponent_deck_to_load = [_unmake_res, _taunting_elf_res, ...] 
-	# pla_deck_to_load = [...]
+	var _unmake_res = CardDB.get_card_resource("Unmake") 
+	var _taunting_elf_res = CardDB.get_card_resource("TauntingElf")
+	opponent_deck_to_load = [_unmake_res, _taunting_elf_res] 
+	player_deck_to_load = [_taunting_elf_res]
 	pass # Replace with actual default deck loading if needed for fallback

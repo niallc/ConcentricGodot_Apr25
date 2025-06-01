@@ -45,7 +45,7 @@ size_flags_vertical = 3
 [node name="AvailableCardsGrid" type="GridContainer" parent="MainVBox/ContentVBox/AvailableCardsSection/AvailableCardsVBox/AvailableCardsScroll"]
 custom_minimum_size = Vector2(400, 400)
 layout_mode = 2
-columns = 4
+columns = 10
 
 [node name="DeckDisplayVBox" type="VBoxContainer" parent="MainVBox/ContentVBox"]
 layout_mode = 2
