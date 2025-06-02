@@ -80,6 +80,17 @@ func set_component_modulation(p_frame_modulate: Color = Color(1,1,1,1), p_art_mo
 	if is_instance_valid(card_art_texture):
 		card_art_texture.modulate = p_art_modulate
 
+func print_layout_info_debug():
+	# Ensure this is called after the node is in the tree and layout has settled
+	print("CardIconVisual ('%s') - Size: %s, MinSize: %s, GlobalPos: %s" % [name, size, custom_minimum_size, global_position])
+	if get_parent():
+		print("    Parent ('%s') - Type: %s, Size: %s" % [get_parent().name, get_parent().get_class(), get_parent().size if get_parent().has_method("get_size") else "N/A"])
+		if get_parent() is GridContainer:
+			var gc: GridContainer = get_parent()
+			# Approximate cell width, actual cell size isn't directly exposed easily
+			var approx_cell_width = (gc.size.x - (gc.columns - 1) * gc.get_theme_constant("h_separation", "GridContainer")) / float(gc.columns)
+			print("    Parent GridContainer approx cell width: ", approx_cell_width)
+
 func update_display(card_res: CardResource, verbose: int = 1):
 	if verbose > 0:
 		print("CardIconVisual update_display: Called for card_res: ", card_res.id if card_res else "null_card_res")

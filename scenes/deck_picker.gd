@@ -8,10 +8,14 @@ extends Control
 @onready var player_target_button: Button = $MainVBox/ContentVBox/DeckDisplayVBox/TargetSelectionHBox/PlayerTargetButton
 @onready var opponent_target_button: Button = $MainVBox/ContentVBox/DeckDisplayVBox/TargetSelectionHBox/OpponentTargetButton
 @onready var start_battle_button: Button = $MainVBox/BottomHBox/StartBattleButton
+@onready var background_texture_rect: TextureRect = $Background 
 
+const DECK_PICKER_BACKGROUND_LOW_RES_PATH = "res://art/deck_picker_background_low_res.png"
+const DECK_PICKER_BACKGROUND_HIGH_RES_PATH = "res://art/deck_picker_background_high_res.png"
 
 # Preload your card icon scene
 const CardIconVisualScene = preload("res://ui/card_icon_visual.tscn")
+const CARD_COLUMN_COUNT = 3
 
 var player_current_deck: Array[CardResource] = []
 var opponent_current_deck: Array[CardResource] = []
@@ -19,10 +23,6 @@ var opponent_current_deck: Array[CardResource] = []
 enum DeckTarget { PLAYER, OPPONENT }
 var current_target_deck = DeckTarget.PLAYER
 
-func _ready():
-	_populate_available_cards()
-	_update_target_label()
-	
 func _populate_available_cards():
 	# Clear existing (if any)
 	if not is_instance_valid(available_cards_grid):
@@ -35,19 +35,30 @@ func _populate_available_cards():
 		printerr("DeckPicker: CardDB is not available.")
 		return
 
+	var card_counter = 0;
 	for card_res in CardDB.card_resources.values():
 		if card_res is CardResource:
 			print("DeckPicker: Populating card - ", card_res.card_name)
 			var icon_instance = CardIconVisualScene.instantiate()
-			icon_instance.custom_minimum_size = Vector2(100, 140)
-			
-			# Connect its input signal. Pass the card_res as an extra argument.
+			#icon_instance.custom_minimum_size = Vector2(100, 140) # This remains the minimum
+
+			# Allow the icon to expand horizontally to fill the grid cell
+			icon_instance.size_flags_horizontal = Control.SIZE_EXPAND | Control.SIZE_FILL
+
+			# Optional: Allow vertical expansion if row heights vary and you want them to fill
+			# icon_instance.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_FILL
+
 			icon_instance.gui_input.connect(_on_available_card_clicked.bind(card_res))
-			
+
 			available_cards_grid.add_child(icon_instance)
+			icon_instance.call_deferred("update_display", card_res)
+
+			if card_counter <=3:
+				# To ensure layout pass has occurred, use another deferred call or a short timer for the debug print
+				icon_instance.call_deferred("print_layout_info_debug") 
+			card_counter += 1
 			
-			# Defer the call to update_display until after the node is in the tree and ready
-			icon_instance.call_deferred("update_display", card_res) # MODIFIED LINE
+			
 func _on_available_card_clicked(event: InputEvent, card_resource: CardResource):
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed():
 		# No deck limits as per your request for testing
@@ -116,3 +127,33 @@ func _on_start_battle_button_pressed():
 	var status = get_tree().change_scene_to_file("res://scenes/battle_launcher.tscn")
 	if status != OK:
 		printerr("DeckPicker: Failed to change scene to battle_launcher. Error: ", status)
+
+func _load_background_texture():
+	var bg_texture_to_load_path = DECK_PICKER_BACKGROUND_LOW_RES_PATH
+	if ResourceLoader.exists(DECK_PICKER_BACKGROUND_HIGH_RES_PATH):
+		var high_res_tex_attempt = load(DECK_PICKER_BACKGROUND_HIGH_RES_PATH)
+		if high_res_tex_attempt is Texture2D:
+			bg_texture_to_load_path = DECK_PICKER_BACKGROUND_HIGH_RES_PATH
+			print("DeckPicker: Using high-resolution background.")
+		else:
+			printerr("DeckPicker: Found high-res background path '%s', but failed to load as Texture2D. Using low-res." % DECK_PICKER_BACKGROUND_HIGH_RES_PATH)
+
+	if is_instance_valid(background_texture_rect):
+		var loaded_bg_tex = load(bg_texture_to_load_path)
+		if loaded_bg_tex is Texture2D:
+			background_texture_rect.texture = loaded_bg_tex
+		else:
+			printerr("DeckPicker: CRITICAL - Failed to load background texture from: ", bg_texture_to_load_path)
+	else:
+		var bgpath = "INVALID_PATH_OR_NODE"
+		if background_texture_rect.get_path():
+			bgpath = background_texture_rect
+		printerr("DeckPicker: Background TextureRect node not found at path: ", bgpath)
+
+
+func _ready():
+	_load_background_texture() # Call new function
+	_populate_available_cards()
+	_update_target_label()
+	if is_instance_valid(available_cards_grid):
+		available_cards_grid.columns = CARD_COLUMN_COUNT

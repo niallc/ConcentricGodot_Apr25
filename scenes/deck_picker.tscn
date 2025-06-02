@@ -5,28 +5,37 @@
 
 [node name="DeckPickerScene" type="Control"]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_vrjel")
 
 [node name="MainVBox" type="VBoxContainer" parent="."]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/separation = 20
 
 [node name="TitleLabel" type="Label" parent="MainVBox"]
 layout_mode = 2
 theme = ExtResource("2_8j7qj")
 text = "Deck Picker"
+horizontal_alignment = 1
 
 [node name="ContentVBox" type="VBoxContainer" parent="MainVBox"]
 layout_mode = 2
 theme_override_constants/separation = 20
 
+[node name="VerticalSpacer" type="Control" parent="MainVBox/ContentVBox"]
+layout_mode = 2
+
 [node name="AvailableCardsSection" type="MarginContainer" parent="MainVBox/ContentVBox"]
-custom_minimum_size = Vector2(50, 40)
+custom_minimum_size = Vector2(1000, 800)
 layout_mode = 2
 
 [node name="AvailableCardsVBox" type="VBoxContainer" parent="MainVBox/ContentVBox/AvailableCardsSection"]
@@ -35,17 +44,28 @@ layout_mode = 2
 [node name="AvailableCardsLabel" type="Label" parent="MainVBox/ContentVBox/AvailableCardsSection/AvailableCardsVBox"]
 layout_mode = 2
 theme = ExtResource("2_8j7qj")
+theme_override_font_sizes/font_size = 35
 text = "Available Cards"
 
+[node name="VerticalSpacer2" type="Control" parent="MainVBox/ContentVBox/AvailableCardsSection/AvailableCardsVBox"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
 [node name="AvailableCardsScroll" type="ScrollContainer" parent="MainVBox/ContentVBox/AvailableCardsSection/AvailableCardsVBox"]
-custom_minimum_size = Vector2(200, 800)
+custom_minimum_size = Vector2(600, 1000)
 layout_mode = 2
 size_flags_vertical = 3
 
 [node name="AvailableCardsGrid" type="GridContainer" parent="MainVBox/ContentVBox/AvailableCardsSection/AvailableCardsVBox/AvailableCardsScroll"]
 custom_minimum_size = Vector2(400, 400)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 columns = 10
+
+[node name="VerticalSpacer" type="Control" parent="MainVBox/ContentVBox/AvailableCardsSection/AvailableCardsVBox"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
 
 [node name="DeckDisplayVBox" type="VBoxContainer" parent="MainVBox/ContentVBox"]
 layout_mode = 2
@@ -108,6 +128,16 @@ layout_mode = 2
 layout_mode = 2
 theme = ExtResource("2_8j7qj")
 text = "Start Battle"
+
+[node name="Background" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0.705882)
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [connection signal="pressed" from="MainVBox/ContentVBox/DeckDisplayVBox/TargetSelectionHBox/PlayerTargetButton" to="." method="_on_player_target_button_pressed"]
 [connection signal="pressed" from="MainVBox/ContentVBox/DeckDisplayVBox/TargetSelectionHBox/OpponentTargetButton" to="." method="_on_opponent_target_button_pressed"]

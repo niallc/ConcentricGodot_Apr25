@@ -16,6 +16,8 @@
 /art/main_background_high_res.jpg
 /art/card_frame_high_res.png
 /art/main_background_high_res.jpg
+/art/deck_picker_background_high_res.png
+/art/splash_menu_background_high_res.png
 /art/sprite_sheets/
 
 /build/
@@ -26,6 +28,7 @@
 
 logic/tools/all_code_combined.txt
 logic/tools/make_big_code_file.py
+logic/tools/make_all_prompt_files.sh
 print_project_tree.py
 tempFindString.py
 icon.svg
