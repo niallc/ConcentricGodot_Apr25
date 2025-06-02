@@ -15,7 +15,7 @@ const DECK_PICKER_BACKGROUND_HIGH_RES_PATH = "res://art/deck_picker_background_h
 
 # Preload your card icon scene
 const CardIconVisualScene = preload("res://ui/card_icon_visual.tscn")
-const CARD_COLUMN_COUNT = 3
+const CARD_COLUMN_COUNT = 6
 
 var player_current_deck: Array[CardResource] = []
 var opponent_current_deck: Array[CardResource] = []
@@ -23,40 +23,59 @@ var opponent_current_deck: Array[CardResource] = []
 enum DeckTarget { PLAYER, OPPONENT }
 var current_target_deck = DeckTarget.PLAYER
 
+# In res://scenes/deck_picker.gd
+
+# ... (const CardIconVisualScene, CARD_COLUMN_COUNT, etc.) ...
+
 func _populate_available_cards():
-	# Clear existing (if any)
 	if not is_instance_valid(available_cards_grid):
 		printerr("DeckPicker: AvailableCardsGrid node not found or invalid.")
 		return
 	for child in available_cards_grid.get_children():
 		child.queue_free()
 
-	if CardDB == null: # Assuming CardDB is your autoloaded Card Database
+	if CardDB == null:
 		printerr("DeckPicker: CardDB is not available.")
 		return
 
-	var card_counter = 0;
+	# The ratio is width / height for AspectRatioContainer.
+	var card_aspect_ratio: float = 80.0 / 80.0 
+
+	print("DeckPicker: Populating cards. Target aspect ratio: ", card_aspect_ratio)
+
 	for card_res in CardDB.card_resources.values():
 		if card_res is CardResource:
-			print("DeckPicker: Populating card - ", card_res.card_name)
+			# 1. Create the AspectRatioContainer
+			var aspect_container = AspectRatioContainer.new()
+			aspect_container.ratio = card_aspect_ratio
+			# Make the AspectRatioContainer itself expand to fill the grid cell's width
+			aspect_container.size_flags_horizontal = Control.SIZE_EXPAND | Control.SIZE_FILL
+			# Allow it to also take vertical space given by the grid row
+			aspect_container.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_FILL 
+			# Stretch child to fill the AspectRatioContainer
+			aspect_container.stretch_mode = AspectRatioContainer.STRETCH_WIDTH_CONTROLS_HEIGHT # Or STRETCH_HEIGHT_CONTROLS_WIDTH depending on control
+
+			# 2. Create the CardIconVisual instance
 			var icon_instance = CardIconVisualScene.instantiate()
-			#icon_instance.custom_minimum_size = Vector2(100, 140) # This remains the minimum
-
-			# Allow the icon to expand horizontally to fill the grid cell
+			# The CardIconVisual should fill the AspectRatioContainer
 			icon_instance.size_flags_horizontal = Control.SIZE_EXPAND | Control.SIZE_FILL
-
-			# Optional: Allow vertical expansion if row heights vary and you want them to fill
-			# icon_instance.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_FILL
+			icon_instance.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_FILL
+			# Its custom_minimum_size will now act as a minimum *within* the AspectRatioContainer.
+			# If the AspectRatioContainer becomes very small, this will prevent the icon from vanishing.
+			icon_instance.custom_minimum_size = Vector2(100, 140) # Keep this or your desired minimum display size
 
 			icon_instance.gui_input.connect(_on_available_card_clicked.bind(card_res))
-
-			available_cards_grid.add_child(icon_instance)
+			
+			# 3. Add CardIconVisual as a child of AspectRatioContainer
+			aspect_container.add_child(icon_instance)
+			
+			# 4. Add AspectRatioContainer to the grid
+			available_cards_grid.add_child(aspect_container)
+			
+			# 5. Defer update_display for the icon_instance
 			icon_instance.call_deferred("update_display", card_res)
-
-			if card_counter <=3:
-				# To ensure layout pass has occurred, use another deferred call or a short timer for the debug print
-				icon_instance.call_deferred("print_layout_info_debug") 
-			card_counter += 1
+			# Optional: Defer the debug print for the icon instance
+			icon_instance.call_deferred("print_layout_info_debug")
 			
 			
 func _on_available_card_clicked(event: InputEvent, card_resource: CardResource):
