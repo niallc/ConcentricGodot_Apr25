@@ -27,7 +27,7 @@ var current_target_deck = DeckTarget.PLAYER
 
 # ... (const CardIconVisualScene, CARD_COLUMN_COUNT, etc.) ...
 
-func _populate_available_cards():
+func _populate_available_cards(verbose: int = 0):
 	if not is_instance_valid(available_cards_grid):
 		printerr("DeckPicker: AvailableCardsGrid node not found or invalid.")
 		return
@@ -75,7 +75,8 @@ func _populate_available_cards():
 			# 5. Defer update_display for the icon_instance
 			icon_instance.call_deferred("update_display", card_res)
 			# Optional: Defer the debug print for the icon instance
-			icon_instance.call_deferred("print_layout_info_debug")
+			if verbose > 0:
+				icon_instance.call_deferred("print_layout_info_debug")
 			
 			
 func _on_available_card_clicked(event: InputEvent, card_resource: CardResource):

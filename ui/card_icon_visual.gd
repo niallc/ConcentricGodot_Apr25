@@ -71,7 +71,7 @@ func print_layout_info_debug():
 			var approx_cell_width = (gc.size.x - (gc.columns - 1) * gc.get_theme_constant("h_separation", "GridContainer")) / float(gc.columns)
 			print("    Parent GridContainer approx cell width: ", approx_cell_width)
 
-func update_display(card_res: CardResource, verbose: int = 1):
+func update_display(card_res: CardResource, verbose: int = 0):
 	if verbose > 0:
 		print("CardIconVisual update_display: Called for card_res: ", card_res.id if card_res else "null_card_res")
 		print("CardIconVisual update_display: self.name is '", name, "', card_art_texture is valid? ", is_instance_valid(card_art_texture))

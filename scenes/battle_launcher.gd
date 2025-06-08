@@ -33,7 +33,9 @@ func _ready():
 		# return # Or exit if GameSessionData is critical
 
 	print("BattleLauncher: Using PLAYER deck for battle: ", player_deck_to_load)
+	_print_deck(player_deck_to_load)
 	print("BattleLauncher: Using OPPONENT deck for battle: ", opponent_deck_to_load)
+	_print_deck(opponent_deck_to_load)
 
 	var battle_sim = Battle.new()
 	var events = battle_sim.run_battle(player_deck_to_load, opponent_deck_to_load, "Player", "Opponent") 
@@ -106,3 +108,13 @@ func _load_default_decks_for_testing():
 	opponent_deck_to_load = [_unmake_res, _taunting_elf_res] 
 	player_deck_to_load = [_taunting_elf_res]
 	pass # Replace with actual default deck loading if needed for fallback
+
+func _print_deck(deck):
+	var card_names = []
+	for card in deck:
+		#print(typeof(card))
+		#for prop in card.get_property_list():
+			#var name = prop.name
+			#print(name)
+			card_names.append(card.id)
+	print(card_names)
