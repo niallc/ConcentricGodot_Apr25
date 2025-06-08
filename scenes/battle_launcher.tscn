@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" uid="uid://b4srd7xv6qci" path="res://scenes/battle_launcher.gd" id="1_lsgmv"]
 
-[node name="Placeholder_Root_Node2D" type="Node2D"]
+[node name="BattleLauncher" type="Node2D"]
 script = ExtResource("1_lsgmv")

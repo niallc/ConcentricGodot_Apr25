@@ -7,7 +7,7 @@ const SPLASH_BACKGROUND_HIGH_RES_PATH = "res://art/splash_background_high_res.jp
 @onready var background_texture_rect: TextureRect = $Background 
 
 func _on_example_battle_button_pressed():
-	print("SplashScreen: Attempting to change scene to placeholder_root_node_2d.tscn...") # New print
+	print("SplashScreen: Attempting to change scene to battle_launcher.tscn...") # New print
 	var scene_load_status = get_tree().change_scene_to_file("res://scenes/battle_launcher.tscn")
 	print("SplashScreen: Scene change call completed. Status: ", scene_load_status) # New print, should show 0 for OK
 

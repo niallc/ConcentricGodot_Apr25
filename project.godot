@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 Constants="*res://logic/constants.gd"
 CardDB="*res://logic/tools/CardDB.gd"
 GameSessionData="*res://logic//tools/game_session_data.gd"
+TooltipManager="*res://ui/tooltip_manager.gd"
 
 [display]
 

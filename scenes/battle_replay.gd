@@ -721,7 +721,7 @@ func handle_visual_effect(event):
 		# --- Placeholder for other effects we discussed ---
 		"energy_axe_boost":
 			print("Visual for Energy Axe boost on target...")
-			await _play_generic_spell_effect_visual(event, spell_display_size, spell_display_alpha, true, target_instance_id, target_instance_id)
+			await _play_generic_spell_effect_visual(event, spell_display_size, spell_display_alpha, false, target_instance_id, -1)
 			# Specific: could also add a temporary "+POW" visual to target_visual_node
 		"focus_mana_gain":
 			print("Visual for Focus mana gain on player...")

@@ -10,6 +10,8 @@ const CARD_FRAME_HIGH_RES_PATH = "res://art/card_frame_high_res.png"
 # Guaranteed to be in the repo as a fallback for missing individual card art
 const FALLBACK_CARD_ART_TEXTURE = preload("res://art/default_card_art_low_res.png")
 
+var card_data: CardResource = null # Store the card resource
+
 @onready var card_art_texture: TextureRect = $CardArtTextureRect
 @onready var card_frame_texture: TextureRect = $CardFrameTextureRect
 
@@ -20,35 +22,13 @@ const CARD_MARGIN_WIDTH = 0.05 # 5% margin
 @export var art_margin_percent_right: float = CARD_MARGIN_WIDTH
 @export var art_margin_percent_bottom: float = CARD_MARGIN_WIDTH
 
-func _ready():
-	# Load card frame: attempt high-res if available, otherwise use low-res default
-	var frame_texture_to_load_path = CARD_FRAME_LOW_RES_PATH # Default to low-res
+func _on_mouse_entered() -> void:
+	if is_instance_valid(card_data) and card_data.description_template != "":
+		TooltipManager.request_show_tooltip(card_data.get_formatted_description(), self)
 
-	if ResourceLoader.exists(CARD_FRAME_HIGH_RES_PATH):
-		var high_res_tex_attempt = load(CARD_FRAME_HIGH_RES_PATH)
-		if high_res_tex_attempt is Texture2D:
-			frame_texture_to_load_path = CARD_FRAME_HIGH_RES_PATH
-			
-			#print("CardIconVisual: Using high-resolution card frame.") # Optional debug
-		else:
-			printerr("CardIconVisual: Found high-res frame path '%s', but failed to load it as Texture2D. Using low-res." % CARD_FRAME_HIGH_RES_PATH)
-	# else: # Optional debug if high-res not found
-		# print("CardIconVisual: High-resolution card frame not found at '%s'. Using low-res." % CARD_FRAME_HIGH_RES_PATH)
 
-	if is_instance_valid(card_frame_texture):
-		var loaded_frame_tex = load(frame_texture_to_load_path)
-		if loaded_frame_tex is Texture2D:
-			card_frame_texture.texture = loaded_frame_tex
-		else:
-			printerr("CardIconVisual: CRITICAL - Failed to load even the low-resolution card frame from: ", frame_texture_to_load_path)
-			# UI might look unstyled for the frame, but the project loads.
-	
-	# Ensure CardArtTextureRect is set to full rect initially so margin calculations are correct
-	if is_instance_valid(card_art_texture):
-		card_art_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
-	
-	# Apply initial margins based on current size (which might be its custom_minimum_size)
-	_apply_proportional_margins()
+func _on_mouse_exited() -> void:
+	TooltipManager.request_hide_tooltip(self)
 
 
 func _notification(what):
@@ -138,3 +118,37 @@ func update_display(card_res: CardResource, verbose: int = 1):
 
 	# Ensure default full opacity, caller can modulate later if needed.
 	set_component_modulation()
+
+func _ready():
+	# Load card frame: attempt high-res if available, otherwise use low-res default
+	var frame_texture_to_load_path = CARD_FRAME_LOW_RES_PATH # Default to low-res
+
+	if ResourceLoader.exists(CARD_FRAME_HIGH_RES_PATH):
+		var high_res_tex_attempt = load(CARD_FRAME_HIGH_RES_PATH)
+		if high_res_tex_attempt is Texture2D:
+			frame_texture_to_load_path = CARD_FRAME_HIGH_RES_PATH
+			
+			#print("CardIconVisual: Using high-resolution card frame.") # Optional debug
+		else:
+			printerr("CardIconVisual: Found high-res frame path '%s', but failed to load it as Texture2D. Using low-res." % CARD_FRAME_HIGH_RES_PATH)
+	# else: # Optional debug if high-res not found
+		# print("CardIconVisual: High-resolution card frame not found at '%s'. Using low-res." % CARD_FRAME_HIGH_RES_PATH)
+
+	if is_instance_valid(card_frame_texture):
+		var loaded_frame_tex = load(frame_texture_to_load_path)
+		if loaded_frame_tex is Texture2D:
+			card_frame_texture.texture = loaded_frame_tex
+		else:
+			printerr("CardIconVisual: CRITICAL - Failed to load even the low-resolution card frame from: ", frame_texture_to_load_path)
+			# UI might look unstyled for the frame, but the project loads.
+	
+	# Ensure CardArtTextureRect is set to full rect initially so margin calculations are correct
+	if is_instance_valid(card_art_texture):
+		card_art_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
+	
+	# Apply initial margins based on current size (which might be its custom_minimum_size)
+	_apply_proportional_margins()
+
+	# Connect signals for tooltip
+	mouse_entered.connect(_on_mouse_entered)
+	mouse_exited.connect(_on_mouse_exited)
