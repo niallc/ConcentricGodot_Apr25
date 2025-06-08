@@ -10,6 +10,7 @@ var playback_speed_scale: float = 3.0
 var step_delay: float = 0.5
 var spell_display_size = Vector2(500,500)
 var spell_display_alpha: float = 0.7
+var _is_test_mode: bool = false
 #var spell_card_hold_duration: float = 0.4
 
 const MAIN_BACKGROUND_HIGH_RES_PATH = "res://art/main_background_high_res.jpg"
@@ -63,7 +64,7 @@ var player1_graveyard_card_ids: Array[String] = []
 var player2_library_card_ids: Array[String] = []
 var player2_graveyard_card_ids: Array[String] = []
 
-func load_and_start_simple_replay(initial_events: Array[Dictionary]):
+func load_and_start_simple_replay(initial_events: Array[Dictionary], test_mode: bool = false):
 	print("BattleReplay: Loading %d events." % initial_events.size())
 	self.battle_events = initial_events
 
@@ -76,8 +77,16 @@ func load_and_start_simple_replay(initial_events: Array[Dictionary]):
 	
 	_process_initial_setup_events(initial_events)
 
-	if event_log_label: event_log_label.text = "Press Step or Play"
-	call_deferred("_on_step_button_pressed") # Or let user press play/step
+	if test_mode:
+		print("BattleReplay: Test mode - auto-starting replay at high speed")
+		_is_test_mode = true
+		playback_speed_scale = 100.0  # Very fast for testing
+		step_delay = 0.01  # Minimal delay
+		if event_log_label: event_log_label.text = "Test Mode - Auto Playing"
+		call_deferred("_auto_start_test_mode")
+	else:
+		if event_log_label: event_log_label.text = "Press Step or Play"
+		call_deferred("_on_step_button_pressed") # Or let user press play/step
 
 # --- Private Helper Functions for Setup ---
 func _reset_internal_battle_state() -> void:
@@ -228,6 +237,16 @@ func _on_playback_timer_timeout():
 
 
 # --- Core Event Processing ---
+func _auto_start_test_mode():
+	print("BattleReplay: Auto-starting test mode replay")
+	is_playing = true
+	if playback_timer: playback_timer.start(step_delay / playback_speed_scale)
+
+func _exit_test_mode():
+	print("BattleReplay: Test mode exiting cleanly")
+	if get_tree():
+		get_tree().quit()
+
 func process_next_event():
 	current_event_index += 1
 	if current_event_index >= battle_events.size():
@@ -235,6 +254,11 @@ func process_next_event():
 		is_playing = false
 		if playback_timer: playback_timer.stop()
 		if event_log_label: event_log_label.text = "--- Battle Ended ---"
+		
+		# Auto-exit in test mode if no battle_end event was processed
+		if _is_test_mode:
+			print("BattleReplay: Test mode replay complete - exiting")
+			call_deferred("_exit_test_mode")
 		return
 
 	var event = battle_events[current_event_index]
@@ -873,6 +897,11 @@ func handle_battle_end(event):
 	if event_log_label: event_log_label.text = "Battle End: %s wins!" % event.winner
 	is_playing = false
 	if playback_timer: playback_timer.stop()
+	
+	# Auto-exit in test mode
+	if _is_test_mode:
+		print("BattleReplay: Test mode complete - exiting")
+		call_deferred("_exit_test_mode")
 
 func _update_zone_display(container_node: HBoxContainer, card_ids: Array[String]):
 	if not is_instance_valid(container_node):

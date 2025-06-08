@@ -94,10 +94,15 @@ func _ready():
 	# Add it to this scene so it becomes visible
 	add_child(replay_instance)
 
+	# Detect test mode (headless execution)
+	var test_mode = DisplayServer.get_name() == "headless"
+	if test_mode:
+		print("BattleLauncher: Detected headless mode - enabling test mode")
+
 	# Get the script and load events
 	# Use call_deferred to ensure the replay scene's _ready() has run
-	replay_instance.call_deferred("load_and_start_simple_replay", events)
-	print("--- Battle Replay Initiated ---")
+	replay_instance.call_deferred("load_and_start_simple_replay", events, test_mode)
+	print("--- Battle Replay Initiated (Test Mode: %s) ---" % test_mode)
 
 # Hypothetical function to load your old default decks for fallback during testing
 func _load_default_decks_for_testing():

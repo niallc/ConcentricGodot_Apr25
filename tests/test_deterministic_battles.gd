@@ -10,7 +10,7 @@ func after_each():
 	if test_battle:
 		test_battle = null
 
-func _load_deck_by_names(card_names: Array[String]) -> Array[CardResource]:
+func _load_deck_by_names(card_names: Array) -> Array[CardResource]:
 	var deck: Array[CardResource] = []
 	for card_name in card_names:
 		var card_res = CardDB.get_card_resource(card_name)
