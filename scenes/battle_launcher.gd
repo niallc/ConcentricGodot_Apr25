@@ -1,4 +1,5 @@
 extends Node2D
+class_name BattleLauncher
 
 # Preload the replay scene
 const BattleReplayScene = preload("res://scenes/battle_replay_scene.tscn")
@@ -23,13 +24,13 @@ func _ready():
 			# Handle this case - maybe load defaults or go back to deck picker
 			# For now, let's try to load defaults if empty, just for testing continuity
 			# but ideally, this should be a more robust error handling.
-			_load_default_decks_for_testing() # A hypothetical function for default decks
+			_load_default_decks_for_testing()
 		else	:
 			player_deck_to_load = GameSessionData.player_deck
 			opponent_deck_to_load = GameSessionData.opponent_deck
 	else:
 		printerr("BattleLauncher: GameSessionData autoload NOT FOUND! Loading default decks for testing.")
-		_load_default_decks_for_testing() # A hypothetical function for default decks
+		_load_default_decks_for_testing()
 		# return # Or exit if GameSessionData is critical
 
 	print("BattleLauncher: Using PLAYER deck for battle: ", player_deck_to_load)
@@ -104,14 +105,22 @@ func _ready():
 	replay_instance.call_deferred("load_and_start_simple_replay", events, test_mode)
 	print("--- Battle Replay Initiated (Test Mode: %s) ---" % test_mode)
 
-# Hypothetical function to load your old default decks for fallback during testing
+# Load default decks for fallback during testing
 func _load_default_decks_for_testing():
-	printerr("BattleLauncher: LOADING DEFAULT DECKS as a fallback.")
+	print("BattleLauncher: LOADING DEFAULT DECKS as a fallback.")
 	# Re-add your old hardcoded deck loading here, e.g.:
 	var _unmake_res = CardDB.get_card_resource("Unmake") 
 	var _taunting_elf_res = CardDB.get_card_resource("TauntingElf")
-	opponent_deck_to_load = [_unmake_res, _taunting_elf_res] 
-	player_deck_to_load = [_taunting_elf_res]
+	var _overconentrate_res = CardDB.get_card_resource("OverConcentrate")
+	var _flamewielder_res = CardDB.get_card_resource("Flamewielder")
+	var _goblin_warboss_res = CardDB.get_card_resource("GoblinWarboss")
+	var _pikemen_res = CardDB.get_card_resource("Pikemen")
+	var _bloodrager_res = CardDB.get_card_resource("Bloodrager")
+	var _totem_of_champions_res = CardDB.get_card_resource("TotemOfChampions")
+	var _ascending_protoplasm_res = CardDB.get_card_resource("AscendingProtoplasm")
+	var _heedless_vandal_res = CardDB.get_card_resource("HeedlessVandal")
+	opponent_deck_to_load = [_goblin_warboss_res, _unmake_res, _taunting_elf_res, _totem_of_champions_res] 
+	player_deck_to_load = [_bloodrager_res, _heedless_vandal_res, _unmake_res, _flamewielder_res]
 	pass # Replace with actual default deck loading if needed for fallback
 
 func _print_deck(deck):

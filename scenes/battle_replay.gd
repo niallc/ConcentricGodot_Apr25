@@ -51,7 +51,7 @@ const MANA_PIP_FULL_STYLE = preload("res://ui/styles/mana_pip_full_style.tres")
 @onready var top_player_graveyard_hbox: HBoxContainer = $MainMarginContainer/MainVBox/GameAreaVBox/TopPlayerArea/TopPlayerVBox/LibraryAndGraveyard/Graveyard
 
 # --- Spell Animation layer -----
-@onready var top_effects_canvas_layer: CanvasLayer = $TopEffectsCanvasLayer
+#@onready var top_effects_canvas_layer: CanvasLayer = $TopEffectsCanvasLayer
 @onready var spell_popup_anchor: Control = $TopEffectsCanvasLayer/SpellPopupAnchor
 
 # --- Spell Animation Effects ---

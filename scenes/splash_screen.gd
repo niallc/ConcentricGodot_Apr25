@@ -11,6 +11,12 @@ func _on_example_battle_button_pressed():
 	var scene_load_status = get_tree().change_scene_to_file("res://scenes/battle_launcher.tscn")
 	print("SplashScreen: Scene change call completed. Status: ", scene_load_status) # New print, should show 0 for OK
 
+	# Add example decks (from battle_launcher.gd) GameSessionData
+	var bl = BattleLauncher.new() 
+	bl._load_default_decks_for_testing()
+	GameSessionData.player_deck = bl.player_deck_to_load.duplicate() # Duplicate to avoid issues if this scene is revisited
+	GameSessionData.opponent_deck = bl.opponent_deck_to_load.duplicate()
+
 	if scene_load_status != OK:
 		printerr("Error changing scene to battle_launcher.tscn: ", scene_load_status)
 
