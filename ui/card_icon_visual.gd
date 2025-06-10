@@ -25,6 +25,7 @@ const CARD_MARGIN_WIDTH = 0.05 # 5% margin
 func _on_mouse_entered() -> void:
 	if is_instance_valid(card_data) and card_data.description_template != "":
 		TooltipManager.request_show_tooltip(card_data.get_formatted_description(), self)
+	#TooltipManager.request_show_tooltip("Test Hover", self)
 
 
 func _on_mouse_exited() -> void:
@@ -72,6 +73,7 @@ func print_layout_info_debug():
 			print("    Parent GridContainer approx cell width: ", approx_cell_width)
 
 func update_display(card_res: CardResource, verbose: int = 0):
+	self.card_data = card_res
 	if verbose > 0:
 		print("CardIconVisual update_display: Called for card_res: ", card_res.id if card_res else "null_card_res")
 		print("CardIconVisual update_display: self.name is '", name, "', card_art_texture is valid? ", is_instance_valid(card_art_texture))

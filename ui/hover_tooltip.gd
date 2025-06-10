@@ -89,34 +89,29 @@ func _setup_animations() -> void:
 
 
 func update_content(bbcode_text: String) -> void:
+	# Define a maximum width for the tooltip. Adjust as you see fit.
+	var max_width = 350.0
+
+	# 1. Set the tooltip container's width FIRST.
+	#    This gives the RichTextLabel a bounding box to calculate its word wrapping.
+	self.size.x = max_width
+
+	# 2. Now, set the text on the label. Because it is a child of `self` and
+	#    is anchored to the full rect, it will use self.size.x as its wrapping width.
 	content_label.text = bbcode_text
 	
-	# Reset custom_minimum_size on the label to allow it to shrink properly
-	# if fit_content is enabled, it will determine its minimum based on text.
-	content_label.custom_minimum_size = Vector2.ZERO 
+	# 3. Get the required height for the content at the specified width.
+	var content_height = content_label.get_content_height()
 	
-	# To get the most up-to-date size of the RichTextLabel after text change and fit_content,
-	# it *might* be necessary to wait one frame. However, try without this first.
-	# If sizing is still off (e.g., using previous text's size), uncomment the next line for testing:
-	# await get_tree().process_frame 
+	# 4. Get the vertical padding from our stylebox.
+	var style_box: StyleBox = background_panel.get_theme_stylebox("panel")
+	var padding_vertical = 0.0
+	if style_box:
+		padding_vertical = style_box.get_minimum_size().y
 
-	var label_min_size: Vector2 = content_label.get_combined_minimum_size()
+	# 5. Set the final height of the tooltip.
+	self.size.y = content_height + padding_vertical
 	
-	var style_box: StyleBox = background_panel.get_theme_stylebox("panel") # More generic type
-	var padding: Vector2 = Vector2.ZERO
-	if style_box: # Check if a stylebox is actually applied
-		padding = style_box.get_minimum_size() # This gives combined left+right, top+bottom margins
-
-	var target_tooltip_size: Vector2 = label_min_size + padding
-	
-	# You might want a minimum practical size for the tooltip,
-	# e.g., if the text is very short or empty.
-	target_tooltip_size.x = max(target_tooltip_size.x, 40) # Example min width
-	target_tooltip_size.y = max(target_tooltip_size.y, 30)  # Example min height
-	
-	self.size = target_tooltip_size
-	# print("HoverTooltip: update_content. Label min_size: ", label_min_size, ", Padding: ", padding, ", Set self.size to: ", self.size) # For debugging
-
 func display_at(target_position: Vector2) -> void:
 	global_position = target_position
 	visible = true
