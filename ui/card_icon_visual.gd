@@ -23,12 +23,14 @@ const CARD_MARGIN_WIDTH = 0.05 # 5% margin
 @export var art_margin_percent_bottom: float = CARD_MARGIN_WIDTH
 
 func _on_mouse_entered() -> void:
+	print(Time.get_ticks_msec(), "ms: MOUSE ENTERED on CardIconVisual ", self.get_instance_id())
 	if is_instance_valid(card_data) and card_data.description_template != "":
 		TooltipManager.request_show_tooltip(card_data.get_formatted_description(), self)
 	#TooltipManager.request_show_tooltip("Test Hover", self)
 
 
 func _on_mouse_exited() -> void:
+	print(Time.get_ticks_msec(), "ms: MOUSE EXITED from CardIconVisual ", self.get_instance_id())
 	TooltipManager.request_hide_tooltip(self)
 
 

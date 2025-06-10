@@ -32,12 +32,12 @@ func _ready() -> void:
 		content_label.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9, 1.0)) # Light text
 
 	# Ensure it starts invisible and fully transparent
-	#modulate.a = 0.0
-	#visible = false
+	modulate.a = 0.0
+	visible = false
 
-	self.modulate = Color(1, 1, 1, 0.3) # Full alpha
-	self.visible = true
-	update_content("DEBUG: Tooltip Visible?") # Call update_content with test text
+	#self.modulate = Color(1, 1, 1, 0.3) # Full alpha
+	#self.visible = true
+	#update_content("DEBUG: Tooltip Visible?") # Call update_content with test text
 	self.global_position = Vector2(100, 100) # Position it somewhere obvious
 	print("HoverTooltip _ready: FORCED partially VISIBLE at ", global_position, " with size ", size, " and modulate ", modulate)
 
