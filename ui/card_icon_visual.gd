@@ -11,6 +11,7 @@ const CARD_FRAME_HIGH_RES_PATH = "res://art/card_frame_high_res.png"
 const FALLBACK_CARD_ART_TEXTURE = preload("res://art/default_card_art_low_res.png")
 
 var card_data: CardResource = null # Store the card resource
+#var _hovering := false
 
 @onready var card_art_texture: TextureRect = $CardArtTextureRect
 @onready var card_frame_texture: TextureRect = $CardFrameTextureRect

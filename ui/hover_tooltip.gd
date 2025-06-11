@@ -6,6 +6,7 @@ extends Control
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 
 const FADE_DURATION: float = 0.25
+var _is_animating: bool = false
 
 # Called when the node is added to the scene tree for the first time.
 func _ready() -> void:
@@ -113,21 +114,28 @@ func update_content(bbcode_text: String) -> void:
 	self.size.y = content_height + padding_vertical
 	
 func display_at(target_position: Vector2) -> void:
+	print("TOOLTIP: display_at() called at ", Time.get_ticks_msec(), "ms. target_position: ", target_position, ", modulate.a: ", modulate.a, ", visible: ", visible)
 	global_position = target_position
 	visible = true
-	animation_player.stop() # Stop any current animation
+	_is_animating = true
+	#modulate.a = 0.0 # Ensure we're fully transparent before fading in
+	animation_player.stop()
 	animation_player.play("fade_in")
-
-
+	
 func hide_tooltip() -> void:
-	if visible and modulate.a > 0.0: # Only play fade_out if it's somewhat visible
+	print("TOOLTIP: hide_tooltip() called at ", Time.get_ticks_msec(), "ms. modulate.a: ", modulate.a, ", visible: ", visible)
+	if visible and modulate.a > 0.0:
 		animation_player.stop()
+		_is_animating = true
 		animation_player.play("fade_out")
-	else: # If already transparent or hidden, just ensure it's hidden
+	else:
 		modulate.a = 0.0
 		visible = false
-
+		_is_animating = false
 
 func _on_animation_player_animation_finished(anim_name: StringName) -> void:
+	print("TOOLTIP: animation finished: ", anim_name, " at ", Time.get_ticks_msec(), "ms")
+	_is_animating = false
 	if anim_name == "fade_out":
 		visible = false
+		update_content("")

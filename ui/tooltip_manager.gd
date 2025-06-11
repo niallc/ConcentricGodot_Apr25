@@ -10,9 +10,9 @@ var _show_timer: Timer
 var _hide_timer: Timer
 
 # State variables
-var _target_for_show: Control = null # The node we are about to show a tooltip for.
-var _target_for_hide: Control = null # The node we are about to hide a tooltip for.
-var _target_is_visible: Control = null # The node whose tooltip is currently fully visible.
+var _target_for_show: Control = null
+var _target_for_hide: Control = null
+var _target_is_visible: Control = null
 var _pending_tooltip_text: String = ""
 
 func _ready() -> void:
@@ -43,24 +43,20 @@ func request_show_tooltip(text_content: String, requesting_node: Control) -> voi
 	if not is_instance_valid(requesting_node):
 		return
 
-	# If a hide is pending for this exact node, cancel the hide and do nothing else.
-	# This prevents the hide/show flicker on minor mouse movements.
 	if _target_for_hide == requesting_node:
 		_hide_timer.stop()
 		_target_for_hide = null
 		return
 
-	# If we are already showing or pending a show for this node, also do nothing.
 	if _target_is_visible == requesting_node or _target_for_show == requesting_node:
 		return
 
-	# A new, different target is being hovered.
-	# Hide any currently visible tooltip immediately.
 	if _tooltip_instance.visible:
 		_tooltip_instance.hide_tooltip()
 
-	# Set up the pending show for the new target.
-	# We DO NOT update the content here. We only store the data for later.
+	print("TOOLTIP_MANAGER: request_show_tooltip for ", requesting_node.name, " at ", Time.get_ticks_msec(), "ms. Starting show_timer.")
+	print("    tooltip currently visible? ", _tooltip_instance.visible, ", modulate.a: ", _tooltip_instance.modulate.a)
+
 	_target_for_show = requesting_node
 	_pending_tooltip_text = text_content
 	_show_timer.start()
@@ -70,28 +66,34 @@ func request_hide_tooltip(requesting_node: Control) -> void:
 	if not is_instance_valid(requesting_node):
 		return
 	
-	# If this hide request is for the node we are about to show a tip for, cancel the show.
 	if _target_for_show == requesting_node:
 		_show_timer.stop()
 		_target_for_show = null
 
-	# If the tooltip is visible for this node, start the hide timer.
 	if _target_is_visible == requesting_node:
 		_target_for_hide = requesting_node
 		_hide_timer.start()
+	print("TOOLTIP_MANAGER: request_hide_tooltip for ", requesting_node.name, " at ", Time.get_ticks_msec(), "ms")
+	print("    current visible? ", _tooltip_instance.visible, ", modulate.a: ", _tooltip_instance.modulate.a)
 
 
 func _on_show_timer_timeout() -> void:
 	if not is_instance_valid(_target_for_show):
 		return
+	if _target_is_visible == _target_for_show:
+		print("TOOLTIP_MANAGER: Avoiding redundant show.")
+		return
 
-	# The mouse has been hovering long enough. Show the tooltip.
+	# FIX 1: Update the tooltip's content BEFORE calculating its position.
+	_tooltip_instance.update_content(_pending_tooltip_text)
+	
 	var root_viewport: Window = get_tree().get_root()
 	var mouse_pos: Vector2 = root_viewport.get_mouse_position()
 	var viewport_size: Vector2 = root_viewport.size
 
-	var tooltip_pos = mouse_pos + Vector2(20, 20)
+	# Get the tooltip size AFTER its content has been updated.
 	var tooltip_size = _tooltip_instance.size
+	var tooltip_pos = mouse_pos + Vector2(20, 20)
 
 	if tooltip_pos.x + tooltip_size.x > viewport_size.x:
 		tooltip_pos.x = viewport_size.x - tooltip_size.x - 5
@@ -102,15 +104,18 @@ func _on_show_timer_timeout() -> void:
 	_target_is_visible = _target_for_show
 	_target_for_show = null
 
-	_tooltip_instance.update_content(_pending_tooltip_text)
 
 func _on_hide_timer_timeout() -> void:
 	if not is_instance_valid(_target_for_hide):
 		return
+	if _target_is_visible != _target_for_hide:
+		print("TOOLTIP_MANAGER: Avoiding redundant hide.")
+		return
 
-	# The hide delay has passed. Actually hide the tooltip.
 	if _target_is_visible == _target_for_hide:
 		_tooltip_instance.hide_tooltip()
+		# REMOVED: The line `_tooltip_instance.update_content("")` was here.
+		# It's now handled by the tooltip itself when its animation finishes.
 		_target_is_visible = null
 	
 	_target_for_hide = null

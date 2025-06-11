@@ -709,8 +709,8 @@ func handle_stat_change(event):
 	await get_tree().create_timer(0.4 / playback_speed_scale).timeout
 
 func handle_status_change(event):
-	print("  -> Status Change: %s lane %d (ID: %d) %s status '%s' (Source: %s)" % [
-		event.player, event.lane, event.instance_id, "gained" if event.gained else "lost", event.status, event.get("source", "N/A")
+	print("  -> Status Change: %s lane %d (ID: %s) %s status '%s' (Source: %s)" % [
+		event.player, event.lane, str(event.instance_id), "gained" if event.gained else "lost", event.status, event.get("source", "N/A")
 	])
 	# TODO: Find SummonVisual node, update status icons visibility
 	await get_tree().create_timer(0.2 / playback_speed_scale).timeout

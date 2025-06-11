@@ -111,7 +111,7 @@ func _load_default_decks_for_testing():
 	# Re-add your old hardcoded deck loading here, e.g.:
 	var _unmake_res = CardDB.get_card_resource("Unmake") 
 	var _taunting_elf_res = CardDB.get_card_resource("TauntingElf")
-	var _overconentrate_res = CardDB.get_card_resource("OverConcentrate")
+	var _overconentrate_res = CardDB.get_card_resource("Overconcentrate")
 	var _flamewielder_res = CardDB.get_card_resource("Flamewielder")
 	var _goblin_warboss_res = CardDB.get_card_resource("GoblinWarboss")
 	var _pikemen_res = CardDB.get_card_resource("Pikemen")
@@ -119,9 +119,9 @@ func _load_default_decks_for_testing():
 	var _totem_of_champions_res = CardDB.get_card_resource("TotemOfChampions")
 	var _ascending_protoplasm_res = CardDB.get_card_resource("AscendingProtoplasm")
 	var _heedless_vandal_res = CardDB.get_card_resource("HeedlessVandal")
-	opponent_deck_to_load = [_goblin_warboss_res, _unmake_res, _taunting_elf_res, _totem_of_champions_res] 
-	player_deck_to_load = [_bloodrager_res, _heedless_vandal_res, _unmake_res, _flamewielder_res]
-	pass # Replace with actual default deck loading if needed for fallback
+	opponent_deck_to_load = [_goblin_warboss_res, _unmake_res, _taunting_elf_res, _ascending_protoplasm_res]
+	player_deck_to_load = [_bloodrager_res, _overconentrate_res, _totem_of_champions_res, _flamewielder_res]
+	pass
 
 func _print_deck(deck):
 	var card_names = []

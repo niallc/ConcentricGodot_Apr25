@@ -6,6 +6,8 @@ The core gameplay involves the player building a small deck of cards for automat
 
 The current primary focus is on the robust **battle simulation logic** and the **visual battle replay system**. While these core components are largely functional, development is ongoing to expand features and refine the overall game.
 
+**For Players**, see **[INTRO.md](INTRO.md)**
+
 ![Gameplay Screenshot of Concentric in Godot](art/GameplayScreenshot_small.png)
 
 ## Current Status
