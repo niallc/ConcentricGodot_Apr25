@@ -24,7 +24,7 @@ Each duelist starts with 20 life and 0 mana. Your life cannot go above 20, but y
 
 You will encounter many strategic keywords on your journey. Here are some of the most common:
 
-![Wall of Vines Card Art](res://art/wallOfVines_med.webp "Wall of Vines")
+![Wall of Vines Card Art](art/wall_of_vines_med.webp "Wall of Vines")
 * **Arrival:** This effect happens once, as soon as the creature enters the battlefield. For example, `Healer` heals you for 8 HP the moment it arrives.
 * **Swift:** Most creatures have "summoning sickness" and cannot attack on the turn they arrive. A `Swift` creature is an exception and can fight immediately.
 * **Relentless:** A `Relentless` creature ignores any creature in the opposing lane and always attacks the opponent directly.
