@@ -8,7 +8,7 @@ The current primary focus is on the robust **battle simulation logic** and the *
 
 **For Players**, see **[INTRO.md](INTRO.md)**
 
-![Gameplay Screenshot of Concentric in Godot](art/GameplayScreenshot_small.png)
+![Gameplay Screenshot of Concentric in Godot](art/gameplay_screenshot_small.png)
 
 ## Current Status
 * In active development.
