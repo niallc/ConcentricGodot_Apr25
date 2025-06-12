@@ -32,6 +32,50 @@
 2. **State management**: Instance ID tracking could be more centralized
 3. **Type safety**: Opportunities for stronger typing in card effect interfaces
 
+## Priority Improvements Needed
+
+### 1. Conditional Nesting Reduction (Medium Priority)
+Target deeply nested logic in:
+- `scenes/battle_replay.gd`: Visual effect handling (360-390)
+- Card effect resolution chains throughout effect scripts
+- Node validation patterns in UI code
+
+### 2. Error Handling Standardization (Medium Priority)
+- Establish consistent error reporting patterns
+- Replace scattered `printerr()` calls with structured error handling
+- Add graceful degradation for missing resources
+
+### 3. Card Effect System Enhancement (Low Priority)
+- Create base classes for common effect patterns
+- Reduce boilerplate in effect scripts
+- Improve type safety in card effect interfaces
+
+### 4. Event Generation Helper Class (Low Priority)
+Current event creation is repetitive across multiple files. Perhaps a centralized helper:
+```gdscript
+class EventBuilder:
+    static func creature_hp_change(instance_id, amount, new_hp, source_card_id)
+    static func mana_change(player, amount, new_total, source_card_id)
+    static func card_moved(card_id, player, from_zone, to_zone, instance_id)
+```
+
+## Development Workflow
+
+### Testing Strategy
+Run comprehensive tests via:
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/
+```
+
+Tests validate:
+- Battle logic integrity
+- Deterministic behavior with fixed seeds
+- Event sequence correctness
+- Replay system compatibility
+
+### Next Development Session Goals
+1. Add more deterministic battle scenarios for regression testing
+
 ## Enhancements Implemented
 
 ### 1. Battle System Refactoring ✅ 
@@ -51,51 +95,3 @@ Decomposed the large `Battle.conduct_turn()` method (170 lines) into focused, si
 - Auto-detects headless execution in `BattleLauncher`
 - Replay system runs at 100x speed in test mode and exits cleanly
 - Eliminates timeouts caused by waiting for user input during testing
-
-## Priority Improvements Needed
-
-### 1. Event Generation Helper Class (High Priority)
-Current event creation is repetitive across multiple files. Need centralized helper:
-```gdscript
-class EventBuilder:
-    static func creature_hp_change(instance_id, amount, new_hp, source_card_id)
-    static func mana_change(player, amount, new_total, source_card_id)
-    static func card_moved(card_id, player, from_zone, to_zone, instance_id)
-```
-
-### 2. Conditional Nesting Reduction (Medium Priority)
-Target deeply nested logic in:
-- `scenes/battle_replay.gd`: Visual effect handling (360-390)
-- Card effect resolution chains throughout effect scripts
-- Node validation patterns in UI code
-
-### 3. Error Handling Standardization (Medium Priority)
-- Establish consistent error reporting patterns
-- Replace scattered `printerr()` calls with structured error handling
-- Add graceful degradation for missing resources
-
-### 4. Card Effect System Enhancement (Low Priority)
-- Create base classes for common effect patterns
-- Reduce boilerplate in effect scripts
-- Improve type safety in card effect interfaces
-
-## Development Workflow
-
-### Testing Strategy
-Run comprehensive tests via:
-```bash
-/Applications/Godot.app/Contents/MacOS/Godot --headless -s addons/gut/gut_cmdln.gd -gdir=res://tests/
-```
-
-Tests validate:
-- Battle logic integrity
-- Deterministic behavior with fixed seeds
-- Event sequence correctness
-- Replay system compatibility
-
-### Next Development Session Goals
-1. Implement Event generation helper class
-2. Begin conditional nesting reduction in replay system
-3. Add more deterministic battle scenarios for regression testing
-
-The codebase demonstrates strong architectural foundations with clear improvement paths that maintain stability while enhancing maintainability.
