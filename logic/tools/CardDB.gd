@@ -5,12 +5,25 @@ var card_resources: Dictionary = {}
 
 func _ready():
 	var dir = DirAccess.open("res://data/cards/instances")
+	if dir == null:
+		printerr("Failed to open instances directory!")
+	else:
+		var contents = []
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			contents.append(file_name)
+			file_name = dir.get_next()
+		dir.list_dir_end()
+		print("Files found in instances directory: ", contents)
 	if dir:
 		dir.list_dir_begin()
 		var file_name = dir.get_next()
 		while file_name != "":
+			print("*", file_name)
 			if dir.current_is_dir():
 				pass # Skip directories
+			#elif file_name.ends_with(".tres") or file_name.ends_with(".tres.remap"):
 			elif file_name.ends_with(".tres"):
 				var card_res_path = "res://data/cards/instances/" + file_name
 				var card_res = load(card_res_path) as CardResource

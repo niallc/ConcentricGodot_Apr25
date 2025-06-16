@@ -29,6 +29,8 @@
 logic/tools/all_code_combined.txt
 logic/tools/make_big_code_file.py
 logic/tools/make_all_prompt_files.sh
+data/WebRelease/
+
 print_project_tree.py
 tempFindString.py
 icon.svg

@@ -2,6 +2,7 @@
 extends Object
 class_name Battle
 
+# Set up battle objects
 var duelist1: Combatant
 var duelist2: Combatant
 var turn_count: int = 0
