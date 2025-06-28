@@ -20,6 +20,9 @@
 /art/splash_menu_background_high_res.png
 /art/sprite_sheets/
 
+# Web Release Based ignores
+/data/Concentric2_Apr2025*
+
 /build/
 /addons/
 /archive/

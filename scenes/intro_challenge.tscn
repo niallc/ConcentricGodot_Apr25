@@ -1,0 +1,50 @@
+[gd_scene load_steps=2 format=3 uid="uid://cisa4w8bl4aws"]
+
+[ext_resource type="Script" uid="uid://dvx8tu13kuhcl" path="res://scenes/intro_challenge.gd" id="1"]
+
+[node name="IntroChallenge" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="MainVBox" type="VBoxContainer" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 20
+
+[node name="OpponentLabel" type="Label" parent="MainVBox"]
+layout_mode = 2
+text = "Opponent Deck"
+horizontal_alignment = 1
+
+[node name="OpponentDeckDisplay" type="HBoxContainer" parent="MainVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AvailableLabel" type="Label" parent="MainVBox"]
+layout_mode = 2
+text = "Choose Two Cards"
+horizontal_alignment = 1
+
+[node name="AvailableCardsGrid" type="GridContainer" parent="MainVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 5
+
+[node name="SelectedLabel" type="Label" parent="MainVBox"]
+layout_mode = 2
+text = "Your Selection"
+horizontal_alignment = 1
+
+[node name="SelectedCardsDisplay" type="HBoxContainer" parent="MainVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StartChallengeButton" type="Button" parent="MainVBox"]
+layout_mode = 2
+text = "Start Challenge"
